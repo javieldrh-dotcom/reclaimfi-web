@@ -4,4 +4,5 @@ export default function Home() {
       <h1>Audit Global Intelligence 🚀</h1>
       <p>Tu web ya está funcionando correctamente en Vercel.</p>
     </main>
-+}
+  )
+}
