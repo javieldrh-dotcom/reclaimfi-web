@@ -1,0 +1,371 @@
+:root {
+
+  --bg: #010409;
+  --card: rgba(13, 17, 23, 0.92);
+
+  --cyan: #22d3ee;
+  --blue: #3b82f6;
+  --red: #ef4444;
+  --yellow: #facc15;
+  --green: #22c55e;
+
+}
+
+* {
+
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+
+}
+
+html,
+body {
+
+  background: var(--bg);
+  color: white;
+
+  font-family: Arial, Helvetica, sans-serif;
+
+  overflow-x: hidden;
+
+}
+
+/* SCROLLBAR */
+::-webkit-scrollbar {
+
+  width: 10px;
+
+}
+
+::-webkit-scrollbar-track {
+
+  background: #020617;
+
+}
+
+::-webkit-scrollbar-thumb {
+
+  background: #0f172a;
+  border-radius: 20px;
+
+}
+
+/* NEURAL BACKGROUND */
+#canvas {
+
+  position: fixed;
+
+  top: 0;
+  left: 0;
+
+  width: 100%;
+  height: 100%;
+
+  z-index: 0;
+
+  opacity: 0.8;
+
+}
+
+/* APP CONTENT */
+.app-container {
+
+  position: relative;
+  z-index: 10;
+
+}
+
+/* HEADER */
+.cyber-header {
+
+  position: fixed;
+
+  top: 0;
+  left: 0;
+
+  width: 100%;
+  height: 72px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 0 30px;
+
+  background: rgba(1, 4, 9, 0.72);
+
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+
+  backdrop-filter: blur(18px);
+
+  z-index: 1000;
+
+}
+
+/* LOGO */
+.cyber-logo {
+
+  display: flex;
+  align-items: center;
+
+  gap: 14px;
+
+}
+
+.cyber-logo-text {
+
+  color: var(--cyan);
+
+  font-size: 18px;
+  font-weight: 900;
+
+  letter-spacing: 2px;
+
+  text-shadow: 0 0 12px rgba(34,211,238,0.5);
+
+}
+
+/* SPINNER */
+.spin {
+
+  width: 24px;
+  height: 24px;
+
+  border-radius: 50%;
+
+  border: 3px solid rgba(34,211,238,0.1);
+
+  border-top: 3px solid var(--cyan);
+
+  animation: spin 1s linear infinite;
+
+  box-shadow: 0 0 20px rgba(34,211,238,0.6);
+
+}
+
+@keyframes spin {
+
+  100% {
+
+    transform: rotate(360deg);
+
+  }
+
+}
+
+/* SIDEBAR */
+.cyber-sidebar {
+
+  position: fixed;
+
+  top: 72px;
+  left: 0;
+
+  width: 260px;
+  height: calc(100vh - 72px);
+
+  padding: 30px 18px;
+
+  background: rgba(2, 6, 23, 0.82);
+
+  border-right: 1px solid rgba(255,255,255,0.05);
+
+  backdrop-filter: blur(20px);
+
+  z-index: 100;
+
+}
+
+/* LINKS */
+.cyber-link {
+
+  display: block;
+
+  padding: 15px 18px;
+
+  margin-bottom: 10px;
+
+  border-radius: 16px;
+
+  color: #94a3b8;
+
+  text-decoration: none;
+
+  transition: 0.3s;
+
+  border: 1px solid transparent;
+
+}
+
+.cyber-link:hover {
+
+  background: rgba(34,211,238,0.08);
+
+  border: 1px solid rgba(34,211,238,0.2);
+
+  color: white;
+
+  box-shadow: 0 0 25px rgba(34,211,238,0.08);
+
+}
+
+/* ACTIVE */
+.cyber-link-active {
+
+  background: rgba(34,211,238,0.12);
+
+  border: 1px solid rgba(34,211,238,0.25);
+
+  color: var(--cyan);
+
+  box-shadow: 0 0 25px rgba(34,211,238,0.15);
+
+}
+
+/* MAIN */
+.cyber-main {
+
+  margin-left: 260px;
+
+  padding: 110px 40px 40px;
+
+}
+
+/* CARD */
+.cyber-card {
+
+  background: var(--card);
+
+  border: 1px solid rgba(255,255,255,0.05);
+
+  border-radius: 28px;
+
+  padding: 30px;
+
+  backdrop-filter: blur(14px);
+
+  box-shadow:
+    0 0 50px rgba(0,0,0,0.5),
+    inset 0 0 1px rgba(255,255,255,0.05);
+
+  transition: 0.3s;
+
+}
+
+.cyber-card:hover {
+
+  transform: translateY(-3px);
+
+  box-shadow:
+    0 0 60px rgba(34,211,238,0.08),
+    0 0 20px rgba(0,0,0,0.6);
+
+}
+
+/* TITLES */
+.cyber-title {
+
+  font-size: 52px;
+
+  font-weight: 900;
+
+  color: var(--cyan);
+
+  text-shadow: 0 0 20px rgba(34,211,238,0.3);
+
+}
+
+.cyber-subtitle {
+
+  color: #64748b;
+
+  margin-top: 10px;
+
+  line-height: 1.7;
+
+}
+
+/* GRID */
+.cyber-grid {
+
+  display: grid;
+
+  gap: 25px;
+
+}
+
+/* BUTTON */
+.cyber-button {
+
+  background: var(--cyan);
+
+  color: black;
+
+  border: none;
+
+  padding: 15px 24px;
+
+  border-radius: 16px;
+
+  font-weight: bold;
+
+  cursor: pointer;
+
+  transition: 0.3s;
+
+}
+
+.cyber-button:hover {
+
+  transform: translateY(-2px);
+
+  box-shadow: 0 0 25px rgba(34,211,238,0.4);
+
+}
+
+/* INPUT */
+.cyber-input {
+
+  width: 100%;
+
+  padding: 16px;
+
+  border-radius: 16px;
+
+  border: 1px solid rgba(255,255,255,0.06);
+
+  background: rgba(255,255,255,0.03);
+
+  color: white;
+
+  outline: none;
+
+}
+
+.cyber-input:focus {
+
+  border-color: rgba(34,211,238,0.5);
+
+  box-shadow: 0 0 20px rgba(34,211,238,0.15);
+
+}
+
+/* MOBILE */
+@media(max-width: 1100px) {
+
+  .cyber-sidebar {
+
+    display: none;
+
+  }
+
+  .cyber-main {
+
+    margin-left: 0;
+
+    padding: 110px 20px 30px;
+
+  }
+
+}

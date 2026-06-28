@@ -8,48 +8,35 @@ export default function Home() {
       <header className="sticky top-0 z-50 border-b border-white/10 bg-black/80 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5 lg:px-12">
 
-          <div>
-            <h1 className="text-xl font-bold tracking-wide text-cyan-400">
-              Audit Global Intelligence
-            </h1>
-          </div>
+          <h1 className="text-xl font-bold tracking-wide text-cyan-400">
+            Audit Global Intelligence
+          </h1>
 
           <nav
             aria-label="Main navigation"
             className="hidden gap-8 text-sm text-gray-300 md:flex"
           >
-            <Link
-              href="/servicios"
-              className="transition hover:text-cyan-400"
-            >
+            <Link href="/servicios" className="transition hover:text-cyan-400">
               Servicios
             </Link>
 
-            <Link
-              href="/tecnologia"
-              className="transition hover:text-cyan-400"
-            >
+            <Link href="/tecnologia" className="transition hover:text-cyan-400">
               Tecnología
             </Link>
 
-            <Link
-              href="/compliance"
-              className="transition hover:text-cyan-400"
-            >
+            <Link href="/compliance" className="transition hover:text-cyan-400">
               Compliance
             </Link>
 
-            <Link
-              href="/contacto"
-              className="transition hover:text-cyan-400"
-            >
+            <Link href="/contacto" className="transition hover:text-cyan-400">
               Contacto
             </Link>
           </nav>
 
+          {/* ✅ FIX: Link válido */}
           <Link
             href="/login"
-            className="rounded-xl bg-cyan-400 px-5 py-3 text-sm font-semibold text-black transition hover:scale-105"
+            className="rounded-xl border border-cyan-400/40 px-4 py-2 text-sm text-cyan-300 transition hover:bg-cyan-400/10"
           >
             Acceso Seguro
           </Link>
@@ -120,11 +107,9 @@ export default function Home() {
 
           <div className="rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur transition hover:border-cyan-400/40 hover:bg-white/10">
             <div className="mb-4 text-cyan-400 text-2xl">●</div>
-
             <h3 className="text-2xl font-semibold text-cyan-300">
               Auditoría Forense Digital
             </h3>
-
             <p className="mt-4 leading-7 text-gray-300">
               Evaluación técnica de integridad documental y evidencia electrónica.
             </p>
@@ -132,11 +117,9 @@ export default function Home() {
 
           <div className="rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur transition hover:border-cyan-400/40 hover:bg-white/10">
             <div className="mb-4 text-cyan-400 text-2xl">●</div>
-
             <h3 className="text-2xl font-semibold text-cyan-300">
               Blockchain Intelligence
             </h3>
-
             <p className="mt-4 leading-7 text-gray-300">
               Análisis de wallets, transacciones y clasificación de riesgo.
             </p>
@@ -144,11 +127,9 @@ export default function Home() {
 
           <div className="rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur transition hover:border-cyan-400/40 hover:bg-white/10">
             <div className="mb-4 text-cyan-400 text-2xl">●</div>
-
             <h3 className="text-2xl font-semibold text-cyan-300">
               AML / KYC
             </h3>
-
             <p className="mt-4 leading-7 text-gray-300">
               Automatización de flujos de cumplimiento y validación.
             </p>
@@ -160,8 +141,7 @@ export default function Home() {
       {/* CTA */}
       <section className="mx-auto max-w-5xl px-6 py-28 text-center">
         <h2 className="text-4xl font-bold md:text-5xl">
-          Tecnología orientada a precisión,
-          cumplimiento y confianza.
+          Tecnología orientada a precisión, cumplimiento y confianza.
         </h2>
 
         <p className="mx-auto mt-8 max-w-3xl text-lg leading-8 text-gray-400">
@@ -180,10 +160,10 @@ export default function Home() {
 
       {/* FOOTER */}
       <footer className="border-t border-white/10 px-6 py-10 text-center text-sm text-gray-500">
-        © 2026 Audit Global Intelligence.
-        Todos los derechos reservados.
+        © 2026 Audit Global Intelligence. Todos los derechos reservados.
       </footer>
 
     </main>
   );
 }
+
