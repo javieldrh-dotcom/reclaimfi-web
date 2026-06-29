@@ -1,56 +1,55 @@
 "use client";
 
 import { useState } from "react";
-import { supabase } from "../lib/supabase.ts";
+import { supabase } from "@/app/lib/supabase/client";
+
+type RiskLevel = "LOW" | "MEDIUM" | "HIGH";
 
 export default function EvaluationPage() {
-
   const [wallet, setWallet] = useState("");
   const [hash, setHash] = useState("");
   const [auditType, setAuditType] = useState("Blockchain");
   const [priority, setPriority] = useState("Media");
   const [description, setDescription] = useState("");
-  const [result, setResult] = useState("");
+  const [result, setResult] = useState<RiskLevel | "">("");
 
-  async function handleEvaluation(e: React.FormEvent) {
+  async function handleEvaluation(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
-    let risk = "";
+    const text = description.toLowerCase();
+
+    let risk: RiskLevel = "LOW";
 
     if (
       wallet.toLowerCase().includes("risk") ||
-      description.toLowerCase().includes("suspicious")
+      text.includes("suspicious")
     ) {
-      risk = "🔴 Alto Riesgo";
-    } else if (
-      description.toLowerCase().includes("review")
-    ) {
-      risk = "🟡 Revisión Manual";
-    } else {
-      risk = "🟢 Riesgo Bajo";
+      risk = "HIGH";
+    } else if (text.includes("review")) {
+      risk = "MEDIUM";
     }
 
     setResult(risk);
 
-    const { error } = await supabase
-      .from("evaluations")
-      .insert([
-        {
-          wallet,
-          hash,
-          audit_type: auditType,
-          priority,
-          description,
-          risk,
-        },
-      ]);
+    const { error } = await supabase.from("evaluations").insert([
+      {
+        wallet,
+        hash,
+        audit_type: auditType,
+        priority,
+        description,
+        risk,
+        created_at: new Date().toISOString(),
+      },
+    ]);
 
     if (error) {
-      console.error(error);
+      console.error("[Supabase Error]", error);
       alert("Error guardando evaluación");
-    } else {
-      alert("Evaluación almacenada correctamente");
+      return;
     }
+
+    alert("Evaluación almacenada correctamente");
   }
 
   return (
@@ -58,14 +57,12 @@ export default function EvaluationPage() {
 
       {/* HEADER */}
       <header className="border-b border-white/5 bg-black/60 backdrop-blur">
-
         <div className="mx-auto flex max-w-[1400px] items-center justify-between px-8 py-6">
 
           <div>
             <h1 className="text-3xl font-semibold tracking-tight">
               Evaluation Engine
             </h1>
-
             <p className="mt-1 text-sm text-gray-500">
               Audit Global Intelligence
             </p>
@@ -76,7 +73,6 @@ export default function EvaluationPage() {
           </div>
 
         </div>
-
       </header>
 
       {/* CONTENT */}
@@ -93,94 +89,55 @@ export default function EvaluationPage() {
                 Nueva Evaluación
               </h2>
 
-              <p className="mt-2 text-gray-500">
-                Ingrese información para análisis institucional.
-              </p>
+              <form onSubmit={handleEvaluation} className="mt-10 space-y-6">
 
-              <form
-                onSubmit={handleEvaluation}
-                className="mt-10 space-y-6"
-              >
+                <input
+                  value={wallet}
+                  onChange={(e) => setWallet(e.target.value)}
+                  placeholder="Wallet / Cuenta"
+                  className="w-full rounded-2xl border border-white/5 bg-black/30 px-5 py-4 outline-none focus:border-cyan-400"
+                />
 
-                <div>
-                  <label className="mb-2 block text-sm text-gray-400">
-                    Wallet / Cuenta
-                  </label>
+                <input
+                  value={hash}
+                  onChange={(e) => setHash(e.target.value)}
+                  placeholder="Hash Documental"
+                  className="w-full rounded-2xl border border-white/5 bg-black/30 px-5 py-4 outline-none focus:border-cyan-400"
+                />
 
-                  <input
-                    type="text"
-                    placeholder="0xA84B..."
-                    value={wallet}
-                    onChange={(e) => setWallet(e.target.value)}
-                    className="w-full rounded-2xl border border-white/5 bg-black/30 px-5 py-4 outline-none transition focus:border-cyan-400"
-                  />
-                </div>
+                <select
+                  value={auditType}
+                  onChange={(e) => setAuditType(e.target.value)}
+                  className="w-full rounded-2xl border border-white/5 bg-black/30 px-5 py-4"
+                >
+                  <option>Blockchain</option>
+                  <option>AML/KYC</option>
+                  <option>Forense Financiera</option>
+                  <option>Documental</option>
+                </select>
 
-                <div>
-                  <label className="mb-2 block text-sm text-gray-400">
-                    Hash Documental
-                  </label>
+                <select
+                  value={priority}
+                  onChange={(e) => setPriority(e.target.value)}
+                  className="w-full rounded-2xl border border-white/5 bg-black/30 px-5 py-4"
+                >
+                  <option>Baja</option>
+                  <option>Media</option>
+                  <option>Alta</option>
+                  <option>Crítica</option>
+                </select>
 
-                  <input
-                    type="text"
-                    placeholder="SHA256 / TX HASH"
-                    value={hash}
-                    onChange={(e) => setHash(e.target.value)}
-                    className="w-full rounded-2xl border border-white/5 bg-black/30 px-5 py-4 outline-none transition focus:border-cyan-400"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm text-gray-400">
-                    Tipo de Auditoría
-                  </label>
-
-                  <select
-                    value={auditType}
-                    onChange={(e) => setAuditType(e.target.value)}
-                    className="w-full rounded-2xl border border-white/5 bg-black/30 px-5 py-4 outline-none transition focus:border-cyan-400"
-                  >
-                    <option>Blockchain</option>
-                    <option>AML/KYC</option>
-                    <option>Forense Financiera</option>
-                    <option>Documental</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm text-gray-400">
-                    Prioridad
-                  </label>
-
-                  <select
-                    value={priority}
-                    onChange={(e) => setPriority(e.target.value)}
-                    className="w-full rounded-2xl border border-white/5 bg-black/30 px-5 py-4 outline-none transition focus:border-cyan-400"
-                  >
-                    <option>Baja</option>
-                    <option>Media</option>
-                    <option>Alta</option>
-                    <option>Crítica</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm text-gray-400">
-                    Descripción
-                  </label>
-
-                  <textarea
-                    rows={5}
-                    placeholder="Detalle del caso..."
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    className="w-full rounded-2xl border border-white/5 bg-black/30 px-5 py-4 outline-none transition focus:border-cyan-400"
-                  />
-                </div>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Descripción del caso..."
+                  rows={5}
+                  className="w-full rounded-2xl border border-white/5 bg-black/30 px-5 py-4 outline-none focus:border-cyan-400"
+                />
 
                 <button
                   type="submit"
-                  className="rounded-2xl bg-cyan-400 px-6 py-4 font-semibold text-black transition hover:scale-[1.02]"
+                  className="rounded-2xl bg-cyan-400 px-6 py-4 font-semibold text-black hover:scale-[1.02] transition"
                 >
                   Iniciar Evaluación
                 </button>
@@ -188,10 +145,9 @@ export default function EvaluationPage() {
               </form>
 
             </div>
-
           </div>
 
-          {/* RESULT */}
+          {/* RESULTADO */}
           <div>
 
             <div className="rounded-3xl border border-white/5 bg-white/[0.03] p-8 backdrop-blur">
@@ -204,7 +160,6 @@ export default function EvaluationPage() {
 
                 {result ? (
                   <div className="rounded-2xl border border-cyan-400/10 bg-black/30 p-6">
-
                     <p className="text-sm text-gray-500">
                       Clasificación generada
                     </p>
@@ -214,24 +169,20 @@ export default function EvaluationPage() {
                     </h3>
 
                     <p className="mt-4 text-sm text-gray-400">
-                      Evaluación preliminar generada por AGI.
+                      Evaluación preliminar del sistema AGI.
                     </p>
-
                   </div>
                 ) : (
                   <div className="rounded-2xl border border-white/5 bg-black/20 p-6">
-
                     <p className="text-gray-500">
                       Esperando evaluación...
                     </p>
-
                   </div>
                 )}
 
               </div>
 
             </div>
-
           </div>
 
         </div>
@@ -240,5 +191,4 @@ export default function EvaluationPage() {
 
     </main>
   );
-} //
-
+}

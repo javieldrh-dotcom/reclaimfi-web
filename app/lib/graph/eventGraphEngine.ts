@@ -1,6 +1,4 @@
-//
-// EVENT GRAPH ENGINE (STABLE PRODUCTION CORE)
-//
+import { graphStore } from "@/app/lib/graph/graphStore";
 
 type RiskLevel = "LOW" | "MEDIUM" | "HIGH";
 
@@ -26,13 +24,10 @@ type GraphEvent = {
 };
 
 class EventGraphEngine {
-  private nodes: Map<string, GraphNode> = new Map();
-  private edges: Map<string, GraphEdge> = new Map();
+  private nodes = new Map<string, GraphNode>();
+  private edges = new Map<string, GraphEdge>();
   private eventLog: GraphEvent[] = [];
 
-  //
-  // EVENT INTAKE
-  //
   public ingest(event: any) {
     if (!event?.type) return;
 
@@ -60,15 +55,9 @@ class EventGraphEngine {
       case "rf.risk.calculated":
         this.updateRisk(event.payload);
         break;
-
-      default:
-        break;
     }
   }
 
-  //
-  // NODE CREATION (IDEMPOTENT)
-  //
   private addNode(payload: any) {
     const id =
       payload?.id ||
@@ -79,7 +68,7 @@ class EventGraphEngine {
 
     const existing = this.nodes.get(id);
 
-    this.nodes.set(id, {
+    const node: GraphNode = {
       id,
       label:
         payload?.title ||
@@ -87,13 +76,18 @@ class EventGraphEngine {
         payload?.case_code ||
         "Node",
       type: payload?.type || "entity",
-      riskLevel: payload?.risk_level || existing?.riskLevel || "LOW",
-    });
+      riskLevel:
+        payload?.risk_level ||
+        existing?.riskLevel ||
+        "LOW",
+    };
+
+    this.nodes.set(id, node);
+
+    // 🔥 CRÍTICO: sincronización UI
+    graphStore.addNode(node);
   }
 
-  //
-  // EDGE CREATION (NORMALIZED + NO DUPLICATES)
-  //
   private addEdge(payload: any) {
     if (!payload?.source || !payload?.target) return;
 
@@ -105,18 +99,23 @@ class EventGraphEngine {
         ? `${source}-${target}`
         : `${target}-${source}`;
 
-    this.edges.set(id, {
+    const edge: GraphEdge = {
       id,
       source,
       target,
-      label: payload?.label || payload?.relationship_type || "relation",
+      label:
+        payload?.label ||
+        payload?.relationship_type ||
+        "relation",
       riskLevel: payload?.risk_level || "LOW",
-    });
+    };
+
+    this.edges.set(id, edge);
+
+    // 🔥 CRÍTICO: sincronización UI
+    graphStore.addEdge(edge);
   }
 
-  //
-  // BATCH PROCESSING
-  //
   private processBatch(entities: any[]) {
     if (!Array.isArray(entities)) return;
 
@@ -131,42 +130,36 @@ class EventGraphEngine {
     }
   }
 
-  //
-  // RISK UPDATE (IMMUTABLE FIX)
-  //
   private updateRisk(payload: any) {
     if (!payload?.entityId) return;
 
     const node = this.nodes.get(payload.entityId);
-
     if (!node) return;
 
-    this.nodes.set(payload.entityId, {
+    const updated = {
       ...node,
       riskLevel: payload.riskLevel || "MEDIUM",
-    });
+    };
+
+    this.nodes.set(payload.entityId, updated);
+    graphStore.updateNode(updated);
   }
 
-  //
-  // SNAPSHOT FOR UI (REACTFLOW)
-  //
   public getSnapshot() {
     return {
       nodes: Array.from(this.nodes.values()),
       edges: Array.from(this.edges.values()),
       eventCount: this.eventLog.length,
-      lastEvent: this.eventLog[this.eventLog.length - 1] || null,
+      lastEvent: this.eventLog.at(-1) || null,
       timestamp: Date.now(),
     };
   }
 
-  //
-  // RESET (DEBUG ONLY)
-  //
   public reset() {
     this.nodes.clear();
     this.edges.clear();
     this.eventLog = [];
+    graphStore.reset();
   }
 }
 
@@ -175,4 +168,3 @@ export const graphEngine = new EventGraphEngine();
 if (typeof window !== "undefined") {
   (window as any).graphEngine = graphEngine;
 }
-
