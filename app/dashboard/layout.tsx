@@ -1,5 +1,5 @@
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { createClient } from "@/app/lib/supabase/server";
 import RealtimeInitializer from "@/app/components/RealtimeInitializer";
 
 export default async function DashboardLayout({
@@ -7,11 +7,13 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const cookieStore = await cookies();
+  const supabase = await createClient();
 
-  const token = cookieStore.get("token");
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  if (!token) {
+  if (!user) {
     redirect("/login");
   }
 
@@ -22,4 +24,3 @@ export default async function DashboardLayout({
     </>
   );
 }
-

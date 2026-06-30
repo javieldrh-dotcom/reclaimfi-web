@@ -1,42 +1,67 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { createClient } from "@/app/lib/supabase/client";
 
 export default function LoginPage() {
-  const router = useRouter();
-
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">(
+    "idle"
+  );
+  const [errorMsg, setErrorMsg] = useState("");
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
+    setStatus("sending");
+    setErrorMsg("");
 
-    document.cookie = "token=demo; path=/; SameSite=Lax";
+    const supabase = createClient();
 
-    router.replace("/dashboard");
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+
+    if (error) {
+      setStatus("error");
+      setErrorMsg(error.message);
+      return;
+    }
+
+    setStatus("sent");
   }
 
   return (
-    <div>
-      <h1>LOGIN</h1>
+    <div style={{ maxWidth: 400, margin: "80px auto", padding: 24 }}>
+      <h1>ReclaimFi — Acceso</h1>
 
-      <form onSubmit={handleLogin}>
-        <input
-          placeholder="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
+      {status === "sent" ? (
+        <p>
+          Te enviamos un enlace de acceso a <strong>{email}</strong>. Revisa
+          tu correo (y la carpeta de spam) y haz click para entrar.
+        </p>
+      ) : (
+        <form onSubmit={handleLogin}>
+          <input
+            type="email"
+            placeholder="tu correo"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            style={{ display: "block", width: "100%", marginBottom: 12 }}
+          />
 
-        <input
-          placeholder="password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+          <button type="submit" disabled={status === "sending"}>
+            {status === "sending" ? "Enviando..." : "Enviar enlace de acceso"}
+          </button>
 
-        <button type="submit">Entrar</button>
-      </form>
+          {status === "error" && (
+            <p style={{ color: "red", marginTop: 12 }}>{errorMsg}</p>
+          )}
+        </form>
+      )}
     </div>
   );
 }

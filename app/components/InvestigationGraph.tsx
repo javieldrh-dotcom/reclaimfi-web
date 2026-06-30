@@ -22,7 +22,7 @@ export default function InvestigationGraph() {
     canvas.width = window.innerWidth;
     canvas.height = 700;
 
-    const nodes = [];
+    const nodes: any[] = [];
 
     for (let i = 0; i < 24; i++) {
 
