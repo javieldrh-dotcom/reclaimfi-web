@@ -33,6 +33,9 @@ export default function DataIngestion() {
   const [uploading, setUploading] =
     useState(false);
 
+  const [amount, setAmount] =
+    useState("");
+
   //
   // SEND TO BACKEND
   //
@@ -106,6 +109,10 @@ export default function DataIngestion() {
           );
 
         });
+
+      if (amount) {
+        formData.append("amount", amount);
+      }
 
       //
       // BACKEND REQUEST
@@ -277,11 +284,24 @@ export default function DataIngestion() {
 
       <div className="mt-10 rounded-3xl border border-cyan-500/20 bg-[#0d1117]/95 p-10">
 
-        <h2 className="text-3xl font-black text-cyan-300">
+       <h2 className="text-3xl font-black text-cyan-300">
 
           FILE INGESTION ENGINE
 
         </h2>
+
+        <div className="mt-6">
+          <label className="text-sm font-black tracking-[0.2em] text-cyan-400">
+            MONTO DE LA TRANSACCIÓN (OPCIONAL)
+          </label>
+          <input
+            type="number"
+            placeholder="Ej. 50000"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            className="mt-3 w-full rounded-2xl border border-cyan-500/20 bg-black/30 px-6 py-4 text-white placeholder-gray-500 outline-none focus:border-cyan-400"
+          />
+        </div>
 
         <div
 
