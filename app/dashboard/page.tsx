@@ -14,7 +14,7 @@ export default function DashboardPage() {
 
     if (!canvas) return;
 
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas!.getContext("2d");
 
     if (!ctx) return;
 
@@ -22,8 +22,8 @@ export default function DashboardPage() {
 
     function init() {
 
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+      canvas!.width = window.innerWidth;
+      canvas!.height = window.innerHeight;
 
       particles = [];
 
@@ -31,8 +31,8 @@ export default function DashboardPage() {
 
         particles.push({
 
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height,
+          x: Math.random() * canvas!.width,
+          y: Math.random() * canvas!.height,
 
           vx: (Math.random() - 0.5) * 1.2,
           vy: (Math.random() - 0.5) * 1.2,
@@ -45,20 +45,20 @@ export default function DashboardPage() {
 
     function draw() {
 
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx!.clearRect(0, 0, canvas!.width, canvas!.height);
 
       particles.forEach((p, idx) => {
 
         p.x += p.vx;
         p.y += p.vy;
 
-        if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
-        if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+        if (p.x < 0 || p.x > canvas!.width) p.vx *= -1;
+        if (p.y < 0 || p.y > canvas!.height) p.vy *= -1;
 
         // PARTICLES
-        ctx.beginPath();
+        ctx!.beginPath();
 
-        ctx.arc(
+        ctx!.arc(
           p.x,
           p.y,
           3,
@@ -66,14 +66,14 @@ export default function DashboardPage() {
           Math.PI * 2
         );
 
-        ctx.shadowBlur = 25;
-        ctx.shadowColor = "#00ccff";
+        ctx!.shadowBlur = 25;
+        ctx!.shadowColor = "#00ccff";
 
-        ctx.fillStyle = "#7dd3fc";
+        ctx!.fillStyle = "#7dd3fc";
 
-        ctx.fill();
+        ctx!.fill();
 
-        ctx.shadowBlur = 0;
+        ctx!.shadowBlur = 0;
 
         // CONNECTIONS
         for (let j = idx + 1; j < particles.length; j++) {
@@ -85,22 +85,22 @@ export default function DashboardPage() {
 
           if (d < 220) {
 
-            ctx.beginPath();
+            ctx!.beginPath();
 
-            ctx.moveTo(p.x, p.y);
+            ctx!.moveTo(p.x, p.y);
 
-            ctx.lineTo(
+            ctx!.lineTo(
               particles[j].x,
               particles[j].y
             );
 
-            ctx.lineWidth = 1.2;
+            ctx!.lineWidth = 1.2;
 
-            ctx.strokeStyle = `rgba(0,204,255,${
+            ctx!.strokeStyle = `rgba(0,204,255,${
               1 - d / 220
             })`;
 
-            ctx.stroke();
+            ctx!.stroke();
 
           }
 

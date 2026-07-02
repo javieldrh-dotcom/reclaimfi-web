@@ -1,4 +1,4 @@
-import { supabase } from "@/app/lib/supabase/client";
+import { supabase } from "@/app/lib/supabase";
 import { graphEngine } from "@/app/lib/graph/eventGraphEngine";
 import { ingestLedgerEvent } from "@/app/lib/audit/ledger-engine";
 
@@ -64,10 +64,11 @@ export function initializeRealtimeGraphBridge() {
       graphEngine.ingest({
         type: event.type,
         payload: {
-          source: payload?.new?.source_entity,
-          target: payload?.new?.target_entity,
-          relationship_type: payload?.new?.relationship_type,
-          risk_level: payload?.new?.risk_level,
+source: (payload.new as any)?.source_entity,
+          target: (payload.new as any)?.target_entity,
+          relationship_type: (payload.new as any)?.relationship_type,
+          risk_level: (payload.new as any)?.risk_level,
+>>>>>>> f51561db2bc00ccdd3809e8c72be8334300599de
         },
       });
     }

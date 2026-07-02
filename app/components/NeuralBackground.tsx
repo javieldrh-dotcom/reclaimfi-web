@@ -13,7 +13,7 @@ export default function NeuralBackground() {
 
     if (!canvas) return;
 
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas!.getContext("2d");
 
     if (!ctx) return;
 
@@ -21,8 +21,8 @@ export default function NeuralBackground() {
 
     function init() {
 
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+      canvas!.width = window.innerWidth;
+      canvas!.height = window.innerHeight;
 
       particles = [];
 
@@ -30,8 +30,8 @@ export default function NeuralBackground() {
 
         particles.push({
 
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height,
+          x: Math.random() * canvas!.width,
+          y: Math.random() * canvas!.height,
 
           vx: (Math.random() - 0.5) * 1.1,
           vy: (Math.random() - 0.5) * 1.1,
@@ -44,11 +44,11 @@ export default function NeuralBackground() {
 
     function draw() {
 
-      ctx.clearRect(
+      ctx!.clearRect(
         0,
         0,
-        canvas.width,
-        canvas.height
+        canvas!.width,
+        canvas!.height
       );
 
       particles.forEach((p, idx) => {
@@ -58,17 +58,17 @@ export default function NeuralBackground() {
 
         if (
           p.x < 0 ||
-          p.x > canvas.width
+          p.x > canvas!.width
         ) p.vx *= -1;
 
         if (
           p.y < 0 ||
-          p.y > canvas.height
+          p.y > canvas!.height
         ) p.vy *= -1;
 
-        ctx.beginPath();
+        ctx!.beginPath();
 
-        ctx.arc(
+        ctx!.arc(
           p.x,
           p.y,
           2,
@@ -76,14 +76,14 @@ export default function NeuralBackground() {
           Math.PI * 2
         );
 
-        ctx.fillStyle = "#38bdf8";
+        ctx!.fillStyle = "#38bdf8";
 
-        ctx.shadowBlur = 18;
-        ctx.shadowColor = "#38bdf8";
+        ctx!.shadowBlur = 18;
+        ctx!.shadowColor = "#38bdf8";
 
-        ctx.fill();
+        ctx!.fill();
 
-        ctx.shadowBlur = 0;
+        ctx!.shadowBlur = 0;
 
         for (
           let j = idx + 1;
@@ -98,23 +98,23 @@ export default function NeuralBackground() {
 
           if (d < 180) {
 
-            ctx.beginPath();
+            ctx!.beginPath();
 
-            ctx.moveTo(p.x, p.y);
+            ctx!.moveTo(p.x, p.y);
 
-            ctx.lineTo(
+            ctx!.lineTo(
               particles[j].x,
               particles[j].y
             );
 
-            ctx.strokeStyle =
+            ctx!.strokeStyle =
               `rgba(56,189,248,${
                 1 - d / 180
               })`;
 
-            ctx.lineWidth = 1;
+            ctx!.lineWidth = 1;
 
-            ctx.stroke();
+            ctx!.stroke();
 
           }
 

@@ -1,6 +1,5 @@
 import { supabase } from "./supabase";
-import { ReactFlow } from 'reactflow';
-import 'reactflow/dist/style.css';
+
 //
 // GRAPH NODE TYPE
 //
