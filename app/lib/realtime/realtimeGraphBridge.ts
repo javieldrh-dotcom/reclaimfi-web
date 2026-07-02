@@ -1,4 +1,4 @@
-import { supabase } from "@/app/lib/supabase/client";
+import { supabase } from "@/app/lib/supabase";
 import { graphEngine } from "@/app/lib/graph/eventGraphEngine";
 
 let initialized = false;
@@ -51,12 +51,12 @@ export function initializeRealtimeGraphBridge() {
       graphEngine.ingest({
         type: "rf.relationship.created",
         payload: {
-          source: payload.new?.source_entity,
-          target: payload.new?.target_entity,
+          source: (payload.new as any)?.source_entity,
+          target: (payload.new as any)?.target_entity,
           relationship_type:
-            payload.new?.relationship_type,
+            (payload.new as any)?.relationship_type,
           risk_level:
-            payload.new?.risk_level,
+            (payload.new as any)?.risk_level,
         },
       });
     }
