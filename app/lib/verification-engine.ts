@@ -1,5 +1,4 @@
-import { supabase } from "@/app/lib/supabase/client";
-
+import { supabase } from "@/app/lib/supabase";
 export async function verifyLedgerIntegrity() {
   const { data, error } = await supabase
     .from("event_ledger")

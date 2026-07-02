@@ -85,7 +85,7 @@ class EventGraphEngine {
     this.nodes.set(id, node);
 
     // 🔥 CRÍTICO: sincronización UI
-    graphStore.addNode(node);
+   graphStore.getState().addNode(node); 
   }
 
   private addEdge(payload: any) {
@@ -113,7 +113,7 @@ class EventGraphEngine {
     this.edges.set(id, edge);
 
     // 🔥 CRÍTICO: sincronización UI
-    graphStore.addEdge(edge);
+   graphStore.getState().addEdge(edge);
   }
 
   private processBatch(entities: any[]) {
@@ -142,7 +142,7 @@ class EventGraphEngine {
     };
 
     this.nodes.set(payload.entityId, updated);
-    graphStore.updateNode(updated);
+    graphStore.getState().updateNode(updated);
   }
 
   public getSnapshot() {
@@ -159,7 +159,7 @@ class EventGraphEngine {
     this.nodes.clear();
     this.edges.clear();
     this.eventLog = [];
-    graphStore.reset();
+    graphStore.getState().reset();
   }
 }
 

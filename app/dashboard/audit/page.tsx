@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/app/lib/supabase/client";
-import { verifyLedgerIntegrity } from "@/app/lib/audit/verification-engine";
+import { supabase } from "@/app/lib/supabase";
+import { verifyLedgerIntegrity } from "@/app/lib/verification-engine";
 
 export default function AuditDashboardPage() {
   const [ledger, setLedger] = useState<any[]>([]);

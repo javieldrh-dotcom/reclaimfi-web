@@ -1,5 +1,4 @@
-import { supabase } from "@/app/lib/supabase/client";
-
+import { supabase } from "@/app/lib/supabase";
 let lastHash: string | null = null;
 
 export async function ingestLedgerEvent(event: any) {

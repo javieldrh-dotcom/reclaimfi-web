@@ -1,4 +1,4 @@
-import { supabase } from "@/app/lib/supabase/client";
+import { supabase } from "@/app/lib/supabase";
 import { createEventHash } from "./hash-engine";
 
 let lastHash: string | null = null;

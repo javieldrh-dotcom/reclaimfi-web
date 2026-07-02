@@ -68,7 +68,6 @@ source: (payload.new as any)?.source_entity,
           target: (payload.new as any)?.target_entity,
           relationship_type: (payload.new as any)?.relationship_type,
           risk_level: (payload.new as any)?.risk_level,
->>>>>>> f51561db2bc00ccdd3809e8c72be8334300599de
         },
       });
     }
