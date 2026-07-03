@@ -1,6 +1,6 @@
 import { supabase } from "@/app/lib/supabase";
 import { graphEngine } from "@/app/lib/graph/eventGraphEngine";
-import { ingestLedgerEvent } from "@/app/lib/audit/ledger-engine";
+import { ingestLedgerEvent } from "@/app/core/ledger-engine";
 
 let initialized = false;
 
