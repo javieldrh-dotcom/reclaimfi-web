@@ -10,7 +10,7 @@ export default function GraphPage() {
   }, []);
 
   return (
-    <div style={{ padding: 20 }}>
+   <div style={{ padding: 20, height: "calc(100vh - 40px)" }}>
       <h1>FORENSIC GRAPH ENGINE</h1>
       <GraphVisualization />
     </div>
