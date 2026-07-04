@@ -1,9 +1,11 @@
-import { supabase } from "../supabase";
+import { createClient } from "../supabase/server";
 
 export async function casesHandler(event: any) {
   if (event.type !== "rf.case.created") return;
 
-  await supabase.from("rf_cases").insert([
+  const supabase = await createClient();
+
+  const { error } = await supabase.from("cases").insert([
     {
       case_code: event.payload.case_code,
       title: event.payload.title,
@@ -13,5 +15,8 @@ export async function casesHandler(event: any) {
       risk_level: event.payload.risk_level,
     },
   ]);
-}
 
+  if (error) {
+    console.error("[CASES HANDLER ERROR]", error);
+  }
+}
