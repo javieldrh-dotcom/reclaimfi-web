@@ -1,17 +1,43 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { supabase } from "@/app/lib/supabase";
 
 export default function DashboardPage() {
 
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [stats, setStats] = useState({
+    activeCases: 0,
+    highRisk: 0,
+    trackedWallets: 0,
+  });
 
-  const [activeTab, setActiveTab] = useState("command");
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+ const [activeTab, setActiveTab] = useState("command");
+
+  useEffect(() => {
+    async function loadStats() {
+      const [casesResult, highRiskResult, walletsResult] = await Promise.all([
+        supabase.from("cases").select("id", { count: "exact", head: true }),
+        supabase
+          .from("cases")
+          .select("id", { count: "exact", head: true })
+          .eq("risk_level", "HIGH"),
+        supabase.from("wallet_addresses").select("id", { count: "exact", head: true }),
+      ]);
+
+      setStats({
+        activeCases: casesResult.count ?? 0,
+        highRisk: highRiskResult.count ?? 0,
+        trackedWallets: walletsResult.count ?? 0,
+      });
+    }
+
+    loadStats();
+  }, []);
 
   useEffect(() => {
 
     const canvas = canvasRef.current;
-
     if (!canvas) return;
 
     const ctx = canvas!.getContext("2d");
@@ -273,9 +299,9 @@ export default function DashboardPage() {
                 </p>
 
                 <h2 className="mt-4 text-5xl font-black">
-                  24
+                  {stats.activeCases}
                 </h2>
-
+                
               </div>
 
               <div className="rounded-xl border border-red-500/20 bg-[rgba(13,17,23,0.58)] p-8 backdrop-blur-md">
@@ -285,7 +311,7 @@ export default function DashboardPage() {
                 </p>
 
                 <h2 className="mt-4 text-5xl font-black text-red-400">
-                  7
+                  {stats.highRisk}
                 </h2>
 
               </div>
