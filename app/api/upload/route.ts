@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { processIntelligence } from "@/app/lib/intelligenceOrchestrator";
-import { calculateRisk } from "@/app/lib/riskEngine";
+import { calculateRisk } from "@/app/verticals/reclaimfi/riskEngine";
 
 export async function POST(request: Request) {
   try {
