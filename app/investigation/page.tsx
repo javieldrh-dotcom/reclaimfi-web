@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { supabase } from "../lib/supabase";
 
 export default function InvestigationsPage() {
@@ -182,6 +183,15 @@ export default function InvestigationsPage() {
                   <h2 className="break-all text-xl font-semibold text-cyan-300">
                     {item.wallet}
                   </h2>
+
+                  {item.case_id && (
+  <Link
+    href={`/reports/${item.case_id}`}
+    className="mt-3 inline-block rounded-full bg-cyan-500 px-5 py-2 text-xs font-bold text-black hover:bg-cyan-400"
+  >
+    VER INFORME PROFESIONAL
+  </Link>
+)}
 
                   <p className="mt-2 text-gray-400">
                     Investigator: {item.investigator || "Unassigned"}
