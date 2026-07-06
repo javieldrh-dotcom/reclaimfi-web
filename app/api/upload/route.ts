@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { processIntelligence } from "@/app/lib/intelligenceOrchestrator";
 import { calculateRisk } from "@/app/verticals/reclaimfi/riskEngine";
+import { extractEntitiesFromText } from "@/app/lib/agents/entityExtractionAgent";
 
 export async function POST(request: Request) {
   try {
@@ -26,6 +27,15 @@ export async function POST(request: Request) {
           amount,
         });
 
+        let fileText = "";
+        try {
+          fileText = await file.text();
+        } catch {
+          fileText = "";
+        }
+
+        const extraction = await extractEntitiesFromText(file.name, fileText);
+
         const metadata = {
           fileName: file.name,
           fileType: file.type,
@@ -38,7 +48,8 @@ export async function POST(request: Request) {
 
         const aiAnalysis = {
           suspiciousPatterns: risk.reasons,
-          extractedEntities: generateEntities(),
+          extractedEntities: extraction.entities,
+          entitySummary: extraction.summary,
           anomalyScore: risk.score,
           operationalImpact: mapImpact(risk.level),
         };
@@ -60,7 +71,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      engine: "AGI RISK ENGINE v1 (rule-based)",
+      engine: "AGI RISK ENGINE v2 (rule-based risk + AI entity extraction)",
       filesProcessed: processedFiles.length,
       timestamp: new Date().toISOString(),
       results: processedFiles,
@@ -76,7 +87,6 @@ export async function POST(request: Request) {
 
 function classifyFile(fileName: string) {
   const lower = fileName.toLowerCase();
-
   if (lower.includes("bank")) return "BANKING";
   if (lower.includes("invoice")) return "PROCUREMENT";
   if (lower.includes("tax")) return "TAX";
@@ -85,7 +95,6 @@ function classifyFile(fileName: string) {
   if (lower.endsWith(".csv")) return "TRANSACTIONAL";
   if (lower.endsWith(".pdf")) return "DOCUMENTAL";
   if (lower.endsWith(".xlsx")) return "FINANCIAL";
-
   return "FINANCIAL";
 }
 
@@ -93,13 +102,4 @@ function mapImpact(level: "LOW" | "MEDIUM" | "HIGH") {
   if (level === "HIGH") return "CRITICAL";
   if (level === "MEDIUM") return "MEDIUM";
   return "LOW";
-}
-
-function generateEntities() {
-  return [
-    { entity: "Global Treasury Group", type: "ORGANIZATION" },
-    { entity: "Offshore Account", type: "BANKING" },
-    { entity: "Wallet Cluster", type: "BLOCKCHAIN" },
-    { entity: "Procurement Vendor", type: "SUPPLIER" },
-  ];
 }
