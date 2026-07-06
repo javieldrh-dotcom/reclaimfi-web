@@ -18,6 +18,12 @@ export async function auditHandler(event: any) {
     companyId = userCompany?.company_id ?? null;
   }
 
+  const caseId =
+    event.payload?.case_id ??
+    event.payload?.caseId ??
+    (event.type === "rf.case.created" ? event.payload?.id : null) ??
+    null;
+
   const { error } = await supabase.from("audit_logs").insert([
     {
       module: "event_bus",
@@ -25,6 +31,7 @@ export async function auditHandler(event: any) {
       new_data: event.payload,
       user_id: userData?.user?.id ?? null,
       company_id: companyId,
+      case_id: caseId,
     },
   ]);
 

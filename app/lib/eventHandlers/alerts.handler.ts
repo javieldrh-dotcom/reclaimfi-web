@@ -1,4 +1,4 @@
-import { createClient } from "../supabase/server";
+﻿import { createClient } from "../supabase/server";
 
 export async function alertsHandler(event: any) {
   if (event.type !== "rf.alert.created") return;
@@ -21,11 +21,12 @@ export async function alertsHandler(event: any) {
     {
       alert_type: event.payload.alert_type ?? event.payload.classification ?? "GENERAL",
       severity: event.payload.severity ?? event.payload.riskLevel ?? "LOW",
-      title: event.payload.title ?? `Alert: ${event.payload.fileName ?? "unknown"}`,
+      title: event.payload.title ?? ("Alert: " + (event.payload.fileName ?? "unknown")),
       description: event.payload.description ?? JSON.stringify(event.payload),
       source_engine: "EVENT_BUS",
       status: "OPEN",
       company_id: companyId,
+      case_id: event.payload.case_id ?? null,
     },
   ]);
 

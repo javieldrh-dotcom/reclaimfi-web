@@ -56,15 +56,39 @@ export default function CaseReportPage() {
       const { data: ledgerResult } = await supabase
         .from("event_ledger")
         .select("event_type, event_hash, previous_hash, actor, created_at")
+        .eq("case_id", caseId)
         .order("created_at", { ascending: true });
 
       const { data: auditResult } = await supabase
         .from("audit_logs")
         .select("module, action, created_at")
+        .eq("case_id", caseId)
         .order("created_at", { ascending: true });
 
+      const { data: alertsResult } = await supabase
+        .from("alerts")
+        .select("alert_type, severity, title, created_at")
+        .eq("case_id", caseId);
+
+      const { data: riskResult } = await supabase
+        .from("risk_scores")
+        .select("total_score, generated_by, created_at")
+        .eq("case_id", caseId);
+
       setLedgerEntries(ledgerResult ?? []);
-      setAuditEntries(auditResult ?? []);
+      setAuditEntries([
+        ...(auditResult ?? []),
+        ...(alertsResult ?? []).map((a: any) => ({
+          module: "alerts",
+          action: `${a.alert_type ?? "ALERT"} (${a.severity}): ${a.title}`,
+          created_at: a.created_at,
+        })),
+        ...(riskResult ?? []).map((r: any) => ({
+          module: "risk_scores",
+          action: `Score total: ${r.total_score} (${r.generated_by})`,
+          created_at: r.created_at,
+        })),
+      ]);
       setLoading(false);
     }
 

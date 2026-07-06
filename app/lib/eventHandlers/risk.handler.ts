@@ -1,4 +1,4 @@
-import { createClient } from "../supabase/server";
+﻿import { createClient } from "../supabase/server";
 
 export async function riskHandler(event: any) {
   if (event.type !== "rf.risk.calculated") return;
@@ -31,6 +31,7 @@ export async function riskHandler(event: any) {
       total_score: event.payload.total_score ?? event.payload.anomalyScore ?? null,
       generated_by: "EVENT_BUS",
       company_id: companyId,
+      case_id: event.payload.case_id ?? null,
     },
   ]);
 
