@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
-import { verifyLedgerIntegrity } from "@/app/lib/verification-engine";
+import { verifyLedgerIntegrity } from "@/app/core/verification-engine";
 
 export default function AuditDashboardPage() {
   const [ledger, setLedger] = useState<any[]>([]);
