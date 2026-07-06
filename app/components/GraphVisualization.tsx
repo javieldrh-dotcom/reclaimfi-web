@@ -11,7 +11,7 @@ import ReactFlow, {
 
 import "reactflow/dist/style.css";
 
-import { graphEngine } from "@/app/lib/graph/eventGraphEngine";
+import { graphEngine } from "@/app/core/graph/eventGraphEngine";
 
 export default function GraphVisualization() {
   const [nodes, setNodes] = useState<Node[]>([]);

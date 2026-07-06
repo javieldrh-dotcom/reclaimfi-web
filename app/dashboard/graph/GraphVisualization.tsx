@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import ReactFlow, { Background, Controls, MiniMap } from "reactflow";
 import "reactflow/dist/style.css";
-import { graphStore } from "@/app/lib/graph/graphStore";
+import { graphStore } from "@/app/core/graph/graphStore";
 import CustomNode from "@/components/nodes/CustomNode";
 
 export default function GraphVisualization() {

@@ -9,7 +9,7 @@ import ReactFlow, {
 
 import "reactflow/dist/style.css";
 
-import { useGraphStream } from "@/app/lib/graph/useGraphStream";
+import { useGraphStream } from "@/app/core/graph/useGraphStream";
 
 export default function IntelligenceGraphView() {
   const snapshot = useGraphStream();

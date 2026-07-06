@@ -1,4 +1,4 @@
-import { graphStore } from "@/app/lib/graph/graphStore";
+import { graphStore } from "@/app/core/graph/graphStore";
 
 type RiskLevel = "LOW" | "MEDIUM" | "HIGH";
 

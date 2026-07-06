@@ -1,5 +1,5 @@
 import { eventHandlers } from "@/app/core/eventHandlers";
-import { graphEngine } from "./graph/eventGraphEngine";
+import { graphEngine } from "@/app/core/graph/eventGraphEngine";
 import { ingestLedgerEvent } from "@/app/core/ledger-engine";
 import { createClient } from "@/app/lib/supabase/server";
 
