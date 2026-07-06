@@ -1,4 +1,4 @@
-import { graphEngine } from "../graph/eventGraphEngine";
+import { graphEngine } from "@/app/lib/graph/eventGraphEngine";
 
 //
 // GRAPH EVENT TYPE (CONTRATO)

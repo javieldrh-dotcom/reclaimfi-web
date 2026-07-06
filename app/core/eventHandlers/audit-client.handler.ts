@@ -1,4 +1,4 @@
-import { supabase } from "../supabase";
+import { supabase } from "@/app/lib/supabase";
 
 export async function auditHandlerClient(event: any) {
   if (!event.type.startsWith("rf.")) return;

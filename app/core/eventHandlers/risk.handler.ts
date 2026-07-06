@@ -1,4 +1,4 @@
-﻿import { createClient } from "../supabase/server";
+import { createClient } from "@/app/lib/supabase/server";
 
 export async function riskHandler(event: any) {
   if (event.type !== "rf.risk.calculated") return;

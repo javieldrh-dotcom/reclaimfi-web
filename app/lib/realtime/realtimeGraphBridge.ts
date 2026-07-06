@@ -1,7 +1,7 @@
 import { supabase } from "@/app/lib/supabase";
 import { graphEngine } from "@/app/lib/graph/eventGraphEngine";
 import { ingestLedgerEvent } from "@/app/core/ledger-engine";
-import { auditHandlerClient } from "@/app/lib/eventHandlers/audit-client.handler";
+import { auditHandlerClient } from "@/app/core/eventHandlers/audit-client.handler";
 
 let initialized = false;
 
