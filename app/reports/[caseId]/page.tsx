@@ -1,9 +1,9 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "@/app/lib/supabase";
-import { generateForensicReport, EngagementType } from "@/app/lib/reports/generateForensicReport";
+import { generateForensicReport, EngagementType } from "@/app/core/reports/generateForensicReport";
 
 export default function CaseReportPage() {
   const params = useParams();

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { processIntelligence } from "@/app/lib/intelligenceOrchestrator";
 import { calculateRisk } from "@/app/verticals/reclaimfi/riskEngine";
-import { extractEntitiesFromText } from "@/app/lib/agents/entityExtractionAgent";
+import { extractEntitiesFromText } from "@/app/core/agents/entityExtractionAgent";
 
 export async function POST(request: Request) {
   try {
