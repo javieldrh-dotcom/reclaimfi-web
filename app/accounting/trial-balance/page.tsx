@@ -14,15 +14,27 @@ export default function TrialBalancePage() {
       const cid = uc?.company_id;
       if (!cid) { setLoading(false); return; }
 
+      const { data: accountsData } = await supabase
+        .from("chart_of_accounts")
+        .select("id, account_code, account_name")
+        .eq("company_id", cid);
+
+      const accountsMap: Record<string, any> = {};
+      (accountsData ?? []).forEach((a: any) => { accountsMap[a.id] = a; });
+
+      const accountIds = (accountsData ?? []).map((a: any) => a.id);
+
       const { data: lines } = await supabase
         .from("journal_lines")
-        .select("debit, credit, account_id, chart_of_accounts(account_code, account_name)")
-        .eq("chart_of_accounts.company_id", cid);
+        .select("debit, credit, account_id")
+        .in("account_id", accountIds);
 
       const grouped: Record<string, any> = {};
       (lines ?? []).forEach((l: any) => {
-        const acc = l.chart_of_accounts;
+        const acc = accountsMap[l.account_id];
         if (!acc) return;
+
+      
         const key = acc.account_code;
         if (!grouped[key]) grouped[key] = { code: acc.account_code, name: acc.account_name, debit: 0, credit: 0 };
         grouped[key].debit += l.debit || 0;
@@ -57,8 +69,8 @@ export default function TrialBalancePage() {
             <tr key={r.code} style={{ borderBottom: "1px solid #1a3050" }}>
               <td style={{ padding: 8 }}>{r.code}</td>
               <td style={{ padding: 8 }}>{r.name}</td>
-              <td style={{ padding: 8 }}>{r.debit.toLocaleString()}</td>
-              <td style={{ padding: 8 }}>{r.credit.toLocaleString()}</td>
+              <td style={{ padding: 8 }}>{r.debit > 0 ? r.debit.toLocaleString() : ""}</td>
+              <td style={{ padding: 8 }}>{r.credit > 0 ? r.credit.toLocaleString() : ""}</td>
             </tr>
           ))}
         </tbody>
