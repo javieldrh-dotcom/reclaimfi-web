@@ -1,9 +1,11 @@
 ﻿"use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
+import { generateFinancialStatementPdf } from "@/app/core/reports/generateFinancialStatementPdf";
 
 export default function CashFlowPage() {
   const [movements, setMovements] = useState<any[]>([]);
+  const [companyName, setCompanyName] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -13,6 +15,9 @@ export default function CashFlowPage() {
       const { data: uc } = await supabase.from("user_companies").select("company_id").eq("user_id", userData.user.id).limit(1).single();
       const cid = uc?.company_id;
       if (!cid) { setLoading(false); return; }
+
+      const { data: companyData } = await supabase.from("companies").select("name").eq("id", cid).single();
+      setCompanyName(companyData?.name ?? "");
 
       const { data: cashAccounts } = await supabase
         .from("chart_of_accounts")
@@ -49,14 +54,24 @@ export default function CashFlowPage() {
 
   const totalNet = movements.reduce((s, m) => s + m.amount, 0);
 
-  if (loading) return <div style={{ padding: 40, color: "#7dd3fc" }}>Cargando...</div>;
+  function downloadPdf() {
+    const doc = generateFinancialStatementPdf(
+      "ESTADO DE FLUJO DE EFECTIVO",
+      companyName,
+      [
+        { title: "Movimientos de Caja y Bancos", items: movements.map((m) => ({ name: m.description + " (" + m.account + ")", amount: m.amount })), total: totalNet, totalLabel: "Subtotal" },
+      ],
+      "Flujo de Efectivo Neto del Periodo",
+      totalNet
+    );
+    doc.save("estado-flujo-efectivo.pdf");
+  }
 
+  if (loading) return <div style={{ padding: 40, color: "#7dd3fc" }}>Cargando...</div>;
   return (
     <div style={{ padding: 40, color: "white", background: "#000a16", minHeight: "100vh" }}>
       <h1 style={{ fontSize: 32, fontWeight: 900, color: "#7dd3fc" }}>Estado de Flujo de Efectivo</h1>
-      <p style={{ marginTop: 10, color: "#9ca3af", fontSize: 13 }}>
-        Movimientos de cuentas de Caja y Bancos
-      </p>
+      <p style={{ marginTop: 10, color: "#9ca3af", fontSize: 13 }}>Movimientos de cuentas de Caja y Bancos</p>
 
       <table style={{ width: "100%", marginTop: 30, borderCollapse: "collapse" }}>
         <thead>
@@ -85,6 +100,10 @@ export default function CashFlowPage() {
         <span>Flujo de Efectivo Neto del Periodo</span>
         <span>{totalNet.toLocaleString()}</span>
       </div>
+
+      <button onClick={downloadPdf} style={{ marginTop: 20, padding: 14, background: "#4ade80", color: "black", fontWeight: 900, borderRadius: 12, border: "none" }}>
+        DESCARGAR PDF
+      </button>
     </div>
   );
 }
