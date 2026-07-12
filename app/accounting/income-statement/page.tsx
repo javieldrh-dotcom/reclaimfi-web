@@ -1,10 +1,12 @@
 ﻿"use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
+import { generateFinancialStatementPdf } from "@/app/core/reports/generateFinancialStatementPdf";
 
 export default function IncomeStatementPage() {
   const [revenue, setRevenue] = useState<any[]>([]);
   const [expenses, setExpenses] = useState<any[]>([]);
+  const [companyName, setCompanyName] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -14,6 +16,9 @@ export default function IncomeStatementPage() {
       const { data: uc } = await supabase.from("user_companies").select("company_id").eq("user_id", userData.user.id).limit(1).single();
       const cid = uc?.company_id;
       if (!cid) { setLoading(false); return; }
+
+      const { data: companyData } = await supabase.from("companies").select("name").eq("id", cid).single();
+      setCompanyName(companyData?.name ?? "");
 
       const { data: accountsData } = await supabase
         .from("chart_of_accounts")
@@ -47,10 +52,23 @@ export default function IncomeStatementPage() {
     }
     load();
   }, []);
-
   const totalRevenue = revenue.reduce((s, r) => s + r.amount, 0);
   const totalExpenses = expenses.reduce((s, r) => s + r.amount, 0);
   const netResult = totalRevenue - totalExpenses;
+
+  function downloadPdf() {
+    const doc = generateFinancialStatementPdf(
+      "ESTADO DE RESULTADOS",
+      companyName,
+      [
+        { title: "Ingresos", items: revenue.map((r) => ({ code: r.code, name: r.name, amount: r.amount })), total: totalRevenue, totalLabel: "Total Ingresos" },
+        { title: "Gastos", items: expenses.map((r) => ({ code: r.code, name: r.name, amount: r.amount })), total: totalExpenses, totalLabel: "Total Gastos" },
+      ],
+      netResult >= 0 ? "Utilidad Neta" : "Perdida Neta",
+      netResult
+    );
+    doc.save("estado-de-resultados.pdf");
+  }
 
   if (loading) return <div style={{ padding: 40, color: "#7dd3fc" }}>Cargando...</div>;
 
@@ -86,6 +104,10 @@ export default function IncomeStatementPage() {
         <span>{netResult >= 0 ? "Utilidad Neta" : "Perdida Neta"}</span>
         <span>{Math.abs(netResult).toLocaleString()}</span>
       </div>
+
+      <button onClick={downloadPdf} style={{ marginTop: 30, padding: 14, background: "#4ade80", color: "black", fontWeight: 900, borderRadius: 12, border: "none" }}>
+        DESCARGAR PDF
+      </button>
     </div>
   );
 }
