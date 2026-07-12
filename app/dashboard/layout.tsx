@@ -8,7 +8,6 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const supabase = await createClient();
-
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -17,9 +16,13 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
-  const { data: assignments } = await supabase.from("user_role_assignments").select("role_id").eq("user_id", user.id);
+  const { data: assignments } = await supabase
+    .from("user_role_assignments")
+    .select("role_id")
+    .eq("user_id", user.id);
+
   if (!assignments || assignments.length === 0) {
-    redirect("/select-module"
+    redirect("/select-module");
   }
 
   return (

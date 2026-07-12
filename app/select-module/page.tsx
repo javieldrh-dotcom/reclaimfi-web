@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/app/lib/supabase";
@@ -77,8 +77,3 @@ export default function SelectModulePage() {
     </div>
   );
 }
-
-npm run build
-git add -A
-git commit -m "feat: pagina de seleccion de modulos segun permisos del usuario"
-git push origin main
