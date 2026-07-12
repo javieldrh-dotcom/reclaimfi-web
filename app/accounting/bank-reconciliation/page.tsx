@@ -23,29 +23,43 @@ export default function BankReconciliationPage() {
     const { data: lines } = await supabase.from("journal_lines").select("debit, credit, journal_entries(description, entry_date)").in("account_id", accountIds);
 
     const bookMovements = (lines ?? []).map((l: any) => ({
-      description: l.journal_entries?.description,
+      description: l.journal_entries?.description ?? "Sin descripcion",
       amount: (l.debit || 0) - (l.credit || 0),
     }));
 
     const bankLines = bankText.split("\n").filter((l) => l.trim());
 
-    setResult({
-      bookCount: bookMovements.length,
-      bankCount: bankLines.length,
-      bookTotal: bookMovements.reduce((s, m) => s + m.amount, 0),
-      bookMovements,
-      bankLines,
+    const res = await fetch("/api/reconcile", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ bookMovements, bankLines }),
     });
+
+    const data = await res.json();
+    setResult(data);
     setLoading(false);
   }
 
   const inputStyle = { background: "#0d1117", border: "1px solid #1a3050", borderRadius: 8, padding: 8, color: "white", width: "100%" };
 
+  const statusColor: Record<string, string> = {
+    MATCHED: "#4ade80",
+    ONLY_IN_BOOK: "#facc15",
+    ONLY_IN_BANK: "#f87171",
+    AMOUNT_MISMATCH: "#fb923c",
+  };
+
+  const statusLabel: Record<string, string> = {
+    MATCHED: "Coincide",
+    ONLY_IN_BOOK: "Solo en tu libro",
+    ONLY_IN_BANK: "Solo en el banco",
+    AMOUNT_MISMATCH: "Monto distinto",
+  };
   return (
     <div style={{ padding: 40, color: "white", background: "#000a16", minHeight: "100vh" }}>
-      <h1 style={{ fontSize: 32, fontWeight: 900, color: "#7dd3fc" }}>Conciliacion Bancaria</h1>
+      <h1 style={{ fontSize: 32, fontWeight: 900, color: "#7dd3fc" }}>Conciliacion Bancaria con IA</h1>
       <p style={{ marginTop: 10, color: "#9ca3af", fontSize: 13 }}>
-        Pega los movimientos del estado de cuenta del banco (uno por linea)
+        Pega los movimientos del estado de cuenta del banco (uno por linea). La IA los comparara con tu libro contable.
       </p>
 
       <textarea
@@ -57,23 +71,37 @@ export default function BankReconciliationPage() {
       />
 
       <button onClick={analyze} disabled={loading} style={{ marginTop: 16, padding: 14, background: "#22d3ee", color: "black", fontWeight: 900, borderRadius: 12, border: "none" }}>
-        {loading ? "ANALIZANDO..." : "COMPARAR CON LIBRO"}
+        {loading ? "ANALIZANDO CON IA..." : "COMPARAR CON LIBRO"}
       </button>
 
       {result && (
         <div style={{ marginTop: 30 }}>
-          <h2 style={{ fontSize: 18, color: "#7dd3fc" }}>Movimientos en tu Libro Contable</h2>
-          <p>Total de movimientos: {result.bookCount} | Suma neta: {result.bookTotal.toLocaleString()}</p>
-          {result.bookMovements.map((m: any, idx: number) => (
-            <div key={idx} style={{ padding: 6, borderBottom: "1px solid #1a3050" }}>
-              {m.description}: {m.amount.toLocaleString()}
+          {result.summary && (
+            <div style={{ padding: 16, background: "#0d1117", borderRadius: 12, marginBottom: 20 }}>
+              <p style={{ color: "#7dd3fc", fontWeight: 700, marginBottom: 8 }}>Resumen del Agente</p>
+              <p>{result.summary}</p>
             </div>
-          ))}
+          )}
 
-          <h2 style={{ fontSize: 18, color: "#facc15", marginTop: 30 }}>Movimientos del Banco (sin procesar por IA todavia)</h2>
-          <p>Lineas pegadas: {result.bankCount}</p>
-          {result.bankLines.map((l: string, idx: number) => (
-            <div key={idx} style={{ padding: 6, borderBottom: "1px solid #1a3050", fontFamily: "monospace", fontSize: 12 }}>{l}</div>
+          {result.matches && result.matches.map((m: any, idx: number) => (
+            <div key={idx} style={{ padding: 12, borderBottom: "1px solid #1a3050" }}>
+              <span style={{
+                display: "inline-block",
+                padding: "2px 10px",
+                borderRadius: 999,
+                fontSize: 11,
+                fontWeight: 700,
+                background: statusColor[m.status] + "22",
+                color: statusColor[m.status],
+                marginBottom: 6,
+              }}>
+                {statusLabel[m.status] ?? m.status}
+              </span>
+              <p style={{ fontSize: 13 }}>
+                <strong>Libro:</strong> {m.bookDescription ?? "-"} | <strong>Banco:</strong> {m.bankLine ?? "-"}
+              </p>
+              <p style={{ fontSize: 12, color: "#9ca3af", marginTop: 4 }}>{m.explanation}</p>
+            </div>
           ))}
         </div>
       )}
