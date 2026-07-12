@@ -1,5 +1,6 @@
 ﻿"use client";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { supabase } from "@/app/lib/supabase";
 
 export default function TrialBalancePage() {
@@ -21,22 +22,20 @@ export default function TrialBalancePage() {
 
       const accountsMap: Record<string, any> = {};
       (accountsData ?? []).forEach((a: any) => { accountsMap[a.id] = a; });
-
       const accountIds = (accountsData ?? []).map((a: any) => a.id);
 
       const { data: lines } = await supabase
         .from("journal_lines")
-        .select("debit, credit, account_id")
-        .in("account_id", accountIds);
+        .select("debit, credit, account_id, journal_entries!inner(status)")
+        .in("account_id", accountIds)
+        .eq("journal_entries.status", "ACTIVE");
 
       const grouped: Record<string, any> = {};
       (lines ?? []).forEach((l: any) => {
         const acc = accountsMap[l.account_id];
         if (!acc) return;
-
-      
         const key = acc.account_code;
-        if (!grouped[key]) grouped[key] = { code: acc.account_code, name: acc.account_name, debit: 0, credit: 0 };
+        if (!grouped[key]) grouped[key] = { id: l.account_id, code: acc.account_code, name: acc.account_name, debit: 0, credit: 0 };
         grouped[key].debit += l.debit || 0;
         grouped[key].credit += l.credit || 0;
       });
@@ -51,10 +50,10 @@ export default function TrialBalancePage() {
   const totalCredit = rows.reduce((s, r) => s + r.credit, 0);
 
   if (loading) return <div style={{ padding: 40, color: "#7dd3fc" }}>Cargando...</div>;
-
   return (
     <div style={{ padding: 40, color: "white", background: "#000a16", minHeight: "100vh" }}>
       <h1 style={{ fontSize: 32, fontWeight: 900, color: "#7dd3fc" }}>Balance de Comprobacion</h1>
+      <p style={{ marginTop: 8, color: "#9ca3af", fontSize: 12 }}>Click en una cuenta para ver su Mayor Auxiliar (detalle de movimientos)</p>
       <table style={{ width: "100%", marginTop: 30, borderCollapse: "collapse" }}>
         <thead>
           <tr style={{ textAlign: "left", color: "#7dd3fc", fontSize: 12 }}>
@@ -68,7 +67,11 @@ export default function TrialBalancePage() {
           {rows.map((r) => (
             <tr key={r.code} style={{ borderBottom: "1px solid #1a3050" }}>
               <td style={{ padding: 8 }}>{r.code}</td>
-              <td style={{ padding: 8 }}>{r.name}</td>
+              <td style={{ padding: 8 }}>
+                <Link href={"/accounting/ledger/" + r.id} style={{ color: "#7dd3fc", textDecoration: "underline" }}>
+                  {r.name}
+                </Link>
+              </td>
               <td style={{ padding: 8 }}>{r.debit > 0 ? r.debit.toLocaleString() : ""}</td>
               <td style={{ padding: 8 }}>{r.credit > 0 ? r.credit.toLocaleString() : ""}</td>
             </tr>
