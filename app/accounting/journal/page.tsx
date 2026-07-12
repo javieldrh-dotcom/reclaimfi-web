@@ -3,12 +3,25 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
 interface Account { id: string; account_code: string; account_name: string; }
 interface Line { account_id: string; debit: string; credit: string; }
+
 export default function JournalPage() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [description, setDescription] = useState("");
   const [lines, setLines] = useState<Line[]>([{ account_id: "", debit: "", credit: "" }, { account_id: "", debit: "", credit: "" }]);
   const [message, setMessage] = useState("");
+  const [entries, setEntries] = useState<any[]>([]);
+
+  async function loadEntries(cid: string) {
+    const { data } = await supabase
+      .from("journal_entries")
+      .select("id, description, entry_date, status")
+      .eq("company_id", cid)
+      .order("created_at", { ascending: false })
+      .limit(15);
+    setEntries(data ?? []);
+  }
+
   useEffect(() => {
     async function load() {
       const { data: userData } = await supabase.auth.getUser();
@@ -19,14 +32,17 @@ export default function JournalPage() {
       if (cid) {
         const { data: acc } = await supabase.from("chart_of_accounts").select("id, account_code, account_name").eq("company_id", cid).order("account_code");
         setAccounts(acc ?? []);
+        await loadEntries(cid);
       }
     }
     load();
   }, []);
+
   function updateLine(i: number, f: keyof Line, v: string) { const u = [...lines]; u[i][f] = v; setLines(u); }
   function addLine() { setLines([...lines, { account_id: "", debit: "", credit: "" }]); }
   function totalDebit() { return lines.reduce((s, l) => s + (parseFloat(l.debit) || 0), 0); }
   function totalCredit() { return lines.reduce((s, l) => s + (parseFloat(l.credit) || 0), 0); }
+
   async function saveEntry() {
     setMessage("");
     if (!companyId) { setMessage("Sin empresa asociada."); return; }
@@ -38,7 +54,18 @@ export default function JournalPage() {
     const { error: e2 } = await supabase.from("journal_lines").insert(rows);
     if (e2) { setMessage("Error: " + e2.message); return; }
     setMessage("Guardado correctamente.");
+    setDescription("");
+    setLines([{ account_id: "", debit: "", credit: "" }, { account_id: "", debit: "", credit: "" }]);
+    if (companyId) await loadEntries(companyId);
   }
+
+  async function voidEntry(entryId: string) {
+    const reason = window.prompt("Motivo de la anulacion:");
+    if (!reason) return;
+    await supabase.from("journal_entries").update({ status: "VOIDED", voided_at: new Date().toISOString(), void_reason: reason }).eq("id", entryId);
+    if (companyId) await loadEntries(companyId);
+  }
+
   const inputStyle = { background: "#0d1117", border: "1px solid #1a3050", borderRadius: 8, padding: 8, color: "white", width: "100%" };
   return (
     <div style={{ padding: 40, color: "white", background: "#000a16", minHeight: "100vh" }}>
@@ -60,6 +87,25 @@ export default function JournalPage() {
           <p>Debe: {totalDebit()} | Haber: {totalCredit()}</p>
           <button onClick={saveEntry} style={{ marginTop: 12, padding: 14, background: "#22d3ee", color: "black", fontWeight: 900, borderRadius: 12, border: "none" }}>GUARDAR</button>
           {message && <p>{message}</p>}
+        </div>
+      )}
+
+      {entries.length > 0 && (
+        <div style={{ marginTop: 40 }}>
+          <h2 style={{ fontSize: 20, color: "#7dd3fc" }}>Asientos Recientes</h2>
+          {entries.map((e) => (
+            <div key={e.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: 10, borderBottom: "1px solid #1a3050", opacity: e.status === "VOIDED" ? 0.5 : 1 }}>
+              <span>
+                {e.entry_date} - {e.description}
+                {e.status === "VOIDED" && <span style={{ color: "#f87171", marginLeft: 8, fontSize: 11 }}>[ANULADO]</span>}
+              </span>
+              {e.status === "ACTIVE" && (
+                <button onClick={() => voidEntry(e.id)} style={{ background: "none", border: "1px solid #f87171", color: "#f87171", padding: "4px 10px", borderRadius: 8, fontSize: 12 }}>
+                  Anular
+                </button>
+              )}
+            </div>
+          ))}
         </div>
       )}
     </div>
