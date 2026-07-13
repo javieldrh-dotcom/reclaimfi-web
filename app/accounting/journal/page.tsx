@@ -8,6 +8,8 @@ export default function JournalPage() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [description, setDescription] = useState("");
+  const [currency, setCurrency] = useState("USD");
+  const [exchangeRate, setExchangeRate] = useState("1");
   const [lines, setLines] = useState<Line[]>([{ account_id: "", debit: "", credit: "" }, { account_id: "", debit: "", credit: "" }]);
   const [message, setMessage] = useState("");
   const [entries, setEntries] = useState<any[]>([]);
@@ -48,9 +50,10 @@ export default function JournalPage() {
     if (!companyId) { setMessage("Sin empresa asociada."); return; }
     const d = totalDebit(); const c = totalCredit();
     if (d !== c || d === 0) { setMessage("El asiento no cuadra."); return; }
-    const { data: entry, error: e1 } = await supabase.from("journal_entries").insert([{ company_id: companyId, description, entry_date: new Date().toISOString().slice(0,10) }]).select("id").single();
+    const { data: entry, error: e1 } = await supabase.from("journal_entries").insert([{ company_id: companyId, description, entry_date: new Date().toISOString().slice(0,10), currency, exchange_rate: parseFloat(exchangeRate) || 1 }]).select("id").single();
     if (e1 || !entry) { setMessage("Error: " + e1?.message); return; }
-    const rows = lines.filter(l => l.account_id).map(l => ({ journal_entry_id: entry.id, account_id: l.account_id, debit: parseFloat(l.debit) || 0, credit: parseFloat(l.credit) || 0 }));
+    const rate = parseFloat(exchangeRate) || 1;
+    const rows = lines.filter(l => l.account_id).map(l => ({ journal_entry_id: entry.id, account_id: l.account_id, debit: (parseFloat(l.debit) || 0) * rate, credit: (parseFloat(l.credit) || 0) * rate }));
     const { error: e2 } = await supabase.from("journal_lines").insert(rows);
     if (e2) { setMessage("Error: " + e2.message); return; }
     setMessage("Guardado correctamente.");
@@ -72,6 +75,16 @@ export default function JournalPage() {
       <h1 style={{ fontSize: 32, fontWeight: 900, color: "#7dd3fc" }}>Libro Diario</h1>
       {accounts.length > 0 && (
         <div style={{ marginTop: 30 }}>
+          <div style={{ display: "flex", gap: 8 }}>
+            <select value={currency} onChange={(e) => setCurrency(e.target.value)} style={inputStyle}>
+              <option value="USD">USD</option>
+              <option value="EUR">EUR</option>
+              <option value="VES">VES (Bolivares)</option>
+              <option value="COP">COP</option>
+              <option value="MXN">MXN</option>
+            </select>
+            <input type="number" step="0.0001" value={exchangeRate} onChange={(e) => setExchangeRate(e.target.value)} style={inputStyle} placeholder="Tasa de cambio (1 si es moneda funcional)" />
+          </div>
           <input value={description} onChange={(e) => setDescription(e.target.value)} style={inputStyle} placeholder="Descripcion" />
           {lines.map((line, idx) => (
             <div key={idx} style={{ display: "flex", gap: 8, marginTop: 8 }}>
