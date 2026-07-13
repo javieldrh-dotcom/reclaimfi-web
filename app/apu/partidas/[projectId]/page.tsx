@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "@/app/lib/supabase";
+import { generateFinancialStatementPdf } from "@/app/core/reports/generateFinancialStatementPdf";
 
 export default function PartidasPage() {
   const params = useParams();
@@ -108,12 +109,30 @@ export default function PartidasPage() {
 
   const inputStyle = { background: "#0d1117", border: "1px solid #1a3050", borderRadius: 8, padding: 6, color: "white", width: "100%", fontSize: 12 };
 
+  function downloadOfferPdf() {
+    const doc = generateFinancialStatementPdf(
+      "PRESENTACION DE OFERTA - " + (project?.procedure_number ?? ""),
+      project?.project_description ?? "",
+      [
+        { title: "Partidas de la Oferta", items: partidas.map((p) => ({ code: String(p.item_number), name: p.description + " (" + p.quantity + " " + p.unit + ")", amount: 0 })), total: 0, totalLabel: "Ver detalle en sistema" },
+      ],
+      "Total de Partidas",
+      partidas.length
+    );
+    doc.save("oferta-" + (project?.procedure_number ?? "apu") + ".pdf");
+  }
+
   const t = calculateTotals();
 
   return (
     <div style={{ padding: 40, color: "white", background: "#000a16", minHeight: "100vh" }}>
       <h1 style={{ fontSize: 28, fontWeight: 900, color: "#7dd3fc" }}>{project?.procedure_number} - Partidas</h1>
       <p style={{ marginTop: 6, color: "#9ca3af", fontSize: 12 }}>{project?.project_description}</p>
+      {partidas.length > 0 && (
+        <button onClick={downloadOfferPdf} style={{ marginTop: 12, padding: 10, background: "#4ade80", color: "black", fontWeight: 900, borderRadius: 10, border: "none", fontSize: 12 }}>
+          DESCARGAR OFERTA PDF
+        </button>
+      )}
 
       <div style={{ marginTop: 30, maxWidth: 700 }}>
         <input value={description} onChange={(e) => setDescription(e.target.value)} style={inputStyle} placeholder="Descripcion de la partida" />
