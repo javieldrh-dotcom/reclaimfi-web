@@ -8,6 +8,7 @@ import { generateFinancialStatementPdf } from "@/app/core/reports/generateFinanc
 export default function TrialBalancePage() {
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [companyName, setCompanyName] = useState("");
   const theme = getVerticalTheme("accounting");
 
   useEffect(() => {
@@ -17,6 +18,8 @@ export default function TrialBalancePage() {
       const { data: uc } = await supabase.from("user_companies").select("company_id").eq("user_id", userData.user.id).limit(1).single();
       const cid = uc?.company_id;
       if (!cid) { setLoading(false); return; }
+      const { data: companyData } = await supabase.from("companies").select("name").eq("id", cid).single();
+      setCompanyName(companyData?.name ?? "");
       const { data: accountsData } = await supabase
         .from("chart_of_accounts")
         .select("id, account_code, account_name")
@@ -54,7 +57,7 @@ export default function TrialBalancePage() {
   function downloadPdf() {
     const doc = generateFinancialStatementPdf(
       "BALANCE DE COMPROBACION",
-      "",
+      companyName,
       [{ title: "Cuentas", items: rows.map((r) => ({ code: r.code, name: r.name, amount: r.debit - r.credit })), total: totalDebit - totalCredit, totalLabel: "Diferencia" }],
       "Total Debe / Haber",
       totalDebit

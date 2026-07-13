@@ -34,7 +34,7 @@ export function generateFinancialStatementPdf(
   doc.setTextColor(100);
   doc.text(companyName, pageWidth / 2, y, { align: "center" });
   y += 6;
-  doc.text("Fecha de generacion: " + new Date().toLocaleString(), pageWidth / 2, y, { align: "center" });
+  doc.text("Al " + new Date().toLocaleDateString(), pageWidth / 2, y, { align: "center" });
   doc.setTextColor(0);
   y += 12;
 
