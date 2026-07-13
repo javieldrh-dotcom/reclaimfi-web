@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
+import { generateFinancialStatementPdf } from "@/app/core/reports/generateFinancialStatementPdf";
 
 export default function TrialBalancePage() {
   const [rows, setRows] = useState<any[]>([]);
@@ -49,37 +50,55 @@ export default function TrialBalancePage() {
   const isBalanced = totalDebit === totalCredit;
 
   if (loading) return <div style={theme.pageStyle}>Cargando...</div>;
+
+  function downloadPdf() {
+    const doc = generateFinancialStatementPdf(
+      "BALANCE DE COMPROBACION",
+      "",
+      [{ title: "Cuentas", items: rows.map((r) => ({ code: r.code, name: r.name, amount: r.debit - r.credit })), total: totalDebit - totalCredit, totalLabel: "Diferencia" }],
+      "Total Debe / Haber",
+      totalDebit
+    );
+    doc.save("balance-comprobacion.pdf");
+  }
   return (
     <div style={theme.pageStyle}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6 }}>
-        <div style={{ width: 4, height: 32, background: theme.accent, borderRadius: 2 }} />
-        <h1 style={theme.titleStyle}>Balance de Comprobación</h1>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", maxWidth: 1100 }}>
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ width: 4, height: 32, background: theme.accent, borderRadius: 2 }} />
+            <h1 style={theme.titleStyle}>Balance de Comprobación</h1>
+          </div>
+          <p style={{ color: "#8B93A7", fontSize: 14, marginLeft: 16, marginTop: 4 }}>
+            Selecciona una cuenta para ver su historial completo de movimientos
+          </p>
+        </div>
+        <button onClick={downloadPdf} style={{ ...theme.buttonStyle, fontSize: 13, padding: "10px 20px" }}>
+          Descargar PDF
+        </button>
       </div>
-      <p style={{ color: "#8B93A7", fontSize: 13, marginLeft: 16 }}>
-        Selecciona una cuenta para ver su historial completo de movimientos
-      </p>
 
-      <div style={{ ...theme.cardStyle, marginTop: 28, padding: 0, overflow: "hidden" }}>
+      <div style={{ ...theme.cardStyle, marginTop: 28, padding: 0, overflow: "hidden", maxWidth: 1100 }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
-            <tr style={{ textAlign: "left", color: theme.accent, fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", borderBottom: "1px solid #1F2937" }}>
-              <th style={{ padding: "14px 16px" }}>Código</th>
-              <th style={{ padding: "14px 16px" }}>Cuenta</th>
-              <th style={{ padding: "14px 16px", textAlign: "right" }}>Debe</th>
-              <th style={{ padding: "14px 16px", textAlign: "right" }}>Haber</th>
+            <tr style={{ textAlign: "left", color: theme.accent, fontSize: 12, letterSpacing: "0.08em", textTransform: "uppercase", background: "#1F293755" }}>
+              <th style={{ padding: "16px 20px", width: 110 }}>Código</th>
+              <th style={{ padding: "16px 20px" }}>Cuenta</th>
+              <th style={{ padding: "16px 20px", textAlign: "right", width: 160 }}>Debe</th>
+              <th style={{ padding: "16px 20px", textAlign: "right", width: 160 }}>Haber</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((r, idx) => (
               <tr key={r.code} style={{ borderBottom: idx < rows.length - 1 ? "1px solid #1F2937" : "none" }}>
-                <td style={{ padding: "12px 16px", ...theme.numberStyle, color: "#8B93A7", fontSize: 13 }}>{r.code}</td>
-                <td style={{ padding: "12px 16px" }}>
+                <td style={{ padding: "16px 20px", ...theme.numberStyle, color: "#8B93A7", fontSize: 14 }}>{r.code}</td>
+                <td style={{ padding: "16px 20px", fontSize: 15 }}>
                   <Link href={"/accounting/ledger/" + r.id} style={{ color: theme.accent, textDecoration: "none", fontWeight: 500 }}>
                     {r.name}
                   </Link>
                 </td>
-                <td style={{ padding: "12px 16px", textAlign: "right", ...theme.numberStyle }}>{r.debit > 0 ? r.debit.toLocaleString() : "—"}</td>
-                <td style={{ padding: "12px 16px", textAlign: "right", ...theme.numberStyle }}>{r.credit > 0 ? r.credit.toLocaleString() : "—"}</td>
+                <td style={{ padding: "16px 20px", textAlign: "right", ...theme.numberStyle, fontSize: 15 }}>{r.debit > 0 ? r.debit.toLocaleString() : "—"}</td>
+                <td style={{ padding: "16px 20px", textAlign: "right", ...theme.numberStyle, fontSize: 15 }}>{r.credit > 0 ? r.credit.toLocaleString() : "—"}</td>
               </tr>
             ))}
           </tbody>
@@ -88,18 +107,19 @@ export default function TrialBalancePage() {
 
       <div style={{
         marginTop: 20,
-        padding: "16px 20px",
+        padding: "18px 24px",
         borderRadius: 12,
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
+        maxWidth: 1100,
         background: isBalanced ? "#2DD4BF15" : "#F8717115",
         border: "1px solid " + (isBalanced ? "#2DD4BF40" : "#F8717140"),
       }}>
-        <div style={{ ...theme.numberStyle, fontSize: 14 }}>
+        <div style={{ ...theme.numberStyle, fontSize: 15 }}>
           Debe: {totalDebit.toLocaleString()} &nbsp;·&nbsp; Haber: {totalCredit.toLocaleString()}
         </div>
-        <div style={{ fontWeight: 700, color: isBalanced ? "#2DD4BF" : "#F87171", display: "flex", alignItems: "center", gap: 6 }}>
+        <div style={{ fontWeight: 700, color: isBalanced ? "#2DD4BF" : "#F87171", display: "flex", alignItems: "center", gap: 6, fontSize: 15 }}>
           <span>{isBalanced ? "✓" : "!"}</span>
           {isBalanced ? "Cuadrado" : "Descuadrado"}
         </div>

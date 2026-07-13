@@ -31,6 +31,7 @@ export function getVerticalTheme(vertical: "reclaimfi" | "accounting" | "apu") {
     pageStyle: {
       padding: 40,
       color: designTokens.base.textPrimary,
+      fontSize: 15,
       background: designTokens.base.background,
       minHeight: "100vh",
       fontFamily: designTokens.fonts.body,
