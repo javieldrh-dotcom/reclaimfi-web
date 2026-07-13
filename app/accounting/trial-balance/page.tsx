@@ -18,7 +18,8 @@ export default function TrialBalancePage() {
       const { data: accountsData } = await supabase
         .from("chart_of_accounts")
         .select("id, account_code, account_name")
-        .eq("company_id", cid);
+        .eq("company_id", cid)
+        .not("account_type", "in", "(ORDER_DEBTOR,ORDER_CREDITOR)");
 
       const accountsMap: Record<string, any> = {};
       (accountsData ?? []).forEach((a: any) => { accountsMap[a.id] = a; });
