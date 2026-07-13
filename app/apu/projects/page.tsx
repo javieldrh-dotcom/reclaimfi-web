@@ -1,0 +1,84 @@
+﻿"use client";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { supabase } from "@/app/lib/supabase";
+
+export default function ApuProjectsPage() {
+  const [companyId, setCompanyId] = useState<string | null>(null);
+  const [projects, setProjects] = useState<any[]>([]);
+  const [procedureNumber, setProcedureNumber] = useState("");
+  const [projectDescription, setProjectDescription] = useState("");
+  const [contractingEntity, setContractingEntity] = useState("");
+  const [currency, setCurrency] = useState("USD");
+  const [message, setMessage] = useState("");
+
+  async function loadProjects(cid: string) {
+    const { data } = await supabase.from("apu_projects").select("*").eq("company_id", cid).order("created_at", { ascending: false });
+    setProjects(data ?? []);
+  }
+
+  useEffect(() => {
+    async function load() {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData?.user) return;
+      const { data: uc } = await supabase.from("user_companies").select("company_id").eq("user_id", userData.user.id).limit(1).single();
+      const cid = uc?.company_id ?? null;
+      setCompanyId(cid);
+      if (cid) await loadProjects(cid);
+    }
+    load();
+  }, []);
+
+  async function createProject() {
+    setMessage("");
+    if (!companyId || !procedureNumber) { setMessage("Completa al menos el numero de procedimiento."); return; }
+
+    const { error } = await supabase.from("apu_projects").insert([{
+      company_id: companyId,
+      procedure_number: procedureNumber,
+      project_description: projectDescription,
+      contracting_entity: contractingEntity,
+      status: "DRAFT",
+    }]);
+
+    if (error) { setMessage("Error: " + error.message); return; }
+    setMessage("Proyecto creado correctamente.");
+    setProcedureNumber(""); setProjectDescription(""); setContractingEntity("");
+    if (companyId) await loadProjects(companyId);
+  }
+
+  const inputStyle = { background: "#0d1117", border: "1px solid #1a3050", borderRadius: 8, padding: 10, color: "white", width: "100%" };
+  return (
+    <div style={{ padding: 40, color: "white", background: "#000a16", minHeight: "100vh" }}>
+      <h1 style={{ fontSize: 32, fontWeight: 900, color: "#7dd3fc" }}>Licitaciones y Ofertas al Estado</h1>
+      <p style={{ marginTop: 8, color: "#9ca3af", fontSize: 12 }}>
+        Modulo de Analisis de Precios Unitarios (APU) - Aplicable a cualquier pais o moneda.
+      </p>
+
+      <div style={{ marginTop: 30, display: "grid", gap: 10, maxWidth: 500 }}>
+        <input value={procedureNumber} onChange={(e) => setProcedureNumber(e.target.value)} style={inputStyle} placeholder="Numero de procedimiento/licitacion" />
+        <input value={projectDescription} onChange={(e) => setProjectDescription(e.target.value)} style={inputStyle} placeholder="Descripcion del proyecto/obra" />
+        <input value={contractingEntity} onChange={(e) => setContractingEntity(e.target.value)} style={inputStyle} placeholder="Ente contratante" />
+        <button onClick={createProject} style={{ padding: 14, background: "#22d3ee", color: "black", fontWeight: 900, borderRadius: 12, border: "none" }}>
+          CREAR PROYECTO
+        </button>
+        {message && <p style={{ color: message.includes("Error") ? "#f87171" : "#4ade80" }}>{message}</p>}
+      </div>
+
+      {projects.length > 0 && (
+        <div style={{ marginTop: 40 }}>
+          <h2 style={{ fontSize: 20, color: "#7dd3fc" }}>Proyectos Registrados</h2>
+          {projects.map((p) => (
+            <div key={p.id} style={{ padding: 12, borderBottom: "1px solid #1a3050" }}>
+              <Link href={"/apu/partidas/" + p.id} style={{ color: "#7dd3fc", fontWeight: 700 }}>
+                {p.procedure_number}
+              </Link>
+              <p style={{ fontSize: 13, color: "#9ca3af" }}>{p.project_description} - {p.contracting_entity}</p>
+              <span style={{ fontSize: 11, color: "#facc15" }}>{p.status}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
