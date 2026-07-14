@@ -6,6 +6,7 @@ import { generateFinancialStatementPdf } from "@/app/core/reports/generateFinanc
 export default function CashFlowPage() {
   const [movements, setMovements] = useState<any[]>([]);
   const [companyName, setCompanyName] = useState("");
+  const [currency, setCurrency] = useState("USD");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -16,8 +17,9 @@ export default function CashFlowPage() {
       const cid = uc?.company_id;
       if (!cid) { setLoading(false); return; }
 
-      const { data: companyData } = await supabase.from("companies").select("name").eq("id", cid).single();
+      const { data: companyData } = await supabase.from("companies").select("name, functional_currency").eq("id", cid).single();
       setCompanyName(companyData?.name ?? "");
+      setCurrency(companyData?.functional_currency ?? "USD");
 
       const { data: cashAccounts } = await supabase
         .from("chart_of_accounts")
@@ -62,7 +64,8 @@ export default function CashFlowPage() {
         { title: "Movimientos de Caja y Bancos", items: movements.map((m) => ({ name: m.description + " (" + m.account + ")", amount: m.amount })), total: totalNet, totalLabel: "Subtotal" },
       ],
       "Flujo de Efectivo Neto del Periodo",
-      totalNet
+      totalNet,
+      currency
     );
     doc.save("estado-flujo-efectivo.pdf");
   }

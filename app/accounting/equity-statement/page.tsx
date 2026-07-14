@@ -7,6 +7,7 @@ export default function EquityStatementPage() {
   const [equity, setEquity] = useState<any[]>([]);
   const [netResult, setNetResult] = useState(0);
   const [companyName, setCompanyName] = useState("");
+  const [currency, setCurrency] = useState("USD");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -17,8 +18,9 @@ export default function EquityStatementPage() {
       const cid = uc?.company_id;
       if (!cid) { setLoading(false); return; }
 
-      const { data: companyData } = await supabase.from("companies").select("name").eq("id", cid).single();
+      const { data: companyData } = await supabase.from("companies").select("name, functional_currency").eq("id", cid).single();
       setCompanyName(companyData?.name ?? "");
+      setCurrency(companyData?.functional_currency ?? "USD");
 
       const { data: accountsData } = await supabase
         .from("chart_of_accounts")
@@ -70,7 +72,8 @@ export default function EquityStatementPage() {
         { title: "Resultado del Ejercicio", items: [{ name: "Resultado Neto", amount: netResult }], total: netResult, totalLabel: "Total Resultado" },
       ],
       "Patrimonio Final",
-      totalEquityAfter
+      totalEquityAfter,
+      currency
     );
     doc.save("estado-variacion-patrimonio.pdf");
   }

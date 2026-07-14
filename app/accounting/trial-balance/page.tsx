@@ -98,13 +98,13 @@ export default function TrialBalancePage() {
             {rows.map((r, idx) => (
               <tr key={r.code} style={{ borderBottom: idx < rows.length - 1 ? "1px solid #1F2937" : "none" }}>
                 <td style={{ padding: "16px 20px", ...theme.numberStyle, color: "#8B93A7", fontSize: 14 }}>{r.code}</td>
-                <td style={{ padding: "16px 20px", fontSize: 18, lineHeight: 1.5 }}>
+                <td style={{ padding: "16px 20px", fontSize: 20, lineHeight: 1.6 }}>
                   <Link href={"/accounting/ledger/" + r.id} style={{ color: theme.accent, textDecoration: "none", fontWeight: 500 }}>
                     {r.name}
                   </Link>
                 </td>
-                <td style={{ padding: "16px 20px", textAlign: "right", ...theme.numberStyle, fontSize: 18, lineHeight: 1.5 }}>{r.debit > 0 ? r.debit.toLocaleString() : "—"}</td>
-                <td style={{ padding: "16px 20px", textAlign: "right", ...theme.numberStyle, fontSize: 18, lineHeight: 1.5 }}>{r.credit > 0 ? r.credit.toLocaleString() : "—"}</td>
+                <td style={{ padding: "16px 20px", textAlign: "right", ...theme.numberStyle, fontSize: 20, lineHeight: 1.6 }}>{r.debit > 0 ? r.debit.toLocaleString() : "—"}</td>
+                <td style={{ padding: "16px 20px", textAlign: "right", ...theme.numberStyle, fontSize: 20, lineHeight: 1.6 }}>{r.credit > 0 ? r.credit.toLocaleString() : "—"}</td>
               </tr>
             ))}
           </tbody>
