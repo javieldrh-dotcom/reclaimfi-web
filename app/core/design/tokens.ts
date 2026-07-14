@@ -31,7 +31,7 @@ export function getVerticalTheme(vertical: "reclaimfi" | "accounting" | "apu") {
     pageStyle: {
       padding: 40,
       color: designTokens.base.textPrimary,
-      fontSize: 15,
+      fontSize: 17,
       background: designTokens.base.background,
       minHeight: "100vh",
       fontFamily: designTokens.fonts.body,
@@ -65,7 +65,7 @@ export function getVerticalTheme(vertical: "reclaimfi" | "accounting" | "apu") {
     kpiStyle: {
       fontFamily: designTokens.fonts.mono,
       fontVariantNumeric: "tabular-nums",
-      fontSize: 20,
+      fontSize: 24,
       fontWeight: 700,
     },
     buttonStyle: {
