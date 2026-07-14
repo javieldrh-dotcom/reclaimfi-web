@@ -82,6 +82,16 @@ export default function ArInvoicesPage() {
     if (companyId) await loadInvoices(companyId);
   }
 
+  async function voidInvoice(invoiceId: string, journalEntryId: string | null) {
+    const reason = window.prompt("Motivo de la anulacion:");
+    if (!reason) return;
+    await supabase.from("ar_invoices").update({ status: "VOIDED" }).eq("id", invoiceId);
+    if (journalEntryId) {
+      await supabase.from("journal_entries").update({ status: "VOIDED", voided_at: new Date().toISOString(), void_reason: reason }).eq("id", journalEntryId);
+    }
+    if (companyId) await loadInvoices(companyId);
+  }
+
   const inputStyle = { background: "#0d1117", border: "1px solid #1a3050", borderRadius: 8, padding: 10, color: "white", width: "100%" };
 
   return (
@@ -137,9 +147,14 @@ export default function ArInvoicesPage() {
                   <td style={{ padding: 8, color: inv.status === "PAID" ? "#4ade80" : "#facc15" }}>{inv.status}</td>
                   <td style={{ padding: 8 }}>
                     {inv.status === "PENDING" && (
-                      <button onClick={() => markAsPaid(inv.id)} style={{ background: "none", border: "1px solid #4ade80", color: "#4ade80", padding: "4px 10px", borderRadius: 8, fontSize: 11 }}>
-                        Marcar Pagada
-                      </button>
+                      <>
+                        <button onClick={() => markAsPaid(inv.id)} style={{ background: "none", border: "1px solid #4ade80", color: "#4ade80", padding: "4px 10px", borderRadius: 8, fontSize: 11, marginRight: 6 }}>
+                          Marcar Pagada
+                        </button>
+                        <button onClick={() => voidInvoice(inv.id, inv.journal_entry_id)} style={{ background: "none", border: "1px solid #f87171", color: "#f87171", padding: "4px 10px", borderRadius: 8, fontSize: 11 }}>
+                          Anular
+                        </button>
+                      </>
                     )}
                   </td>
                 </tr>

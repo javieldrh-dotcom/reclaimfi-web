@@ -81,6 +81,16 @@ export default function ApBillsPage() {
     if (companyId) await loadBills(companyId);
   }
 
+  async function voidBill(billId: string, journalEntryId: string | null) {
+    const reason = window.prompt("Motivo de la anulacion:");
+    if (!reason) return;
+    await supabase.from("ap_bills").update({ status: "VOIDED" }).eq("id", billId);
+    if (journalEntryId) {
+      await supabase.from("journal_entries").update({ status: "VOIDED", voided_at: new Date().toISOString(), void_reason: reason }).eq("id", journalEntryId);
+    }
+    if (companyId) await loadBills(companyId);
+  }
+
   const inputStyle = { background: "#0d1117", border: "1px solid #1a3050", borderRadius: 8, padding: 10, color: "white", width: "100%" };
 
   return (
@@ -136,9 +146,14 @@ export default function ApBillsPage() {
                   <td style={{ padding: 8, color: b.status === "PAID" ? "#4ade80" : "#facc15" }}>{b.status}</td>
                   <td style={{ padding: 8 }}>
                     {b.status === "PENDING" && (
-                      <button onClick={() => markAsPaid(b.id)} style={{ background: "none", border: "1px solid #4ade80", color: "#4ade80", padding: "4px 10px", borderRadius: 8, fontSize: 11 }}>
-                        Marcar Pagada
-                      </button>
+                      <>
+                        <button onClick={() => markAsPaid(b.id)} style={{ background: "none", border: "1px solid #4ade80", color: "#4ade80", padding: "4px 10px", borderRadius: 8, fontSize: 11, marginRight: 6 }}>
+                          Marcar Pagada
+                        </button>
+                        <button onClick={() => voidBill(b.id, b.journal_entry_id)} style={{ background: "none", border: "1px solid #f87171", color: "#f87171", padding: "4px 10px", borderRadius: 8, fontSize: 11 }}>
+                          Anular
+                        </button>
+                      </>
                     )}
                   </td>
                 </tr>
