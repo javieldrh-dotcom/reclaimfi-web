@@ -58,7 +58,7 @@ export default function TrialBalancePage() {
     const doc = generateFinancialStatementPdf(
       "BALANCE DE COMPROBACION",
       companyName,
-      [{ title: "Cuentas", items: rows.map((r) => ({ code: r.code, name: r.name, amount: r.debit - r.credit })), total: totalDebit - totalCredit, totalLabel: "Diferencia" }],
+      [{ title: "Cuentas", items: rows.map((r) => ({ code: r.code, name: r.name, amount: 0, debitAmount: r.debit, creditAmount: r.credit })), total: 0, totalLabel: "Totales", totalDebit: totalDebit, totalCredit: totalCredit }],
       "Total Debe / Haber",
       totalDebit
     );
@@ -95,13 +95,13 @@ export default function TrialBalancePage() {
             {rows.map((r, idx) => (
               <tr key={r.code} style={{ borderBottom: idx < rows.length - 1 ? "1px solid #1F2937" : "none" }}>
                 <td style={{ padding: "16px 20px", ...theme.numberStyle, color: "#8B93A7", fontSize: 14 }}>{r.code}</td>
-                <td style={{ padding: "16px 20px", fontSize: 15 }}>
+                <td style={{ padding: "16px 20px", fontSize: 16, lineHeight: 1.4 }}>
                   <Link href={"/accounting/ledger/" + r.id} style={{ color: theme.accent, textDecoration: "none", fontWeight: 500 }}>
                     {r.name}
                   </Link>
                 </td>
-                <td style={{ padding: "16px 20px", textAlign: "right", ...theme.numberStyle, fontSize: 15 }}>{r.debit > 0 ? r.debit.toLocaleString() : "—"}</td>
-                <td style={{ padding: "16px 20px", textAlign: "right", ...theme.numberStyle, fontSize: 15 }}>{r.credit > 0 ? r.credit.toLocaleString() : "—"}</td>
+                <td style={{ padding: "16px 20px", textAlign: "right", ...theme.numberStyle, fontSize: 16, lineHeight: 1.4 }}>{r.debit > 0 ? r.debit.toLocaleString() : "—"}</td>
+                <td style={{ padding: "16px 20px", textAlign: "right", ...theme.numberStyle, fontSize: 16, lineHeight: 1.4 }}>{r.credit > 0 ? r.credit.toLocaleString() : "—"}</td>
               </tr>
             ))}
           </tbody>
@@ -119,7 +119,7 @@ export default function TrialBalancePage() {
         background: isBalanced ? "#2DD4BF15" : "#F8717115",
         border: "1px solid " + (isBalanced ? "#2DD4BF40" : "#F8717140"),
       }}>
-        <div style={{ ...theme.numberStyle, fontSize: 15 }}>
+        <div style={{ ...theme.kpiStyle }}>
           Debe: {totalDebit.toLocaleString()} &nbsp;·&nbsp; Haber: {totalCredit.toLocaleString()}
         </div>
         <div style={{ fontWeight: 700, color: isBalanced ? "#2DD4BF" : "#F87171", display: "flex", alignItems: "center", gap: 6, fontSize: 15 }}>

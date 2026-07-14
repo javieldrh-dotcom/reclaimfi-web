@@ -60,6 +60,13 @@ export function getVerticalTheme(vertical: "reclaimfi" | "accounting" | "apu") {
     },
     numberStyle: {
       fontFamily: designTokens.fonts.mono,
+      fontVariantNumeric: "tabular-nums",
+    },
+    kpiStyle: {
+      fontFamily: designTokens.fonts.mono,
+      fontVariantNumeric: "tabular-nums",
+      fontSize: 20,
+      fontWeight: 700,
     },
     buttonStyle: {
       padding: 14,
