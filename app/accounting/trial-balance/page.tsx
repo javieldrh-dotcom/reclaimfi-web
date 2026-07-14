@@ -9,6 +9,7 @@ export default function TrialBalancePage() {
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [companyName, setCompanyName] = useState("");
+  const [currency, setCurrency] = useState("USD");
   const theme = getVerticalTheme("accounting");
 
   useEffect(() => {
@@ -18,8 +19,9 @@ export default function TrialBalancePage() {
       const { data: uc } = await supabase.from("user_companies").select("company_id").eq("user_id", userData.user.id).limit(1).single();
       const cid = uc?.company_id;
       if (!cid) { setLoading(false); return; }
-      const { data: companyData } = await supabase.from("companies").select("name").eq("id", cid).single();
+      const { data: companyData } = await supabase.from("companies").select("name, functional_currency").eq("id", cid).single();
       setCompanyName(companyData?.name ?? "");
+      setCurrency(companyData?.functional_currency ?? "USD");
       const { data: accountsData } = await supabase
         .from("chart_of_accounts")
         .select("id, account_code, account_name")
@@ -60,7 +62,8 @@ export default function TrialBalancePage() {
       companyName,
       [{ title: "Cuentas", items: rows.map((r) => ({ code: r.code, name: r.name, amount: 0, debitAmount: r.debit, creditAmount: r.credit })), total: 0, totalLabel: "Totales", totalDebit: totalDebit, totalCredit: totalCredit }],
       "Total Debe / Haber",
-      totalDebit
+      totalDebit,
+      currency
     );
     doc.save("balance-comprobacion.pdf");
   }

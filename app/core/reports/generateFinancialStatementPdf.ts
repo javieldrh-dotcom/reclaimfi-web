@@ -39,7 +39,7 @@ export function generateFinancialStatementPdf(
   doc.text(statementTitle, pageWidth / 2, y, { align: "center" });
   y += 6;
 
-  doc.setFontSize(9);
+  doc.setFontSize(12);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(100);
   doc.text("Al " + new Date().toLocaleDateString(), pageWidth / 2, y, { align: "center" });
@@ -62,7 +62,7 @@ export function generateFinancialStatementPdf(
     const hasTwoColumns = section.items.some((i) => i.debitAmount !== undefined || i.creditAmount !== undefined);
 
     if (hasTwoColumns) {
-      doc.setFontSize(8);
+      doc.setFontSize(10);
       doc.setFont("helvetica", "bold");
       doc.text("Cuenta", 15, y);
       doc.text("Debe", pageWidth - 60, y, { align: "right" });
@@ -73,7 +73,7 @@ export function generateFinancialStatementPdf(
       y += 5;
     }
 
-    doc.setFontSize(9);
+    doc.setFontSize(12);
     doc.setFont("helvetica", "normal");
     section.items.forEach((item) => {
       if (y > 270) { doc.addPage(); y = 20; }
@@ -119,7 +119,7 @@ export function generateFinancialStatementPdf(
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
-    doc.setFontSize(7);
+    doc.setFontSize(8);
     doc.setTextColor(150);
     doc.text(
       "Documento generado conforme a NIIF/IFRS. Sujeto a revision del profesional certificado.",
