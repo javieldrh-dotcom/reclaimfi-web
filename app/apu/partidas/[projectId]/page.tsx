@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "@/app/lib/supabase";
-import { generateFinancialStatementPdf } from "@/app/core/reports/generateFinancialStatementPdf";
+import { generateApuOfferPdf } from "@/app/core/reports/generateApuOfferPdf";
 
 export default function PartidasPage() {
   const params = useParams();
@@ -110,40 +110,32 @@ export default function PartidasPage() {
   const inputStyle = { background: "#0d1117", border: "1px solid #1a3050", borderRadius: 8, padding: 10, color: "white", width: "100%", fontSize: 16 };
   const labelStyle = { fontSize: 12, color: "#8B93A7", fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.05em" };
 
-  async function calculatePartidaTotal(partida: any) {
-    const { data: mats } = await supabase.from("apu_partida_materials").select("quantity, unit_cost").eq("apu_partida_id", partida.id);
-    const { data: equips } = await supabase.from("apu_partida_equipment").select("quantity, unit_cost").eq("apu_partida_id", partida.id);
-    const { data: labs } = await supabase.from("apu_partida_labor").select("quantity, days, daily_rate").eq("apu_partida_id", partida.id);
-
-    const materialsCost = (mats ?? []).reduce((s: number, m: any) => s + (m.quantity || 0) * (m.unit_cost || 0), 0);
-    const equipmentCost = (equips ?? []).reduce((s: number, e: any) => s + (e.quantity || 0) * (e.unit_cost || 0), 0);
-    const selectedFscl = fsclOptions.find((f) => f.id === partida.fscl_calculation_id);
-    const factor = selectedFscl ? selectedFscl.fscl_factor : 1;
-    const laborCost = (labs ?? []).reduce((s: number, l: any) => s + (l.quantity || 0) * (l.days || 0) * (l.daily_rate || 0) * factor, 0);
-
-    const directCost = materialsCost + equipmentCost + laborCost;
-    const admin = directCost * ((partida.admin_percentage || 0) / 100);
-    const profit = directCost * ((partida.profit_percentage || 0) / 100);
-    const unitPrice = directCost + admin + profit;
-    const total = unitPrice * (partida.quantity || 0);
-
-    return { unitPrice, total };
-  }
-
   async function downloadOfferPdf() {
-    const itemsWithTotals = await Promise.all(partidas.map(async (p) => {
-      const t = await calculatePartidaTotal(p);
-      return { code: String(p.item_number), name: p.description + " (" + p.quantity + " " + p.unit + ")", amount: t.total };
+    const detailedPartidas = await Promise.all(partidas.map(async (p) => {
+      const { data: mats } = await supabase.from("apu_partida_materials").select("description, unit, quantity, unit_cost").eq("apu_partida_id", p.id);
+      const { data: equips } = await supabase.from("apu_partida_equipment").select("description, unit, quantity, unit_cost").eq("apu_partida_id", p.id);
+      const { data: labs } = await supabase.from("apu_partida_labor").select("position_name, quantity, days, daily_rate").eq("apu_partida_id", p.id);
+      const selectedFscl = fsclOptions.find((f) => f.id === p.fscl_calculation_id);
+      const factor = selectedFscl ? selectedFscl.fscl_factor : 1;
+
+      return {
+        itemNumber: p.item_number,
+        description: p.description,
+        unit: p.unit,
+        quantity: p.quantity,
+        adminPercentage: p.admin_percentage,
+        profitPercentage: p.profit_percentage,
+        materials: (mats ?? []).map((m: any) => ({ description: m.description, unit: m.unit, quantity: m.quantity, unitCost: m.unit_cost })),
+        equipment: (equips ?? []).map((e: any) => ({ description: e.description, unit: e.unit, quantity: e.quantity, unitCost: e.unit_cost })),
+        labor: (labs ?? []).map((l: any) => ({ positionName: l.position_name, quantity: l.quantity, days: l.days, dailyRate: l.daily_rate, fsclFactor: factor })),
+      };
     }));
-    const grandTotal = itemsWithTotals.reduce((s, i) => s + i.amount, 0);
-    const doc = generateFinancialStatementPdf(
-      "PRESENTACION DE OFERTA - " + (project?.procedure_number ?? ""),
+
+    const doc = generateApuOfferPdf(
+      project?.procedure_number ?? "",
       project?.project_description ?? "",
-      [
-        { title: "Partidas de la Oferta", items: itemsWithTotals, total: grandTotal, totalLabel: "Total de la Oferta" },
-      ],
-      "Total de la Oferta",
-      grandTotal
+      "",
+      detailedPartidas
     );
     doc.save("oferta-" + (project?.procedure_number ?? "apu") + ".pdf");
   }
