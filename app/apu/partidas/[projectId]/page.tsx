@@ -39,6 +39,7 @@ export default function PartidasPage() {
   useEffect(() => {
     if (projectId) loadData();
   }, [projectId]);
+
   function addMaterial() { setMaterials([...materials, { description: "", unit: "", quantity: "", unitCost: "" }]); }
   function addEquipment() { setEquipment([...equipment, { description: "", unit: "", quantity: "", unitCost: "" }]); }
   function addLabor() { setLabor([...labor, { positionName: "", quantity: "", days: "", dailyRate: "" }]); }
@@ -46,7 +47,6 @@ export default function PartidasPage() {
   function updateMaterial(i: number, field: string, value: string) { const u = [...materials]; (u[i] as any)[field] = value; setMaterials(u); }
   function updateEquipment(i: number, field: string, value: string) { const u = [...equipment]; (u[i] as any)[field] = value; setEquipment(u); }
   function updateLabor(i: number, field: string, value: string) { const u = [...labor]; (u[i] as any)[field] = value; setLabor(u); }
-
   function calculateTotals() {
     const materialsCost = materials.reduce((s, m) => s + (parseFloat(m.quantity) || 0) * (parseFloat(m.unitCost) || 0), 0);
     const equipmentCost = equipment.reduce((s, e) => s + (parseFloat(e.quantity) || 0) * (parseFloat(e.unitCost) || 0), 0);
@@ -107,7 +107,8 @@ export default function PartidasPage() {
     await loadData();
   }
 
-  const inputStyle = { background: "#0d1117", border: "1px solid #1a3050", borderRadius: 8, padding: 6, color: "white", width: "100%", fontSize: 12 };
+  const inputStyle = { background: "#0d1117", border: "1px solid #1a3050", borderRadius: 8, padding: 10, color: "white", width: "100%", fontSize: 16 };
+  const labelStyle = { fontSize: 12, color: "#8B93A7", fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.05em" };
 
   async function calculatePartidaTotal(partida: any) {
     const { data: mats } = await supabase.from("apu_partida_materials").select("quantity, unit_cost").eq("apu_partida_id", partida.id);
@@ -150,86 +151,109 @@ export default function PartidasPage() {
   const t = calculateTotals();
 
   return (
-    <div style={{ padding: 40, color: "white", background: "#000a16", minHeight: "100vh" }}>
+    <div style={{ padding: 40, color: "white", background: "#000a16", minHeight: "100vh", fontSize: 16 }}>
       <h1 style={{ fontSize: 28, fontWeight: 900, color: "#7dd3fc" }}>{project?.procedure_number} - Partidas</h1>
-      <p style={{ marginTop: 6, color: "#9ca3af", fontSize: 12 }}>{project?.project_description}</p>
+      <p style={{ marginTop: 6, color: "#9ca3af", fontSize: 15 }}>{project?.project_description}</p>
       {partidas.length > 0 && (
-        <button onClick={downloadOfferPdf} style={{ marginTop: 12, padding: 10, background: "#4ade80", color: "black", fontWeight: 900, borderRadius: 10, border: "none", fontSize: 12 }}>
+        <button onClick={downloadOfferPdf} style={{ marginTop: 12, padding: "10px 20px", background: "#4ade80", color: "black", fontWeight: 900, borderRadius: 10, border: "none", fontSize: 14 }}>
           DESCARGAR OFERTA PDF
         </button>
       )}
 
-      <div style={{ marginTop: 30, maxWidth: 700 }}>
-        <input value={description} onChange={(e) => setDescription(e.target.value)} style={inputStyle} placeholder="Descripcion de la partida" />
-        <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-          <input value={unit} onChange={(e) => setUnit(e.target.value)} style={inputStyle} placeholder="Unidad" />
-          <input type="number" value={quantity} onChange={(e) => setQuantity(e.target.value)} style={inputStyle} placeholder="Cantidad" />
-          <input type="number" value={adminPct} onChange={(e) => setAdminPct(e.target.value)} style={inputStyle} placeholder="% Admin" />
-          <input type="number" value={profitPct} onChange={(e) => setProfitPct(e.target.value)} style={inputStyle} placeholder="% Utilidad" />
+      <div style={{ marginTop: 30, maxWidth: 800 }}>
+        <label style={labelStyle}>Descripcion de la Partida</label>
+        <input value={description} onChange={(e) => setDescription(e.target.value)} style={{ ...inputStyle, marginTop: 4 }} placeholder="Ej. Cambio de valvula de 6 pulgadas" />
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8, marginTop: 12 }}>
+          <div><label style={labelStyle}>Unidad</label><input value={unit} onChange={(e) => setUnit(e.target.value)} style={{ ...inputStyle, marginTop: 4 }} /></div>
+          <div><label style={labelStyle}>Cantidad</label><input type="number" value={quantity} onChange={(e) => setQuantity(e.target.value)} style={{ ...inputStyle, marginTop: 4 }} /></div>
+          <div><label style={labelStyle}>% Admin</label><input type="number" value={adminPct} onChange={(e) => setAdminPct(e.target.value)} style={{ ...inputStyle, marginTop: 4 }} /></div>
+          <div><label style={labelStyle}>% Utilidad</label><input type="number" value={profitPct} onChange={(e) => setProfitPct(e.target.value)} style={{ ...inputStyle, marginTop: 4 }} /></div>
         </div>
 
         {fsclOptions.length > 0 && (
-          <select value={fsclId} onChange={(e) => setFsclId(e.target.value)} style={{ ...inputStyle, marginTop: 8 }}>
-            <option value="">Sin factor FSCL (moneda/pais sin CCTP)</option>
-            {fsclOptions.map((f) => <option key={f.id} value={f.id}>{f.work_system} - Factor {f.fscl_factor?.toFixed(4)}</option>)}
-          </select>
+          <div style={{ marginTop: 12 }}>
+            <label style={labelStyle}>Factor de Costo Laboral (opcional)</label>
+            <select value={fsclId} onChange={(e) => setFsclId(e.target.value)} style={{ ...inputStyle, marginTop: 4 }}>
+              <option value="">Sin factor FSCL (moneda/pais sin CCTP)</option>
+              {fsclOptions.map((f) => <option key={f.id} value={f.id}>{f.work_system} - Factor {f.fscl_factor?.toFixed(4)}</option>)}
+            </select>
+          </div>
         )}
 
-        <h3 style={{ marginTop: 16, color: "#4ade80" }}>Materiales</h3>
+        <h3 style={{ marginTop: 24, color: "#4ade80", fontSize: 18 }}>Materiales</h3>
+        <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr", gap: 8, marginTop: 8 }}>
+          <label style={labelStyle}>Descripcion</label>
+          <label style={labelStyle}>Unidad</label>
+          <label style={labelStyle}>Cantidad</label>
+          <label style={labelStyle}>Costo Unitario</label>
+        </div>
         {materials.map((m, i) => (
-          <div key={i} style={{ display: "flex", gap: 6, marginTop: 4 }}>
-            <input value={m.description} onChange={(e) => updateMaterial(i, "description", e.target.value)} style={inputStyle} placeholder="Descripcion" />
-            <input value={m.unit} onChange={(e) => updateMaterial(i, "unit", e.target.value)} style={inputStyle} placeholder="Unidad" />
-            <input type="number" value={m.quantity} onChange={(e) => updateMaterial(i, "quantity", e.target.value)} style={inputStyle} placeholder="Cant." />
-            <input type="number" value={m.unitCost} onChange={(e) => updateMaterial(i, "unitCost", e.target.value)} style={inputStyle} placeholder="Costo U." />
+          <div key={i} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr", gap: 8, marginTop: 6 }}>
+            <input value={m.description} onChange={(e) => updateMaterial(i, "description", e.target.value)} style={inputStyle} placeholder="Ej. Valvula 6 pulgadas" />
+            <input value={m.unit} onChange={(e) => updateMaterial(i, "unit", e.target.value)} style={inputStyle} placeholder="UND" />
+            <input type="number" value={m.quantity} onChange={(e) => updateMaterial(i, "quantity", e.target.value)} style={inputStyle} placeholder="1" />
+            <input type="number" value={m.unitCost} onChange={(e) => updateMaterial(i, "unitCost", e.target.value)} style={inputStyle} placeholder="0.00" />
           </div>
         ))}
-        <button onClick={addMaterial} style={{ marginTop: 6, color: "#4ade80", fontSize: 12 }}>+ Material</button>
+        <button onClick={addMaterial} style={{ marginTop: 8, color: "#4ade80", fontSize: 14, background: "none", border: "none", cursor: "pointer" }}>+ Agregar Material</button>
 
-        <h3 style={{ marginTop: 16, color: "#facc15" }}>Equipos</h3>
+        <h3 style={{ marginTop: 24, color: "#facc15", fontSize: 18 }}>Equipos</h3>
+        <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr", gap: 8, marginTop: 8 }}>
+          <label style={labelStyle}>Descripcion</label>
+          <label style={labelStyle}>Unidad</label>
+          <label style={labelStyle}>Cantidad</label>
+          <label style={labelStyle}>Costo Unitario</label>
+        </div>
         {equipment.map((e, i) => (
-          <div key={i} style={{ display: "flex", gap: 6, marginTop: 4 }}>
-            <input value={e.description} onChange={(ev) => updateEquipment(i, "description", ev.target.value)} style={inputStyle} placeholder="Descripcion" />
-            <input value={e.unit} onChange={(ev) => updateEquipment(i, "unit", ev.target.value)} style={inputStyle} placeholder="Unidad" />
-            <input type="number" value={e.quantity} onChange={(ev) => updateEquipment(i, "quantity", ev.target.value)} style={inputStyle} placeholder="Cant." />
-            <input type="number" value={e.unitCost} onChange={(ev) => updateEquipment(i, "unitCost", ev.target.value)} style={inputStyle} placeholder="Costo U." />
+          <div key={i} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr", gap: 8, marginTop: 6 }}>
+            <input value={e.description} onChange={(ev) => updateEquipment(i, "description", ev.target.value)} style={inputStyle} placeholder="Ej. Llave de torque" />
+            <input value={e.unit} onChange={(ev) => updateEquipment(i, "unit", ev.target.value)} style={inputStyle} placeholder="UND" />
+            <input type="number" value={e.quantity} onChange={(ev) => updateEquipment(i, "quantity", ev.target.value)} style={inputStyle} placeholder="1" />
+            <input type="number" value={e.unitCost} onChange={(ev) => updateEquipment(i, "unitCost", ev.target.value)} style={inputStyle} placeholder="0.00" />
           </div>
         ))}
-        <button onClick={addEquipment} style={{ marginTop: 6, color: "#facc15", fontSize: 12 }}>+ Equipo</button>
+        <button onClick={addEquipment} style={{ marginTop: 8, color: "#facc15", fontSize: 14, background: "none", border: "none", cursor: "pointer" }}>+ Agregar Equipo</button>
 
-        <h3 style={{ marginTop: 16, color: "#f87171" }}>Labor Directa</h3>
+        <h3 style={{ marginTop: 24, color: "#f87171", fontSize: 18 }}>Labor Directa</h3>
+        <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr", gap: 8, marginTop: 8 }}>
+          <label style={labelStyle}>Cargo</label>
+          <label style={labelStyle}>Cantidad</label>
+          <label style={labelStyle}>Dias</label>
+          <label style={labelStyle}>Tarifa Diaria</label>
+        </div>
         {labor.map((l, i) => (
-          <div key={i} style={{ display: "flex", gap: 6, marginTop: 4 }}>
-            <input value={l.positionName} onChange={(ev) => updateLabor(i, "positionName", ev.target.value)} style={inputStyle} placeholder="Cargo" />
-            <input type="number" value={l.quantity} onChange={(ev) => updateLabor(i, "quantity", ev.target.value)} style={inputStyle} placeholder="Cant." />
-            <input type="number" value={l.days} onChange={(ev) => updateLabor(i, "days", ev.target.value)} style={inputStyle} placeholder="Dias" />
-            <input type="number" value={l.dailyRate} onChange={(ev) => updateLabor(i, "dailyRate", ev.target.value)} style={inputStyle} placeholder="Tarifa Diaria" />
+          <div key={i} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr", gap: 8, marginTop: 6 }}>
+            <input value={l.positionName} onChange={(ev) => updateLabor(i, "positionName", ev.target.value)} style={inputStyle} placeholder="Ej. Tecnico Mecanico" />
+            <input type="number" value={l.quantity} onChange={(ev) => updateLabor(i, "quantity", ev.target.value)} style={inputStyle} placeholder="1" />
+            <input type="number" value={l.days} onChange={(ev) => updateLabor(i, "days", ev.target.value)} style={inputStyle} placeholder="2" />
+            <input type="number" value={l.dailyRate} onChange={(ev) => updateLabor(i, "dailyRate", ev.target.value)} style={inputStyle} placeholder="0.00" />
           </div>
         ))}
-        <button onClick={addLabor} style={{ marginTop: 6, color: "#f87171", fontSize: 12 }}>+ Labor</button>
+        <button onClick={addLabor} style={{ marginTop: 8, color: "#f87171", fontSize: 14, background: "none", border: "none", cursor: "pointer" }}>+ Agregar Labor</button>
 
-        <div style={{ marginTop: 20, padding: 16, background: "#0d1117", borderRadius: 12, fontSize: 13 }}>
+        <div style={{ marginTop: 24, padding: 20, background: "#0d1117", borderRadius: 12, fontSize: 16, border: "1px solid #1a3050" }}>
           <p>Costo Materiales: {t.materialsCost.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
-          <p>Costo Equipos: {t.equipmentCost.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
-          <p>Costo Labor (con factor FSCL si aplica): {t.laborCost.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
-          <p style={{ marginTop: 6 }}>Costo Directo: {t.directCost.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
-          <p>+ Administracion: {t.admin.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
-          <p>+ Utilidad: {t.profit.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
-          <p style={{ fontWeight: 900, color: "#4ade80", marginTop: 6 }}>Precio Unitario: {t.unitPrice.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
-          <p style={{ fontWeight: 900 }}>Total (x Cantidad): {t.total.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+          <p style={{ marginTop: 4 }}>Costo Equipos: {t.equipmentCost.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+          <p style={{ marginTop: 4 }}>Costo Labor (con factor FSCL si aplica): {t.laborCost.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+          <p style={{ marginTop: 10 }}>Costo Directo: {t.directCost.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+          <p style={{ marginTop: 4 }}>+ Administracion: {t.admin.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+          <p style={{ marginTop: 4 }}>+ Utilidad: {t.profit.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+          <p style={{ fontWeight: 900, color: "#4ade80", marginTop: 10, fontSize: 18 }}>Precio Unitario: {t.unitPrice.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+          <p style={{ fontWeight: 900, fontSize: 18 }}>Total (x Cantidad): {t.total.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
         </div>
 
-        <button onClick={savePartida} style={{ marginTop: 16, padding: 14, background: "#22d3ee", color: "black", fontWeight: 900, borderRadius: 12, border: "none" }}>
+        <button onClick={savePartida} style={{ marginTop: 20, padding: 16, background: "#22d3ee", color: "black", fontWeight: 900, borderRadius: 12, border: "none", fontSize: 16 }}>
           GUARDAR PARTIDA
         </button>
-        {message && <p style={{ color: message.includes("Error") ? "#f87171" : "#4ade80" }}>{message}</p>}
+        {message && <p style={{ marginTop: 8, color: message.includes("Error") ? "#f87171" : "#4ade80" }}>{message}</p>}
       </div>
 
       {partidas.length > 0 && (
         <div style={{ marginTop: 40 }}>
-          <h2 style={{ fontSize: 20, color: "#7dd3fc" }}>Partidas Guardadas</h2>
+          <h2 style={{ fontSize: 22, color: "#7dd3fc" }}>Partidas Guardadas</h2>
           {partidas.map((p) => (
-            <div key={p.id} style={{ padding: 10, borderBottom: "1px solid #1a3050" }}>
+            <div key={p.id} style={{ padding: 12, borderBottom: "1px solid #1a3050", fontSize: 16 }}>
               {p.item_number}. {p.description} - {p.quantity} {p.unit}
             </div>
           ))}
