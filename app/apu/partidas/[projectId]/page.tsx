@@ -27,6 +27,8 @@ export default function PartidasPage() {
 
   const [message, setMessage] = useState("");
   const [editingPartidaId, setEditingPartidaId] = useState<string | null>(null);
+  const [catalogItems, setCatalogItems] = useState<any[]>([]);
+  const [catalogFilter, setCatalogFilter] = useState<string>("SERVICIO");
 
   async function loadData() {
     const { data: proj } = await supabase.from("apu_projects").select("*").eq("id", projectId).single();
@@ -42,6 +44,23 @@ export default function PartidasPage() {
   useEffect(() => {
     if (projectId) loadData();
   }, [projectId]);
+
+  useEffect(() => {
+    async function loadCatalog() {
+      const { data } = await supabase.from("apu_catalog_items").select("*").eq("category", catalogFilter);
+      setCatalogItems(data ?? []);
+    }
+    loadCatalog();
+  }, [catalogFilter]);
+
+  function useTemplate(item: any) {
+    setDescription(item.description);
+    setUnit(item.default_unit ?? "UND");
+    setMaterials((item.materials_template ?? []).map((m: any) => ({ description: m.description, unit: m.unit, quantity: String(m.quantity), unitCost: String(m.unitCost) })));
+    setEquipment((item.equipment_template ?? []).map((e: any) => ({ description: e.description, unit: e.unit, quantity: String(e.quantity), unitCost: String(e.unitCost) })));
+    setLabor((item.labor_template ?? []).map((l: any) => ({ positionName: l.positionName, quantity: String(l.quantity), days: String(l.days), dailyRate: String(l.dailyRate) })));
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
   function addMaterial() { setMaterials([...materials, { description: "", unit: "", quantity: "", unitCost: "" }]); }
   function addEquipment() { setEquipment([...equipment, { description: "", unit: "", quantity: "", unitCost: "" }]); }
@@ -159,8 +178,8 @@ export default function PartidasPage() {
   }
 
   const apuTheme = getVerticalTheme("apu");
-  const inputStyle = { ...apuTheme.inputStyle, fontSize: 18, padding: 12 };
-  const labelStyle = { fontSize: 13, color: "#8B93A7", fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.05em", display: "block", marginBottom: 6 };
+  const inputStyle = { ...apuTheme.inputStyle, fontSize: 20, padding: 14 };
+  const labelStyle = { fontSize: 14, color: "#8B93A7", fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.05em", display: "block", marginBottom: 6 };
 
   async function downloadOfferPdf() {
     const detailedPartidas = await Promise.all(partidas.map(async (p) => {
@@ -206,8 +225,10 @@ export default function PartidasPage() {
           Descargar Oferta PDF
         </button>
       ) : undefined}
+    
+      fullWidth
     >
-      <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 32, maxWidth: "none" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1.3fr 0.9fr 1fr", gap: 28, maxWidth: "none" }}>
         <div>
           <label style={labelStyle}>Descripcion de la Partida</label>
           <input value={description} onChange={(e) => setDescription(e.target.value)} style={inputStyle} placeholder="Ej. Cambio de valvula de 6 pulgadas" />
@@ -340,6 +361,29 @@ export default function PartidasPage() {
               ))}
             </div>
           )}
+        </div>
+
+        <div>
+          <div style={{ position: "sticky", top: 20 }}>
+            <h3 style={{ fontSize: 16, color: apuTheme.accent, marginBottom: 12, textTransform: "uppercase", letterSpacing: "0.05em" }}>Catalogo de Partidas</h3>
+            <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+              {["OBRA", "SERVICIO", "DISTRIBUCION"].map((cat) => (
+                <button key={cat} onClick={() => setCatalogFilter(cat)} style={{ flex: 1, padding: "8px 4px", fontSize: 12, background: catalogFilter === cat ? apuTheme.accent : "#12161F", color: catalogFilter === cat ? "#0B0E14" : "#8B93A7", border: "1px solid #1F2937", borderRadius: 8, cursor: "pointer" }}>
+                  {cat}
+                </button>
+              ))}
+            </div>
+            {catalogItems.length === 0 && <p style={{ fontSize: 14, color: "#8B93A7" }}>Sin partidas de catalogo para esta categoria.</p>}
+            {catalogItems.map((item) => (
+              <div key={item.id} style={{ padding: 14, background: "#12161F", borderRadius: 12, border: "1px solid #1F2937", marginBottom: 10 }}>
+                <p style={{ fontSize: 14, fontWeight: 600 }}>{item.description}</p>
+                <p style={{ fontSize: 12, color: "#8B93A7", marginTop: 2 }}>Unidad: {item.default_unit}</p>
+                <button onClick={() => useTemplate(item)} style={{ marginTop: 8, width: "100%", padding: "6px 0", fontSize: 12, background: "none", border: "1px solid " + apuTheme.accent, color: apuTheme.accent, borderRadius: 8, cursor: "pointer" }}>
+                  Usar esta plantilla
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </VerticalPageLayout>

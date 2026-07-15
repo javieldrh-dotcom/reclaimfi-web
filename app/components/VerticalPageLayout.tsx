@@ -2,6 +2,7 @@
 import { getVerticalTheme } from "@/app/core/design/tokens";
 
 interface Props {
+  fullWidth?: boolean;
   vertical: "accounting" | "apu";
   title: string;
   subtitle?: string;
@@ -9,7 +10,7 @@ interface Props {
   children: React.ReactNode;
 }
 
-export default function VerticalPageLayout({ vertical, title, subtitle, actions, children }: Props) {
+export default function VerticalPageLayout({ vertical, title, subtitle, actions, children, fullWidth }: Props) {
   const theme = getVerticalTheme(vertical);
 
   return (
@@ -24,7 +25,7 @@ export default function VerticalPageLayout({ vertical, title, subtitle, actions,
         </div>
         {actions && <div>{actions}</div>}
       </div>
-      <div style={{ marginTop: 28, maxWidth: 1100 }}>
+      <div style={{ marginTop: 28, maxWidth: fullWidth ? "none" : 1100 }}>
         {children}
       </div>
     </div>
