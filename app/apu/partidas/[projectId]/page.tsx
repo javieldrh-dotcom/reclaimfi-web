@@ -367,7 +367,7 @@ export default function PartidasPage() {
           <div style={{ position: "sticky", top: 20 }}>
             <h3 style={{ fontSize: 16, color: apuTheme.accent, marginBottom: 12, textTransform: "uppercase", letterSpacing: "0.05em" }}>Catalogo de Partidas</h3>
             <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
-              {["OBRA", "SERVICIO", "DISTRIBUCION"].map((cat) => (
+              {["OBRA", "SERVICIO", "BIENES"].map((cat) => (
                 <button key={cat} onClick={() => setCatalogFilter(cat)} style={{ flex: 1, padding: "8px 4px", fontSize: 12, background: catalogFilter === cat ? apuTheme.accent : "#12161F", color: catalogFilter === cat ? "#0B0E14" : "#8B93A7", border: "1px solid #1F2937", borderRadius: 8, cursor: "pointer" }}>
                   {cat}
                 </button>
