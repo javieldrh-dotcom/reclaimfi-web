@@ -135,7 +135,8 @@ export default function PartidasPage() {
       project?.procedure_number ?? "",
       project?.project_description ?? "",
       "",
-      detailedPartidas
+      detailedPartidas,
+      project?.submission_date
     );
     doc.save("oferta-" + (project?.procedure_number ?? "apu") + ".pdf");
   }

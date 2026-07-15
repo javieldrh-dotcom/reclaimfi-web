@@ -20,7 +20,8 @@ export function generateApuOfferPdf(
   procedureNumber: string,
   projectDescription: string,
   companyName: string,
-  partidas: PartidaDetail[]
+  partidas: PartidaDetail[],
+  submissionDate?: string
 ) {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -38,7 +39,8 @@ export function generateApuOfferPdf(
   doc.setTextColor(100);
   doc.text(projectDescription, pageWidth / 2, y, { align: "center", maxWidth: pageWidth - 30 });
   y += 5;
-  doc.text("Al " + new Date().toLocaleDateString(), pageWidth / 2, y, { align: "center" });
+  const displayDate = submissionDate ? new Date(submissionDate + "T00:00:00").toLocaleDateString() : new Date().toLocaleDateString();
+  doc.text("Fecha de Presentacion: " + displayDate, pageWidth / 2, y, { align: "center" });
   doc.setTextColor(0);
   y += 12;
 
@@ -59,18 +61,18 @@ export function generateApuOfferPdf(
       doc.setFontSize(9);
       doc.setFont("helvetica", "bold");
       doc.text("Materiales", 15, y);
-      doc.text("Cant.", pageWidth - 80, y, { align: "right" });
-      doc.text("C.Unit.", pageWidth - 45, y, { align: "right" });
+      doc.text("Cant.", pageWidth - 90, y, { align: "right" });
+      doc.text("C.Unit.", pageWidth - 55, y, { align: "right" });
       doc.text("Total", pageWidth - 20, y, { align: "right" });
-      y += 5;
+      y += 6;
       doc.setFont("helvetica", "normal");
       p.materials.forEach((m) => {
         if (y > 270) { doc.addPage(); y = 20; }
         const lineTotal = m.quantity * m.unitCost;
         materialsCost += lineTotal;
         doc.text(m.description, 15, y, { maxWidth: pageWidth - 100 });
-        doc.text(m.quantity.toString(), pageWidth - 80, y, { align: "right" });
-        doc.text(m.unitCost.toLocaleString(), pageWidth - 45, y, { align: "right" });
+        doc.text(m.quantity.toString(), pageWidth - 90, y, { align: "right" });
+        doc.text(m.unitCost.toLocaleString(), pageWidth - 55, y, { align: "right" });
         doc.text(lineTotal.toLocaleString(), pageWidth - 20, y, { align: "right" });
         y += 5;
       });
@@ -82,8 +84,8 @@ export function generateApuOfferPdf(
       doc.setFontSize(9);
       doc.setFont("helvetica", "bold");
       doc.text("Equipos", 15, y);
-      doc.text("Cant.", pageWidth - 80, y, { align: "right" });
-      doc.text("C.Unit.", pageWidth - 45, y, { align: "right" });
+      doc.text("Cant.", pageWidth - 90, y, { align: "right" });
+      doc.text("C.Unit.", pageWidth - 55, y, { align: "right" });
       doc.text("Total", pageWidth - 20, y, { align: "right" });
       y += 5;
       doc.setFont("helvetica", "normal");
@@ -92,8 +94,8 @@ export function generateApuOfferPdf(
         const lineTotal = eq.quantity * eq.unitCost;
         equipmentCost += lineTotal;
         doc.text(eq.description, 15, y, { maxWidth: pageWidth - 100 });
-        doc.text(eq.quantity.toString(), pageWidth - 80, y, { align: "right" });
-        doc.text(eq.unitCost.toLocaleString(), pageWidth - 45, y, { align: "right" });
+        doc.text(eq.quantity.toString(), pageWidth - 90, y, { align: "right" });
+        doc.text(eq.unitCost.toLocaleString(), pageWidth - 55, y, { align: "right" });
         doc.text(lineTotal.toLocaleString(), pageWidth - 20, y, { align: "right" });
         y += 5;
       });

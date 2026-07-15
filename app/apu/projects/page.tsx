@@ -9,6 +9,7 @@ export default function ApuProjectsPage() {
   const [procedureNumber, setProcedureNumber] = useState("");
   const [projectDescription, setProjectDescription] = useState("");
   const [contractingEntity, setContractingEntity] = useState("");
+  const [submissionDate, setSubmissionDate] = useState(new Date().toISOString().slice(0, 10));
   const [currency, setCurrency] = useState("USD");
   const [message, setMessage] = useState("");
 
@@ -38,6 +39,7 @@ export default function ApuProjectsPage() {
       procedure_number: procedureNumber,
       project_description: projectDescription,
       contracting_entity: contractingEntity,
+      submission_date: submissionDate,
       status: "DRAFT",
     }]);
 
@@ -59,6 +61,10 @@ export default function ApuProjectsPage() {
         <input value={procedureNumber} onChange={(e) => setProcedureNumber(e.target.value)} style={inputStyle} placeholder="Numero de procedimiento/licitacion" />
         <input value={projectDescription} onChange={(e) => setProjectDescription(e.target.value)} style={inputStyle} placeholder="Descripcion del proyecto/obra" />
         <input value={contractingEntity} onChange={(e) => setContractingEntity(e.target.value)} style={inputStyle} placeholder="Ente contratante" />
+        <div>
+          <label style={{ fontSize: 12, color: "#7dd3fc" }}>FECHA DE PRESENTACION DE LA OFERTA</label>
+          <input type="date" value={submissionDate} onChange={(e) => setSubmissionDate(e.target.value)} style={{ ...inputStyle, marginTop: 4 }} />
+        </div>
         <button onClick={createProject} style={{ padding: 14, background: "#22d3ee", color: "black", fontWeight: 900, borderRadius: 12, border: "none" }}>
           CREAR PROYECTO
         </button>
