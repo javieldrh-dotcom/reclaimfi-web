@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "@/app/lib/supabase";
 import { generateApuOfferPdf } from "@/app/core/reports/generateApuOfferPdf";
+import VerticalPageLayout from "@/app/components/VerticalPageLayout";
+import { getVerticalTheme } from "@/app/core/design/tokens";
 
 export default function PartidasPage() {
   const params = useParams();
@@ -156,7 +158,8 @@ export default function PartidasPage() {
     await loadData();
   }
 
-  const inputStyle = { background: "#0d1117", border: "1px solid #1a3050", borderRadius: 8, padding: 10, color: "white", width: "100%", fontSize: 16 };
+  const apuTheme = getVerticalTheme("apu");
+  const inputStyle = { ...apuTheme.inputStyle, fontSize: 16 };
   const labelStyle = { fontSize: 12, color: "#8B93A7", fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.05em" };
 
   async function downloadOfferPdf() {
@@ -193,16 +196,17 @@ export default function PartidasPage() {
   const t = calculateTotals();
 
   return (
-    <div style={{ padding: 40, color: "white", background: "#000a16", minHeight: "100vh", fontSize: 16 }}>
-      <h1 style={{ fontSize: 28, fontWeight: 900, color: "#7dd3fc" }}>{project?.procedure_number} - Partidas</h1>
-      <p style={{ marginTop: 6, color: "#9ca3af", fontSize: 15 }}>{project?.project_description}</p>
-      {partidas.length > 0 && (
-        <button onClick={downloadOfferPdf} style={{ marginTop: 12, padding: "10px 20px", background: "#4ade80", color: "black", fontWeight: 900, borderRadius: 10, border: "none", fontSize: 14 }}>
-          DESCARGAR OFERTA PDF
+    <VerticalPageLayout
+      vertical="apu"
+      title={(project?.procedure_number ?? "") + " - Partidas"}
+      subtitle={project?.project_description}
+      actions={partidas.length > 0 ? (
+        <button onClick={downloadOfferPdf} style={{ ...apuTheme.buttonStyle, fontSize: 13, padding: "10px 20px" }}>
+          Descargar Oferta PDF
         </button>
-      )}
-
-      <div style={{ marginTop: 30, maxWidth: 800 }}>
+      ) : undefined}
+    >
+      <div style={{ maxWidth: 800 }}>
         <label style={labelStyle}>Descripcion de la Partida</label>
         <input value={description} onChange={(e) => setDescription(e.target.value)} style={{ ...inputStyle, marginTop: 4 }} placeholder="Ej. Cambio de valvula de 6 pulgadas" />
 
@@ -309,6 +313,6 @@ export default function PartidasPage() {
           ))}
         </div>
       )}
-    </div>
+    </VerticalPageLayout>
   );
 }
