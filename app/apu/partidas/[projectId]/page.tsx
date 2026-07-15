@@ -24,6 +24,7 @@ export default function PartidasPage() {
   const [labor, setLabor] = useState<{ positionName: string; quantity: string; days: string; dailyRate: string }[]>([]);
 
   const [message, setMessage] = useState("");
+  const [editingPartidaId, setEditingPartidaId] = useState<string | null>(null);
 
   async function loadData() {
     const { data: proj } = await supabase.from("apu_projects").select("*").eq("id", projectId).single();
@@ -47,6 +48,41 @@ export default function PartidasPage() {
   function updateMaterial(i: number, field: string, value: string) { const u = [...materials]; (u[i] as any)[field] = value; setMaterials(u); }
   function updateEquipment(i: number, field: string, value: string) { const u = [...equipment]; (u[i] as any)[field] = value; setEquipment(u); }
   function updateLabor(i: number, field: string, value: string) { const u = [...labor]; (u[i] as any)[field] = value; setLabor(u); }
+
+  async function editPartida(partida: any) {
+    setEditingPartidaId(partida.id);
+    setDescription(partida.description);
+    setUnit(partida.unit);
+    setQuantity(String(partida.quantity));
+    setAdminPct(String(partida.admin_percentage));
+    setProfitPct(String(partida.profit_percentage));
+    setFsclId(partida.fscl_calculation_id ?? "");
+
+    const { data: mats } = await supabase.from("apu_partida_materials").select("*").eq("apu_partida_id", partida.id);
+    const { data: equips } = await supabase.from("apu_partida_equipment").select("*").eq("apu_partida_id", partida.id);
+    const { data: labs } = await supabase.from("apu_partida_labor").select("*").eq("apu_partida_id", partida.id);
+
+    setMaterials((mats ?? []).map((m: any) => ({ description: m.description, unit: m.unit, quantity: String(m.quantity), unitCost: String(m.unit_cost) })));
+    setEquipment((equips ?? []).map((e: any) => ({ description: e.description, unit: e.unit, quantity: String(e.quantity), unitCost: String(e.unit_cost) })));
+    setLabor((labs ?? []).map((l: any) => ({ positionName: l.position_name, quantity: String(l.quantity), days: String(l.days), dailyRate: String(l.daily_rate) })));
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function cancelEdit() {
+    setEditingPartidaId(null);
+    setDescription(""); setMaterials([]); setEquipment([]); setLabor([]);
+  }
+
+  async function deletePartida(partidaId: string) {
+    if (!window.confirm("Eliminar esta partida y todos sus insumos? Esta accion no se puede deshacer.")) return;
+    await supabase.from("apu_partida_materials").delete().eq("apu_partida_id", partidaId);
+    await supabase.from("apu_partida_equipment").delete().eq("apu_partida_id", partidaId);
+    await supabase.from("apu_partida_labor").delete().eq("apu_partida_id", partidaId);
+    await supabase.from("apu_partidas").delete().eq("id", partidaId);
+    if (editingPartidaId === partidaId) cancelEdit();
+    await loadData();
+  }
   function calculateTotals() {
     const materialsCost = materials.reduce((s, m) => s + (parseFloat(m.quantity) || 0) * (parseFloat(m.unitCost) || 0), 0);
     const equipmentCost = equipment.reduce((s, e) => s + (parseFloat(e.quantity) || 0) * (parseFloat(e.unitCost) || 0), 0);
@@ -68,41 +104,54 @@ export default function PartidasPage() {
     if (!description) { setMessage("Agrega una descripcion."); return; }
 
     const t = calculateTotals();
-    const nextNum = partidas.length > 0 ? Math.max(...partidas.map((p) => p.item_number)) + 1 : 1;
 
-    const { data: partida, error } = await supabase.from("apu_partidas").insert([{
-      apu_project_id: projectId,
-      item_number: nextNum,
-      description,
-      unit,
-      quantity: parseFloat(quantity),
-      admin_percentage: parseFloat(adminPct),
-      profit_percentage: parseFloat(profitPct),
-      fscl_calculation_id: fsclId || null,
-    }]).select("id").single();
+    let partidaId = editingPartidaId;
 
-    if (error || !partida) { setMessage("Error: " + error?.message); return; }
+    if (editingPartidaId) {
+      const { error } = await supabase.from("apu_partidas").update({
+        description, unit, quantity: parseFloat(quantity),
+        admin_percentage: parseFloat(adminPct), profit_percentage: parseFloat(profitPct),
+        fscl_calculation_id: fsclId || null,
+      }).eq("id", editingPartidaId);
+      if (error) { setMessage("Error: " + error.message); return; }
+
+      await supabase.from("apu_partida_materials").delete().eq("apu_partida_id", editingPartidaId);
+      await supabase.from("apu_partida_equipment").delete().eq("apu_partida_id", editingPartidaId);
+      await supabase.from("apu_partida_labor").delete().eq("apu_partida_id", editingPartidaId);
+    } else {
+      const nextNum = partidas.length > 0 ? Math.max(...partidas.map((p) => p.item_number)) + 1 : 1;
+      const { data: partida, error } = await supabase.from("apu_partidas").insert([{
+        apu_project_id: projectId,
+        item_number: nextNum,
+        description, unit, quantity: parseFloat(quantity),
+        admin_percentage: parseFloat(adminPct), profit_percentage: parseFloat(profitPct),
+        fscl_calculation_id: fsclId || null,
+      }]).select("id").single();
+      if (error || !partida) { setMessage("Error: " + error?.message); return; }
+      partidaId = partida.id;
+    }
 
     if (materials.length > 0) {
       await supabase.from("apu_partida_materials").insert(materials.filter(m => m.description).map(m => ({
-        apu_partida_id: partida.id, description: m.description, unit: m.unit,
+        apu_partida_id: partidaId, description: m.description, unit: m.unit,
         quantity: parseFloat(m.quantity) || 0, unit_cost: parseFloat(m.unitCost) || 0,
       })));
     }
     if (equipment.length > 0) {
       await supabase.from("apu_partida_equipment").insert(equipment.filter(e => e.description).map(e => ({
-        apu_partida_id: partida.id, description: e.description, unit: e.unit,
+        apu_partida_id: partidaId, description: e.description, unit: e.unit,
         quantity: parseFloat(e.quantity) || 0, unit_cost: parseFloat(e.unitCost) || 0,
       })));
     }
     if (labor.length > 0) {
       await supabase.from("apu_partida_labor").insert(labor.filter(l => l.positionName).map(l => ({
-        apu_partida_id: partida.id, position_name: l.positionName,
+        apu_partida_id: partidaId, position_name: l.positionName,
         quantity: parseFloat(l.quantity) || 0, days: parseFloat(l.days) || 0, daily_rate: parseFloat(l.dailyRate) || 0,
       })));
     }
 
-    setMessage("Partida guardada. Precio Unitario: " + t.unitPrice.toFixed(2));
+    setMessage(editingPartidaId ? "Partida actualizada correctamente." : "Partida guardada. Precio Unitario: " + t.unitPrice.toFixed(2));
+    setEditingPartidaId(null);
     setDescription(""); setMaterials([]); setEquipment([]); setLabor([]);
     await loadData();
   }
@@ -246,8 +295,16 @@ export default function PartidasPage() {
         <div style={{ marginTop: 40 }}>
           <h2 style={{ fontSize: 22, color: "#7dd3fc" }}>Partidas Guardadas</h2>
           {partidas.map((p) => (
-            <div key={p.id} style={{ padding: 12, borderBottom: "1px solid #1a3050", fontSize: 16 }}>
-              {p.item_number}. {p.description} - {p.quantity} {p.unit}
+            <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: 12, borderBottom: "1px solid #1a3050", fontSize: 16 }}>
+              <span>{p.item_number}. {p.description} - {p.quantity} {p.unit}</span>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button onClick={() => editPartida(p)} style={{ background: "none", border: "1px solid #7dd3fc", color: "#7dd3fc", padding: "4px 12px", borderRadius: 8, fontSize: 13, cursor: "pointer" }}>
+                  Editar
+                </button>
+                <button onClick={() => deletePartida(p.id)} style={{ background: "none", border: "1px solid #f87171", color: "#f87171", padding: "4px 12px", borderRadius: 8, fontSize: 13, cursor: "pointer" }}>
+                  Eliminar
+                </button>
+              </div>
             </div>
           ))}
         </div>
