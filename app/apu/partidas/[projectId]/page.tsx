@@ -109,15 +109,40 @@ export default function PartidasPage() {
 
   const inputStyle = { background: "#0d1117", border: "1px solid #1a3050", borderRadius: 8, padding: 6, color: "white", width: "100%", fontSize: 12 };
 
-  function downloadOfferPdf() {
+  async function calculatePartidaTotal(partida: any) {
+    const { data: mats } = await supabase.from("apu_partida_materials").select("quantity, unit_cost").eq("apu_partida_id", partida.id);
+    const { data: equips } = await supabase.from("apu_partida_equipment").select("quantity, unit_cost").eq("apu_partida_id", partida.id);
+    const { data: labs } = await supabase.from("apu_partida_labor").select("quantity, days, daily_rate").eq("apu_partida_id", partida.id);
+
+    const materialsCost = (mats ?? []).reduce((s: number, m: any) => s + (m.quantity || 0) * (m.unit_cost || 0), 0);
+    const equipmentCost = (equips ?? []).reduce((s: number, e: any) => s + (e.quantity || 0) * (e.unit_cost || 0), 0);
+    const selectedFscl = fsclOptions.find((f) => f.id === partida.fscl_calculation_id);
+    const factor = selectedFscl ? selectedFscl.fscl_factor : 1;
+    const laborCost = (labs ?? []).reduce((s: number, l: any) => s + (l.quantity || 0) * (l.days || 0) * (l.daily_rate || 0) * factor, 0);
+
+    const directCost = materialsCost + equipmentCost + laborCost;
+    const admin = directCost * ((partida.admin_percentage || 0) / 100);
+    const profit = directCost * ((partida.profit_percentage || 0) / 100);
+    const unitPrice = directCost + admin + profit;
+    const total = unitPrice * (partida.quantity || 0);
+
+    return { unitPrice, total };
+  }
+
+  async function downloadOfferPdf() {
+    const itemsWithTotals = await Promise.all(partidas.map(async (p) => {
+      const t = await calculatePartidaTotal(p);
+      return { code: String(p.item_number), name: p.description + " (" + p.quantity + " " + p.unit + ")", amount: t.total };
+    }));
+    const grandTotal = itemsWithTotals.reduce((s, i) => s + i.amount, 0);
     const doc = generateFinancialStatementPdf(
       "PRESENTACION DE OFERTA - " + (project?.procedure_number ?? ""),
       project?.project_description ?? "",
       [
-        { title: "Partidas de la Oferta", items: partidas.map((p) => ({ code: String(p.item_number), name: p.description + " (" + p.quantity + " " + p.unit + ")", amount: 0 })), total: 0, totalLabel: "Ver detalle en sistema" },
+        { title: "Partidas de la Oferta", items: itemsWithTotals, total: grandTotal, totalLabel: "Total de la Oferta" },
       ],
-      "Total de Partidas",
-      partidas.length
+      "Total de la Oferta",
+      grandTotal
     );
     doc.save("oferta-" + (project?.procedure_number ?? "apu") + ".pdf");
   }
