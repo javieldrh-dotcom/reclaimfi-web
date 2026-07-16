@@ -1,169 +1,75 @@
+﻿"use client";
 import Link from "next/link";
 
-export default function Home() {
+export default function HomePage() {
   return (
-    <main className="min-h-screen bg-black text-white">
-
-      {/* NAVBAR */}
-      <header className="sticky top-0 z-50 border-b border-white/10 bg-black/80 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5 lg:px-12">
-
-          <h1 className="text-xl font-bold tracking-wide text-cyan-400">
-            Audit Global Intelligence
-          </h1>
-
-          <nav
-            aria-label="Main navigation"
-            className="hidden gap-8 text-sm text-gray-300 md:flex"
-          >
-            <Link href="/servicios" className="transition hover:text-cyan-400">
-              Servicios
-            </Link>
-
-            <Link href="/tecnologia" className="transition hover:text-cyan-400">
-              Tecnología
-            </Link>
-
-            <Link href="/compliance" className="transition hover:text-cyan-400">
-              Compliance
-            </Link>
-
-            <Link href="/contacto" className="transition hover:text-cyan-400">
-              Contacto
-            </Link>
-          </nav>
-
-          {/* ✅ FIX: Link válido */}
-          <Link
-            href="/login"
-            className="rounded-xl border border-cyan-400/40 px-4 py-2 text-sm text-cyan-300 transition hover:bg-cyan-400/10"
-          >
-            Acceso Seguro
-          </Link>
-
+    <div style={{ background: "#0B0E14", minHeight: "100vh", color: "white", fontFamily: "'IBM Plex Sans', sans-serif" }}>
+      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 40px", borderBottom: "1px solid #1F2937" }}>
+        <div style={{ fontSize: 20, fontWeight: 900, color: "#2DD4BF", fontFamily: "'IBM Plex Serif', serif" }}>
+          Audit Global Intelligence
         </div>
+        <Link href="/login" style={{ padding: "10px 20px", border: "1px solid #2DD4BF", borderRadius: 8, color: "#2DD4BF", textDecoration: "none", fontSize: 14, fontWeight: 700 }}>
+          Acceso Seguro
+        </Link>
       </header>
 
-      {/* HERO */}
-      <section className="relative overflow-hidden border-b border-white/10">
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-black to-slate-950 opacity-90" />
-
-        <div className="relative mx-auto max-w-7xl px-6 py-28 lg:px-12">
-          <div className="max-w-4xl">
-
-            <div className="mb-6 inline-flex items-center rounded-full border border-cyan-400/30 bg-cyan-400/10 px-4 py-2 text-sm text-cyan-300 backdrop-blur">
-              Plataforma Profesional de Inteligencia Financiera
-            </div>
-
-            <h1 className="text-5xl font-bold leading-tight tracking-tight md:text-7xl">
-              Inteligencia Forense
-              <span className="block text-cyan-400">
-                Financiera & Blockchain
-              </span>
-            </h1>
-
-            <p className="mt-8 max-w-3xl text-lg leading-8 text-gray-300 md:text-xl">
-              Infraestructura tecnológica orientada a auditoría digital,
-              trazabilidad documental, análisis blockchain y clasificación
-              profesional de riesgo financiero.
-            </p>
-
-            <div className="mt-10 flex flex-wrap gap-4">
-
-              <Link
-                href="/login"
-                className="inline-block rounded-2xl bg-cyan-400 px-7 py-4 font-semibold text-black transition hover:scale-105"
-              >
-                Solicitar Evaluación
-              </Link>
-
-              <Link
-                href="/dashboard"
-                className="rounded-2xl border border-white/20 px-7 py-4 font-semibold text-white transition hover:bg-white/10"
-              >
-                Ver Arquitectura
-              </Link>
-
-            </div>
-          </div>
+      <section style={{ padding: "80px 40px", textAlign: "center", maxWidth: 900, margin: "0 auto" }}>
+        <div style={{ display: "inline-block", padding: "6px 16px", border: "1px solid #2DD4BF60", borderRadius: 999, fontSize: 13, color: "#2DD4BF", marginBottom: 24 }}>
+          Plataforma Integral de Inteligencia Financiera
         </div>
-      </section>
-
-      {/* SERVICES */}
-      <section className="mx-auto max-w-7xl px-6 py-24 lg:px-12">
-
-        <div className="mb-16 max-w-3xl">
-          <h2 className="text-4xl font-bold">
-            Servicios Estratégicos
-          </h2>
-
-          <p className="mt-6 text-lg text-gray-400">
-            Soluciones orientadas a cumplimiento, análisis de riesgo,
-            trazabilidad y preservación de evidencia digital.
-          </p>
-        </div>
-
-        <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-3">
-
-          <div className="rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur transition hover:border-cyan-400/40 hover:bg-white/10">
-            <div className="mb-4 text-cyan-400 text-2xl">●</div>
-            <h3 className="text-2xl font-semibold text-cyan-300">
-              Auditoría Forense Digital
-            </h3>
-            <p className="mt-4 leading-7 text-gray-300">
-              Evaluación técnica de integridad documental y evidencia electrónica.
-            </p>
-          </div>
-
-          <div className="rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur transition hover:border-cyan-400/40 hover:bg-white/10">
-            <div className="mb-4 text-cyan-400 text-2xl">●</div>
-            <h3 className="text-2xl font-semibold text-cyan-300">
-              Blockchain Intelligence
-            </h3>
-            <p className="mt-4 leading-7 text-gray-300">
-              Análisis de wallets, transacciones y clasificación de riesgo.
-            </p>
-          </div>
-
-          <div className="rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur transition hover:border-cyan-400/40 hover:bg-white/10">
-            <div className="mb-4 text-cyan-400 text-2xl">●</div>
-            <h3 className="text-2xl font-semibold text-cyan-300">
-              AML / KYC
-            </h3>
-            <p className="mt-4 leading-7 text-gray-300">
-              Automatización de flujos de cumplimiento y validación.
-            </p>
-          </div>
-
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="mx-auto max-w-5xl px-6 py-28 text-center">
-        <h2 className="text-4xl font-bold md:text-5xl">
-          Tecnología orientada a precisión, cumplimiento y confianza.
-        </h2>
-
-        <p className="mx-auto mt-8 max-w-3xl text-lg leading-8 text-gray-400">
-          Audit Global Intelligence integra auditoría profesional,
-          análisis financiero y tecnología forense para generar
-          evaluaciones estructuradas y evidencia verificable.
+        <h1 style={{ fontSize: 48, fontWeight: 900, lineHeight: 1.2, fontFamily: "'IBM Plex Serif', serif" }}>
+          Auditoría Forense, Contabilidad NIIF<br />
+          y Licitaciones al Estado
+        </h1>
+        <p style={{ marginTop: 20, fontSize: 18, color: "#8B93A7", maxWidth: 650, margin: "20px auto 0" }}>
+          Tres módulos integrados en una sola plataforma: investigación forense blockchain,
+          contabilidad financiera con ajuste automático por inflación, y análisis de precios
+          unitarios para contratación con el Estado.
         </p>
+      </section>
+      <section style={{ padding: "0 40px 100px", maxWidth: 1100, margin: "0 auto" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 24 }}>
+          <Link href="/login" style={{ textDecoration: "none", color: "white" }}>
+            <div style={{ padding: 32, background: "#12161F", border: "1px solid #2DD4BF40", borderRadius: 16, height: "100%" }}>
+              <div style={{ width: 40, height: 4, background: "#2DD4BF", borderRadius: 2, marginBottom: 20 }} />
+              <h3 style={{ fontSize: 22, fontWeight: 900, color: "#2DD4BF", fontFamily: "'IBM Plex Serif', serif" }}>ReclaimFi</h3>
+              <p style={{ marginTop: 12, fontSize: 14, color: "#8B93A7", lineHeight: 1.6 }}>
+                Investigación forense blockchain, análisis de riesgo explicable y cadena de custodia
+                con hash criptográfico para evidencia digital.
+              </p>
+              <p style={{ marginTop: 20, fontSize: 13, color: "#2DD4BF", fontWeight: 700 }}>Acceder al módulo →</p>
+            </div>
+          </Link>
 
-        <Link
-          href="/login"
-          className="mt-12 inline-block rounded-2xl bg-cyan-400 px-10 py-5 text-lg font-semibold text-black transition hover:scale-105"
-        >
-          Iniciar Evaluación
-        </Link>
+          <Link href="/login" style={{ textDecoration: "none", color: "white" }}>
+            <div style={{ padding: 32, background: "#12161F", border: "1px solid #818CF840", borderRadius: 16, height: "100%" }}>
+              <div style={{ width: 40, height: 4, background: "#818CF8", borderRadius: 2, marginBottom: 20 }} />
+              <h3 style={{ fontSize: 22, fontWeight: 900, color: "#818CF8", fontFamily: "'IBM Plex Serif', serif" }}>Contabilidad Financiera</h3>
+              <p style={{ marginTop: 12, fontSize: 14, color: "#8B93A7", lineHeight: 1.6 }}>
+                Plan de cuentas NIIF multi-sector, ajuste automático por inflación (REPOMO),
+                estados financieros y cadena de custodia contable.
+              </p>
+              <p style={{ marginTop: 20, fontSize: 13, color: "#818CF8", fontWeight: 700 }}>Acceder al módulo →</p>
+            </div>
+          </Link>
+
+          <Link href="/login" style={{ textDecoration: "none", color: "white" }}>
+            <div style={{ padding: 32, background: "#12161F", border: "1px solid #FB923C40", borderRadius: 16, height: "100%" }}>
+              <div style={{ width: 40, height: 4, background: "#FB923C", borderRadius: 2, marginBottom: 20 }} />
+              <h3 style={{ fontSize: 22, fontWeight: 900, color: "#FB923C", fontFamily: "'IBM Plex Serif', serif" }}>APU / Licitaciones</h3>
+              <p style={{ marginTop: 12, fontSize: 14, color: "#8B93A7", lineHeight: 1.6 }}>
+                Análisis de precios unitarios para licitaciones al Estado, con motor de costo laboral
+                CCTP y catálogo oficial de clasificación SNC.
+              </p>
+              <p style={{ marginTop: 20, fontSize: 13, color: "#FB923C", fontWeight: 700 }}>Acceder al módulo →</p>
+            </div>
+          </Link>
+        </div>
       </section>
 
-      {/* FOOTER */}
-      <footer className="border-t border-white/10 px-6 py-10 text-center text-sm text-gray-500">
-        © 2026 Audit Global Intelligence. Todos los derechos reservados.
+      <footer style={{ padding: "24px 40px", borderTop: "1px solid #1F2937", textAlign: "center", fontSize: 13, color: "#8B93A7" }}>
+        Audit Global Intelligence — Plataforma profesional de inteligencia financiera
       </footer>
-
-    </main>
+    </div>
   );
 }
-
