@@ -53,6 +53,26 @@ export default function PartidasPage() {
     loadCatalog();
   }, [catalogFilter]);
 
+  async function suggestWithAI() {
+    if (!description) { setMessage("Escribe primero una descripcion de la partida."); return; }
+    setMessage("Consultando IA para sugerencias...");
+    try {
+      const res = await fetch("/api/apu-suggest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description }),
+      });
+      const data = await res.json();
+      if (data.error) { setMessage("Error: " + data.error); return; }
+      setMaterials((data.materials ?? []).map((m: any) => ({ description: m.description, unit: m.unit, quantity: String(m.quantity), unitCost: "" })));
+      setEquipment((data.equipment ?? []).map((e: any) => ({ description: e.description, unit: e.unit, quantity: String(e.quantity), unitCost: "" })));
+      setLabor((data.labor ?? []).map((l: any) => ({ positionName: l.positionName, quantity: String(l.quantity), days: String(l.days), dailyRate: "" })));
+      setMessage(data.summary || "Sugerencia generada. Ajusta los costos segun tu conocimiento del mercado.");
+    } catch (err: any) {
+      setMessage("Error al conectar con el agente de IA: " + err.message);
+    }
+  }
+
   function useTemplate(item: any) {
     setDescription(item.description);
     setUnit(item.default_unit ?? "UND");
@@ -232,6 +252,9 @@ export default function PartidasPage() {
         <div>
           <label style={labelStyle}>Descripcion de la Partida</label>
           <input value={description} onChange={(e) => setDescription(e.target.value)} style={inputStyle} placeholder="Ej. Cambio de valvula de 6 pulgadas" />
+          <button onClick={suggestWithAI} style={{ marginTop: 8, padding: "8px 16px", background: "none", border: "1px solid " + apuTheme.accent, color: apuTheme.accent, borderRadius: 8, fontSize: 14, cursor: "pointer" }}>
+            ✨ Sugerir Materiales, Equipos y Labor con IA
+          </button>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10, marginTop: 16 }}>
             <div><label style={labelStyle}>Unidad</label><input value={unit} onChange={(e) => setUnit(e.target.value)} style={inputStyle} /></div>
