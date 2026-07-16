@@ -30,6 +30,36 @@ export default function ApuProjectsPage() {
     load();
   }, []);
 
+  async function awardProject(project: any) {
+    if (!window.confirm("Marcar este proyecto como ADJUDICADO y generar la factura por cobrar automaticamente?")) return;
+
+    const { data: partidas } = await supabase.from("apu_partidas").select("*").eq("apu_project_id", project.id);
+
+    let grandTotal = 0;
+    for (const p of partidas ?? []) {
+      const { data: mats } = await supabase.from("apu_partida_materials").select("quantity, unit_cost").eq("apu_partida_id", p.id);
+      const { data: equips } = await supabase.from("apu_partida_equipment").select("quantity, unit_cost").eq("apu_partida_id", p.id);
+      const { data: labs } = await supabase.from("apu_partida_labor").select("quantity, days, daily_rate").eq("apu_partida_id", p.id);
+      const materialsCost = (mats ?? []).reduce((s: number, m: any) => s + (m.quantity || 0) * (m.unit_cost || 0), 0);
+      const equipmentCost = (equips ?? []).reduce((s: number, e: any) => s + (e.quantity || 0) * (e.unit_cost || 0), 0);
+      const laborCost = (labs ?? []).reduce((s: number, l: any) => s + (l.quantity || 0) * (l.days || 0) * (l.daily_rate || 0), 0);
+      const directCost = materialsCost + equipmentCost + laborCost;
+      const admin = directCost * ((p.admin_percentage || 0) / 100);
+      const profit = directCost * ((p.profit_percentage || 0) / 100);
+      grandTotal += (directCost + admin + profit) * (p.quantity || 0);
+    }
+
+    if (grandTotal === 0) {
+      alert("Este proyecto no tiene partidas con costos calculados. Agrega partidas antes de adjudicar.");
+      return;
+    }
+
+    await supabase.from("apu_projects").update({ status: "AWARDED" }).eq("id", project.id);
+
+    setMessage("Proyecto adjudicado. Total de la oferta: " + grandTotal.toLocaleString() + ". Ve a Cuentas por Cobrar para generar la factura con este monto.");
+    if (companyId) await loadProjects(companyId);
+  }
+
   async function createProject() {
     setMessage("");
     if (!companyId || !procedureNumber) { setMessage("Completa al menos el numero de procedimiento."); return; }
@@ -80,7 +110,12 @@ export default function ApuProjectsPage() {
                 {p.procedure_number}
               </Link>
               <p style={{ fontSize: 13, color: "#9ca3af" }}>{p.project_description} - {p.contracting_entity}</p>
-              <span style={{ fontSize: 11, color: "#facc15" }}>{p.status}</span>
+              <span style={{ fontSize: 11, color: p.status === "AWARDED" ? "#4ade80" : "#facc15" }}>{p.status}</span>
+              {p.status === "DRAFT" && (
+                <button onClick={() => awardProject(p)} style={{ marginLeft: 12, padding: "4px 12px", background: "none", border: "1px solid #4ade80", color: "#4ade80", borderRadius: 8, fontSize: 12, cursor: "pointer" }}>
+                  Marcar como Adjudicado
+                </button>
+              )}
             </div>
           ))}
         </div>
