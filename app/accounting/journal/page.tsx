@@ -17,7 +17,7 @@ export default function JournalPage() {
   async function loadEntries(cid: string) {
     const { data } = await supabase
       .from("journal_entries")
-      .select("id, description, entry_date, status, journal_lines(debit, credit, chart_of_accounts(account_code, account_name))")
+      .select("id, description, entry_date, status, journal_lines(debit, credit, chart_of_accounts!journal_lines_account_id_fkey(account_code, account_name))")
       .eq("company_id", cid)
       .order("created_at", { ascending: false })
       .limit(15);
