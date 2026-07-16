@@ -14,6 +14,8 @@ export default function ApuProjectsPage() {
   const [message, setMessage] = useState("");
   const [arAccounts, setArAccounts] = useState<any[]>([]);
   const [revenueAccounts, setRevenueAccounts] = useState<any[]>([]);
+  const [orderDebtorAccount, setOrderDebtorAccount] = useState<any>(null);
+  const [orderCreditorAccount, setOrderCreditorAccount] = useState<any>(null);
 
   async function loadProjects(cid: string) {
     const { data } = await supabase.from("apu_projects").select("*").eq("company_id", cid).order("created_at", { ascending: false });
@@ -32,6 +34,10 @@ export default function ApuProjectsPage() {
         const { data: rev } = await supabase.from("chart_of_accounts").select("id, account_code, account_name").eq("company_id", cid).eq("account_type", "REVENUE");
         setArAccounts(ar ?? []);
         setRevenueAccounts(rev ?? []);
+        const { data: orderD } = await supabase.from("chart_of_accounts").select("id").eq("company_id", cid).eq("account_type", "ORDER_DEBTOR").ilike("account_name", "%Contratos por Ejecutar%").single();
+        const { data: orderC } = await supabase.from("chart_of_accounts").select("id").eq("company_id", cid).eq("account_type", "ORDER_CREDITOR").ilike("account_name", "%Responsabilidad por Contratos%").single();
+        setOrderDebtorAccount(orderD);
+        setOrderCreditorAccount(orderC);
         await loadProjects(cid);
       }
     }
@@ -62,8 +68,8 @@ export default function ApuProjectsPage() {
       return;
     }
 
-    if (arAccounts.length === 0 || revenueAccounts.length === 0) {
-      alert("No hay cuentas de Activo o Ingreso configuradas en el plan de cuentas de esta empresa.");
+    if (!orderDebtorAccount || !orderCreditorAccount) {
+      alert("No se encontraron las cuentas de orden \"Contratos por Ejecutar\" y \"Responsabilidad por Contratos Firmados\". Verifica el plan de cuentas.");
       return;
     }
 
@@ -71,7 +77,7 @@ export default function ApuProjectsPage() {
 
     const { data: entry, error: entryError } = await supabase.from("journal_entries").insert([{
       company_id: companyId,
-      description: "Adjudicacion de Oferta " + project.procedure_number + " - " + (project.contracting_entity ?? ""),
+      description: "Compromiso Contractual - Oferta " + project.procedure_number + " - " + (project.contracting_entity ?? ""),
       entry_date: new Date().toISOString().slice(0, 10),
     }]).select("id").single();
 
@@ -82,21 +88,11 @@ export default function ApuProjectsPage() {
     }
 
     await supabase.from("journal_lines").insert([
-      { journal_entry_id: entry.id, account_id: arAccounts[0].id, debit: grandTotal, credit: 0 },
-      { journal_entry_id: entry.id, account_id: revenueAccounts[0].id, debit: 0, credit: grandTotal },
+      { journal_entry_id: entry.id, account_id: orderDebtorAccount.id, debit: grandTotal, credit: 0 },
+      { journal_entry_id: entry.id, account_id: orderCreditorAccount.id, debit: 0, credit: grandTotal },
     ]);
 
-    await supabase.from("ar_invoices").insert([{
-      company_id: companyId,
-      customer_name: project.contracting_entity ?? "Cliente",
-      invoice_number: project.procedure_number,
-      issue_date: new Date().toISOString().slice(0, 10),
-      due_date: new Date().toISOString().slice(0, 10),
-      amount: grandTotal,
-      journal_entry_id: entry.id,
-    }]);
-
-    setMessage("Proyecto adjudicado. Factura por " + grandTotal.toLocaleString() + " generada automaticamente en Cuentas por Cobrar, con su asiento contable.");
+    setMessage("Proyecto adjudicado. Compromiso contractual por " + grandTotal.toLocaleString() + " registrado en Cuentas de Orden (no afecta el Balance ni el Estado de Resultados todavia). Factura por avance de obra o anticipo se registra manualmente en Cuentas por Cobrar cuando corresponda.");
     if (companyId) await loadProjects(companyId);
   }
 
