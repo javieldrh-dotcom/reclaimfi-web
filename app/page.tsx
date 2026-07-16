@@ -21,51 +21,51 @@ export default function HomePage() {
         <div style={{ display: "inline-block", padding: "8px 20px", border: "1px solid #2DD4BF60", borderRadius: 999, fontSize: 15, color: "#2DD4BF", marginBottom: 28, fontWeight: 600 }}>
           Plataforma Integral de Inteligencia Financiera
         </div>
-        <h1 style={{ fontSize: 56, fontWeight: 900, lineHeight: 1.2, fontFamily: "'IBM Plex Serif', serif" }}>
+        <h1 style={{ fontSize: 60, fontWeight: 900, lineHeight: 1.2, fontFamily: "'IBM Plex Serif', serif" }}>
           Auditoría Forense, Contabilidad NIIF<br />
           y Licitaciones al Estado
         </h1>
-        <p style={{ marginTop: 24, fontSize: 20, color: "#B0B8C8", maxWidth: 700, margin: "24px auto 0", lineHeight: 1.6 }}>
+        <p style={{ marginTop: 24, fontSize: 22, color: "#B0B8C8", maxWidth: 750, margin: "24px auto 0", lineHeight: 1.6 }}>
           Tres módulos integrados en una sola plataforma: investigación forense blockchain,
           contabilidad financiera con ajuste automático por inflación, y análisis de precios
           unitarios para contratación con el Estado.
         </p>
       </section>
       <section style={{ padding: "0 40px 120px", maxWidth: 1150, margin: "0 auto", position: "relative", zIndex: 1 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 28 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 40 }}>
           <Link href="/login" style={{ textDecoration: "none", color: "white" }}>
             <div style={{ padding: 36, background: "#12161F", border: "1px solid #2DD4BF40", borderRadius: 18, height: "100%", boxShadow: "0 8px 30px #2DD4BF15" }}>
               <div style={{ width: 44, height: 5, background: "#2DD4BF", borderRadius: 3, marginBottom: 22 }} />
-              <h3 style={{ fontSize: 26, fontWeight: 900, color: "#2DD4BF", fontFamily: "'IBM Plex Serif', serif" }}>ReclaimFi</h3>
-              <p style={{ marginTop: 14, fontSize: 16, color: "#B0B8C8", lineHeight: 1.7 }}>
+              <h3 style={{ fontSize: 28, fontWeight: 900, color: "#2DD4BF", fontFamily: "'IBM Plex Serif', serif" }}>ReclaimFi</h3>
+              <p style={{ marginTop: 14, fontSize: 17, color: "#B0B8C8", lineHeight: 1.7 }}>
                 Investigación forense blockchain, análisis de riesgo explicable y cadena de custodia
                 con hash criptográfico para evidencia digital.
               </p>
-              <p style={{ marginTop: 24, fontSize: 15, color: "#2DD4BF", fontWeight: 700 }}>Acceder al módulo →</p>
+              <p style={{ marginTop: 24, fontSize: 16, color: "#2DD4BF", fontWeight: 700 }}>Acceder al módulo →</p>
             </div>
           </Link>
 
           <Link href="/login" style={{ textDecoration: "none", color: "white" }}>
             <div style={{ padding: 36, background: "#12161F", border: "1px solid #818CF840", borderRadius: 18, height: "100%", boxShadow: "0 8px 30px #818CF815" }}>
               <div style={{ width: 44, height: 5, background: "#818CF8", borderRadius: 3, marginBottom: 22 }} />
-              <h3 style={{ fontSize: 26, fontWeight: 900, color: "#818CF8", fontFamily: "'IBM Plex Serif', serif" }}>Contabilidad Financiera</h3>
-              <p style={{ marginTop: 14, fontSize: 16, color: "#B0B8C8", lineHeight: 1.7 }}>
+              <h3 style={{ fontSize: 28, fontWeight: 900, color: "#818CF8", fontFamily: "'IBM Plex Serif', serif" }}>Contabilidad Financiera</h3>
+              <p style={{ marginTop: 14, fontSize: 17, color: "#B0B8C8", lineHeight: 1.7 }}>
                 Plan de cuentas NIIF multi-sector, ajuste automático por inflación (REPOMO),
                 estados financieros y cadena de custodia contable.
               </p>
-              <p style={{ marginTop: 24, fontSize: 15, color: "#818CF8", fontWeight: 700 }}>Acceder al módulo →</p>
+              <p style={{ marginTop: 24, fontSize: 16, color: "#818CF8", fontWeight: 700 }}>Acceder al módulo →</p>
             </div>
           </Link>
 
           <Link href="/login" style={{ textDecoration: "none", color: "white" }}>
             <div style={{ padding: 36, background: "#12161F", border: "1px solid #FB923C40", borderRadius: 18, height: "100%", boxShadow: "0 8px 30px #FB923C15" }}>
               <div style={{ width: 44, height: 5, background: "#FB923C", borderRadius: 3, marginBottom: 22 }} />
-              <h3 style={{ fontSize: 26, fontWeight: 900, color: "#FB923C", fontFamily: "'IBM Plex Serif', serif" }}>APU / Licitaciones</h3>
-              <p style={{ marginTop: 14, fontSize: 16, color: "#B0B8C8", lineHeight: 1.7 }}>
+              <h3 style={{ fontSize: 28, fontWeight: 900, color: "#FB923C", fontFamily: "'IBM Plex Serif', serif" }}>APU / Licitaciones</h3>
+              <p style={{ marginTop: 14, fontSize: 17, color: "#B0B8C8", lineHeight: 1.7 }}>
                 Análisis de precios unitarios para licitaciones al Estado, con motor de costo laboral
                 CCTP y catálogo oficial de clasificación SNC.
               </p>
-              <p style={{ marginTop: 24, fontSize: 15, color: "#FB923C", fontWeight: 700 }}>Acceder al módulo →</p>
+              <p style={{ marginTop: 24, fontSize: 16, color: "#FB923C", fontWeight: 700 }}>Acceder al módulo →</p>
             </div>
           </Link>
         </div>
