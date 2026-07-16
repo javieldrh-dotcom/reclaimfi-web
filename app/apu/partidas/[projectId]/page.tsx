@@ -48,7 +48,7 @@ export default function PartidasPage() {
   useEffect(() => {
     async function loadCatalog() {
       const { data } = await supabase.from("apu_catalog_items").select("*").eq("category", catalogFilter);
-      setCatalogItems(data ?? []);
+      const withTemplates = (data ?? []).filter((item: any) => (item.materials_template ?? []).length > 0 || (item.equipment_template ?? []).length > 0 || (item.labor_template ?? []).length > 0); setCatalogItems(withTemplates);
     }
     loadCatalog();
   }, [catalogFilter]);
