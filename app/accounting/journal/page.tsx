@@ -1,12 +1,19 @@
 ﻿"use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
+import { getVerticalTheme } from "@/app/core/design/tokens";
+import VerticalPageLayout from "@/app/components/VerticalPageLayout";
+import { generateFinancialStatementPdf } from "@/app/core/reports/generateFinancialStatementPdf";
+
 interface Account { id: string; account_code: string; account_name: string; }
 interface Line { account_id: string; debit: string; credit: string; }
 
 export default function JournalPage() {
+  const theme = getVerticalTheme("accounting");
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [companyId, setCompanyId] = useState<string | null>(null);
+  const [companyName, setCompanyName] = useState("");
+  const [currencyDoc, setCurrencyDoc] = useState("USD");
   const [description, setDescription] = useState("");
   const [currency, setCurrency] = useState("USD");
   const [exchangeRate, setExchangeRate] = useState("1");
@@ -32,6 +39,9 @@ export default function JournalPage() {
       const cid = uc?.company_id ?? null;
       setCompanyId(cid);
       if (cid) {
+        const { data: companyData } = await supabase.from("companies").select("name, functional_currency").eq("id", cid).single();
+        setCompanyName(companyData?.name ?? "");
+        setCurrencyDoc(companyData?.functional_currency ?? "USD");
         const { data: acc } = await supabase.from("chart_of_accounts").select("id, account_code, account_name").eq("company_id", cid).order("account_code");
         setAccounts(acc ?? []);
         await loadEntries(cid);
@@ -68,13 +78,41 @@ export default function JournalPage() {
     if (companyId) await loadEntries(companyId);
   }
 
-  const inputStyle = { background: "#0d1117", border: "1px solid #1a3050", borderRadius: 8, padding: 8, color: "white", width: "100%" };
+  function downloadPdf() {
+    const items = entries.filter((e) => e.status === "ACTIVE").flatMap((e: any) =>
+      (e.journal_lines ?? []).map((l: any) => ({
+        name: e.entry_date + " - " + e.description + " (" + (l.chart_of_accounts?.account_code ?? "") + " " + (l.chart_of_accounts?.account_name ?? "") + ")",
+        amount: l.debit > 0 ? l.debit : l.credit,
+        debitAmount: l.debit,
+        creditAmount: l.credit,
+      }))
+    );
+    const totalD = items.reduce((s, i) => s + (i.debitAmount || 0), 0);
+    const totalC = items.reduce((s, i) => s + (i.creditAmount || 0), 0);
+    const doc = generateFinancialStatementPdf(
+      "LIBRO DIARIO",
+      companyName,
+      [{ title: "Asientos Contables", items, total: 0, totalLabel: "Totales", totalDebit: totalD, totalCredit: totalC }],
+      "Total General",
+      totalD,
+      currencyDoc
+    );
+    doc.save("libro-diario.pdf");
+  }
 
+  const inputStyle = theme.inputStyle;
   return (
-    <div style={{ padding: 40, color: "white", background: "#000a16", minHeight: "100vh" }}>
-      <h1 style={{ fontSize: 32, fontWeight: 900, color: "#7dd3fc" }}>Libro Diario</h1>
+    <VerticalPageLayout
+      vertical="accounting"
+      title="Libro Diario"
+      actions={entries.length > 0 ? (
+        <button onClick={downloadPdf} style={{ ...theme.buttonStyle, fontSize: 13, padding: "10px 20px" }}>
+          Descargar PDF
+        </button>
+      ) : undefined}
+    >
       {accounts.length > 0 && (
-        <div style={{ marginTop: 30 }}>
+        <div style={theme.cardStyle}>
           <div style={{ display: "flex", gap: 8 }}>
             <select value={currency} onChange={(e) => setCurrency(e.target.value)} style={inputStyle}>
               <option value="USD">USD</option>
@@ -83,7 +121,7 @@ export default function JournalPage() {
               <option value="COP">COP</option>
               <option value="MXN">MXN</option>
             </select>
-            <input type="number" step="0.0001" value={exchangeRate} onChange={(e) => setExchangeRate(e.target.value)} style={inputStyle} placeholder="Tasa de cambio (1 si es moneda funcional)" />
+            <input type="number" step="0.0001" value={exchangeRate} onChange={(e) => setExchangeRate(e.target.value)} style={inputStyle} placeholder="Tasa de cambio" />
           </div>
           <input value={description} onChange={(e) => setDescription(e.target.value)} style={{ ...inputStyle, marginTop: 8 }} placeholder="Descripcion" />
           {lines.map((line, idx) => (
@@ -96,39 +134,39 @@ export default function JournalPage() {
               <input type="number" value={line.credit} onChange={(e) => updateLine(idx, "credit", e.target.value)} style={inputStyle} placeholder="Haber" />
             </div>
           ))}
-          <button onClick={addLine} style={{ marginTop: 12, color: "#7dd3fc" }}>+ Linea</button>
-          <p>Debe: {totalDebit()} | Haber: {totalCredit()}</p>
-          <button onClick={saveEntry} style={{ marginTop: 12, padding: 14, background: "#22d3ee", color: "black", fontWeight: 900, borderRadius: 12, border: "none" }}>GUARDAR</button>
-          {message && <p>{message}</p>}
+          <button onClick={addLine} style={{ marginTop: 12, color: theme.accent, background: "none", border: "none", cursor: "pointer" }}>+ Linea</button>
+          <p style={{ ...theme.numberStyle, marginTop: 12 }}>Debe: {totalDebit().toLocaleString()} | Haber: {totalCredit().toLocaleString()}</p>
+          <button onClick={saveEntry} style={{ ...theme.buttonStyle, marginTop: 12 }}>GUARDAR</button>
+          {message && <p style={{ marginTop: 8, color: message.includes("Error") ? "#F87171" : theme.accent }}>{message}</p>}
         </div>
       )}
 
       {entries.length > 0 && (
-        <div style={{ marginTop: 40 }}>
-          <h2 style={{ fontSize: 20, color: "#7dd3fc" }}>Asientos Recientes</h2>
+        <div style={{ marginTop: 32 }}>
+          <h2 style={{ fontSize: 20, color: theme.accent, fontFamily: theme.titleStyle.fontFamily }}>Asientos Recientes</h2>
           {entries.map((e) => (
-            <div key={e.id} style={{ padding: 12, borderBottom: "1px solid #1a3050", opacity: e.status === "VOIDED" ? 0.5 : 1 }}>
+            <div key={e.id} style={{ ...theme.cardStyle, marginTop: 12, opacity: e.status === "VOIDED" ? 0.5 : 1 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontWeight: 600 }}>
+                <span style={{ fontWeight: 600, fontSize: 15 }}>
                   {e.entry_date} - {e.description}
-                  {e.status === "VOIDED" && <span style={{ color: "#f87171", marginLeft: 8, fontSize: 11 }}>[ANULADO]</span>}
+                  {e.status === "VOIDED" && <span style={{ color: "#F87171", marginLeft: 8, fontSize: 12 }}>[ANULADO]</span>}
                 </span>
                 {e.status === "ACTIVE" && (
-                  <button onClick={() => voidEntry(e.id)} style={{ background: "none", border: "1px solid #f87171", color: "#f87171", padding: "4px 10px", borderRadius: 8, fontSize: 12 }}>
+                  <button onClick={() => voidEntry(e.id)} style={{ background: "none", border: "1px solid #F87171", color: "#F87171", padding: "4px 12px", borderRadius: 8, fontSize: 13, cursor: "pointer" }}>
                     Anular
                   </button>
                 )}
               </div>
               {(e.journal_lines ?? []).map((l: any, idx: number) => (
-                <div key={idx} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#9ca3af", marginTop: 4, paddingLeft: 12 }}>
+                <div key={idx} style={{ display: "flex", justifyContent: "space-between", fontSize: 14, color: "#8B93A7", marginTop: 6, paddingLeft: 12 }}>
                   <span>{l.chart_of_accounts?.account_code} - {l.chart_of_accounts?.account_name}</span>
-                  <span>{l.debit > 0 ? "Debe: " + l.debit.toLocaleString() : "Haber: " + l.credit.toLocaleString()}</span>
+                  <span style={theme.numberStyle}>{l.debit > 0 ? "Debe: " + l.debit.toLocaleString() : "Haber: " + l.credit.toLocaleString()}</span>
                 </div>
               ))}
             </div>
           ))}
         </div>
       )}
-    </div>
+    </VerticalPageLayout>
   );
 }
