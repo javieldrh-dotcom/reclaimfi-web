@@ -12,6 +12,8 @@ export default function ApuProjectsPage() {
   const [submissionDate, setSubmissionDate] = useState(new Date().toISOString().slice(0, 10));
   const [currency, setCurrency] = useState("USD");
   const [message, setMessage] = useState("");
+  const [arAccounts, setArAccounts] = useState<any[]>([]);
+  const [revenueAccounts, setRevenueAccounts] = useState<any[]>([]);
 
   async function loadProjects(cid: string) {
     const { data } = await supabase.from("apu_projects").select("*").eq("company_id", cid).order("created_at", { ascending: false });
@@ -25,7 +27,13 @@ export default function ApuProjectsPage() {
       const { data: uc } = await supabase.from("user_companies").select("company_id").eq("user_id", userData.user.id).limit(1).single();
       const cid = uc?.company_id ?? null;
       setCompanyId(cid);
-      if (cid) await loadProjects(cid);
+      if (cid) {
+        const { data: ar } = await supabase.from("chart_of_accounts").select("id, account_code, account_name").eq("company_id", cid).eq("account_type", "ASSET");
+        const { data: rev } = await supabase.from("chart_of_accounts").select("id, account_code, account_name").eq("company_id", cid).eq("account_type", "REVENUE");
+        setArAccounts(ar ?? []);
+        setRevenueAccounts(rev ?? []);
+        await loadProjects(cid);
+      }
     }
     load();
   }, []);
@@ -54,9 +62,41 @@ export default function ApuProjectsPage() {
       return;
     }
 
+    if (arAccounts.length === 0 || revenueAccounts.length === 0) {
+      alert("No hay cuentas de Activo o Ingreso configuradas en el plan de cuentas de esta empresa.");
+      return;
+    }
+
     await supabase.from("apu_projects").update({ status: "AWARDED" }).eq("id", project.id);
 
-    setMessage("Proyecto adjudicado. Total de la oferta: " + grandTotal.toLocaleString() + ". Ve a Cuentas por Cobrar para generar la factura con este monto.");
+    const { data: entry, error: entryError } = await supabase.from("journal_entries").insert([{
+      company_id: companyId,
+      description: "Adjudicacion de Oferta " + project.procedure_number + " - " + (project.contracting_entity ?? ""),
+      entry_date: new Date().toISOString().slice(0, 10),
+    }]).select("id").single();
+
+    if (entryError || !entry) {
+      setMessage("Proyecto adjudicado, pero hubo un error al generar el asiento: " + entryError?.message);
+      if (companyId) await loadProjects(companyId);
+      return;
+    }
+
+    await supabase.from("journal_lines").insert([
+      { journal_entry_id: entry.id, account_id: arAccounts[0].id, debit: grandTotal, credit: 0 },
+      { journal_entry_id: entry.id, account_id: revenueAccounts[0].id, debit: 0, credit: grandTotal },
+    ]);
+
+    await supabase.from("ar_invoices").insert([{
+      company_id: companyId,
+      customer_name: project.contracting_entity ?? "Cliente",
+      invoice_number: project.procedure_number,
+      issue_date: new Date().toISOString().slice(0, 10),
+      due_date: new Date().toISOString().slice(0, 10),
+      amount: grandTotal,
+      journal_entry_id: entry.id,
+    }]);
+
+    setMessage("Proyecto adjudicado. Factura por " + grandTotal.toLocaleString() + " generada automaticamente en Cuentas por Cobrar, con su asiento contable.");
     if (companyId) await loadProjects(companyId);
   }
 
