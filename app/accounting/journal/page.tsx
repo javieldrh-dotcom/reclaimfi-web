@@ -17,7 +17,7 @@ export default function JournalPage() {
   async function loadEntries(cid: string) {
     const { data } = await supabase
       .from("journal_entries")
-      .select("id, description, entry_date, status")
+      .select("id, description, entry_date, status, journal_lines(debit, credit, chart_of_accounts(account_code, account_name))")
       .eq("company_id", cid)
       .order("created_at", { ascending: false })
       .limit(15);
@@ -44,7 +44,6 @@ export default function JournalPage() {
   function addLine() { setLines([...lines, { account_id: "", debit: "", credit: "" }]); }
   function totalDebit() { return lines.reduce((s, l) => s + (parseFloat(l.debit) || 0), 0); }
   function totalCredit() { return lines.reduce((s, l) => s + (parseFloat(l.credit) || 0), 0); }
-
   async function saveEntry() {
     setMessage("");
     if (!companyId) { setMessage("Sin empresa asociada."); return; }
@@ -70,6 +69,7 @@ export default function JournalPage() {
   }
 
   const inputStyle = { background: "#0d1117", border: "1px solid #1a3050", borderRadius: 8, padding: 8, color: "white", width: "100%" };
+
   return (
     <div style={{ padding: 40, color: "white", background: "#000a16", minHeight: "100vh" }}>
       <h1 style={{ fontSize: 32, fontWeight: 900, color: "#7dd3fc" }}>Libro Diario</h1>
@@ -85,7 +85,7 @@ export default function JournalPage() {
             </select>
             <input type="number" step="0.0001" value={exchangeRate} onChange={(e) => setExchangeRate(e.target.value)} style={inputStyle} placeholder="Tasa de cambio (1 si es moneda funcional)" />
           </div>
-          <input value={description} onChange={(e) => setDescription(e.target.value)} style={inputStyle} placeholder="Descripcion" />
+          <input value={description} onChange={(e) => setDescription(e.target.value)} style={{ ...inputStyle, marginTop: 8 }} placeholder="Descripcion" />
           {lines.map((line, idx) => (
             <div key={idx} style={{ display: "flex", gap: 8, marginTop: 8 }}>
               <select value={line.account_id} onChange={(e) => updateLine(idx, "account_id", e.target.value)} style={inputStyle}>
@@ -107,16 +107,24 @@ export default function JournalPage() {
         <div style={{ marginTop: 40 }}>
           <h2 style={{ fontSize: 20, color: "#7dd3fc" }}>Asientos Recientes</h2>
           {entries.map((e) => (
-            <div key={e.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: 10, borderBottom: "1px solid #1a3050", opacity: e.status === "VOIDED" ? 0.5 : 1 }}>
-              <span>
-                {e.entry_date} - {e.description}
-                {e.status === "VOIDED" && <span style={{ color: "#f87171", marginLeft: 8, fontSize: 11 }}>[ANULADO]</span>}
-              </span>
-              {e.status === "ACTIVE" && (
-                <button onClick={() => voidEntry(e.id)} style={{ background: "none", border: "1px solid #f87171", color: "#f87171", padding: "4px 10px", borderRadius: 8, fontSize: 12 }}>
-                  Anular
-                </button>
-              )}
+            <div key={e.id} style={{ padding: 12, borderBottom: "1px solid #1a3050", opacity: e.status === "VOIDED" ? 0.5 : 1 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontWeight: 600 }}>
+                  {e.entry_date} - {e.description}
+                  {e.status === "VOIDED" && <span style={{ color: "#f87171", marginLeft: 8, fontSize: 11 }}>[ANULADO]</span>}
+                </span>
+                {e.status === "ACTIVE" && (
+                  <button onClick={() => voidEntry(e.id)} style={{ background: "none", border: "1px solid #f87171", color: "#f87171", padding: "4px 10px", borderRadius: 8, fontSize: 12 }}>
+                    Anular
+                  </button>
+                )}
+              </div>
+              {(e.journal_lines ?? []).map((l: any, idx: number) => (
+                <div key={idx} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#9ca3af", marginTop: 4, paddingLeft: 12 }}>
+                  <span>{l.chart_of_accounts?.account_code} - {l.chart_of_accounts?.account_name}</span>
+                  <span>{l.debit > 0 ? "Debe: " + l.debit.toLocaleString() : "Haber: " + l.credit.toLocaleString()}</span>
+                </div>
+              ))}
             </div>
           ))}
         </div>
