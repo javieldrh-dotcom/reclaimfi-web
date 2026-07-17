@@ -9,6 +9,7 @@ export default function SubscribePage() {
   const [selectedPlan, setSelectedPlan] = useState<any>(null);
   const [selectedMethod, setSelectedMethod] = useState<any>(null);
   const [message, setMessage] = useState("");
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -33,15 +34,25 @@ export default function SubscribePage() {
       return;
     }
 
+    let receiptUrl = null;
+    if (receiptFile) {
+      const fileName = Date.now() + "-" + receiptFile.name;
+      const { error: uploadError } = await supabase.storage.from("payment-receipts").upload(fileName, receiptFile);
+      if (uploadError) { setMessage("Error al subir comprobante: " + uploadError.message); return; }
+      const { data: urlData } = supabase.storage.from("payment-receipts").getPublicUrl(fileName);
+      receiptUrl = urlData.publicUrl;
+    }
+
     const { error } = await supabase.from("subscriptions").insert([{
       company_id: companyId,
       plan_id: selectedPlan.id,
       payment_method_id: selectedMethod.id,
       status: "PENDING_PAYMENT",
+      receipt_url: receiptUrl,
     }]);
 
     if (error) { setMessage("Error: " + error.message); return; }
-    setMessage("Solicitud registrada. Realiza el pago con los datos mostrados y envia tu comprobante para activar tu suscripcion.");
+    setMessage(receiptUrl ? "Solicitud y comprobante enviados. Tu suscripcion sera activada tras verificacion." : "Solicitud registrada. Realiza el pago y vuelve a enviar tu comprobante para activar tu suscripcion.");
   }
 
   const cardStyle = { padding: 24, background: "#12161F", border: "1px solid #1F2937", borderRadius: 16, cursor: "pointer" };
@@ -94,6 +105,11 @@ export default function SubscribePage() {
           )}
         </div>
       )}
+
+      <div style={{ marginTop: 24, maxWidth: 500 }}>
+        <label style={{ fontSize: 13, color: "#8B93A7" }}>Comprobante de pago (opcional, puedes enviarlo despues)</label>
+        <input type="file" accept="image/*,.pdf" onChange={(e) => setReceiptFile(e.target.files?.[0] ?? null)} style={{ marginTop: 6, display: "block", color: "white", fontSize: 14 }} />
+      </div>
 
       <button onClick={requestSubscription} style={{ marginTop: 32, padding: "16px 32px", background: "#2DD4BF", color: "#0B0E14", fontWeight: 900, borderRadius: 12, border: "none", fontSize: 16, cursor: "pointer" }}>
         Confirmar Solicitud de Suscripcion
