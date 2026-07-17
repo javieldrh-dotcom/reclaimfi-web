@@ -61,16 +61,30 @@ export default function SubscribePage() {
     if (error) { setMessage("Error: " + error.message); return; }
 
     if (isProvisional && selectedPlan) {
-      const roleMap: Record<string, string> = { RECLAIMFI: "AUDITOR", CONTABILIDAD: "CONTADOR", APU: "CONTADOR", COMPLETO: "ADMIN" };
-      const roleName = roleMap[selectedPlan.plan_code] ?? "SOLO_LECTURA";
-      const { data: roleData } = await supabase.from("user_roles").select("id").eq("name", roleName).single();
-      const { data: userData } = await supabase.auth.getUser();
-      if (roleData && userData?.user && companyId) {
-        await supabase.from("user_role_assignments").insert([{
-          user_id: userData.user.id,
-          role_id: roleData.id,
-          company_id: companyId,
-        }]);
+      try {
+        const { data: userData } = await supabase.auth.getUser();
+        if (userData?.user && companyId) {
+          const { data: existingRoles } = await supabase
+            .from("user_role_assignments")
+            .select("id")
+            .eq("user_id", userData.user.id)
+            .eq("company_id", companyId);
+
+          if (!existingRoles || existingRoles.length === 0) {
+            const roleMap: Record<string, string> = { RECLAIMFI: "AUDITOR", CONTABILIDAD: "CONTADOR", APU: "CONTADOR", COMPLETO: "ADMIN" };
+            const roleName = roleMap[selectedPlan.plan_code] ?? "SOLO_LECTURA";
+            const { data: roleData } = await supabase.from("user_roles").select("id").eq("name", roleName).limit(1);
+            if (roleData && roleData.length > 0) {
+              await supabase.from("user_role_assignments").insert([{
+                user_id: userData.user.id,
+                role_id: roleData[0].id,
+                company_id: companyId,
+              }]);
+            }
+          }
+        }
+      } catch (roleError) {
+        console.error("No se pudo asignar rol automaticamente:", roleError);
       }
     }
 
