@@ -82,6 +82,14 @@ export default function SubscribePage() {
   return (
     <div style={{ position: "relative", minHeight: "100vh", background: "#0B0E14", color: "white", fontFamily: "'IBM Plex Sans', sans-serif", overflow: "hidden" }}>
       <AuroraBackground />
+      <style>{`
+        .sub-card { transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease; }
+        .sub-card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(45, 212, 191, 0.25); }
+        .sub-logo-card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .sub-logo-card:hover { transform: scale(1.03); }
+        .sub-cta { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .sub-cta:hover { transform: translateY(-2px); box-shadow: 0 12px 40px #2DD4BF60 !important; }
+      `}</style>
       <div style={{ position: "relative", zIndex: 1, padding: "48px 60px", maxWidth: 1400, margin: "0 auto" }}>
       <h1 style={{ fontSize: 36, fontWeight: 900, color: "#2DD4BF", fontFamily: "'IBM Plex Serif', serif" }}>Suscripcion</h1>
       <p style={{ marginTop: 10, color: "#B0B8C8", fontSize: 18 }}>Elige tu plan y metodo de pago preferido para activar tu acceso.</p>
@@ -92,7 +100,7 @@ export default function SubscribePage() {
           <div
             key={p.id}
             onClick={() => setSelectedPlan(p)}
-            style={selectedPlan?.id === p.id ? selectedCardStyle : cardStyle}
+            className="sub-card" style={selectedPlan?.id === p.id ? selectedCardStyle : cardStyle}
           >
             <h3 style={{ fontSize: 24, fontWeight: 700 }}>{p.plan_name}</h3>
             <p style={{ fontSize: 40, fontWeight: 900, marginTop: 14, fontFamily: "monospace" }}>${p.monthly_price_usd}<span style={{ fontSize: 18, color: "#8B93A7" }}>/mes</span></p>
@@ -118,7 +126,7 @@ export default function SubscribePage() {
             <div
               key={m.id}
               onClick={() => setSelectedMethod(m)}
-              style={{
+              className="sub-logo-card" style={{
                 borderRadius: 18, cursor: "pointer",
                 backgroundImage: "url(/logos/" + logoFile + ")",
                 backgroundSize: "cover",
@@ -162,7 +170,7 @@ export default function SubscribePage() {
         </div>
       </div>
 
-      <button onClick={requestSubscription} style={{ marginTop: 32, padding: "18px 40px", background: "#2DD4BF", color: "#0B0E14", fontWeight: 900, borderRadius: 14, border: "none", fontSize: 18, cursor: "pointer", boxShadow: "0 8px 30px #2DD4BF40" }}>
+      <button onClick={requestSubscription} className="sub-cta" style={{ marginTop: 32, padding: "18px 40px", background: "#2DD4BF", color: "#0B0E14", fontWeight: 900, borderRadius: 14, border: "none", fontSize: 18, cursor: "pointer", boxShadow: "0 8px 30px #2DD4BF40" }}>
         Confirmar Solicitud de Suscripcion
       </button>
       {message && <p style={{ marginTop: 20, fontSize: 16, color: message.includes("Error") ? "#F87171" : "#4ade80", maxWidth: 550, lineHeight: 1.6 }}>{message}</p>}
