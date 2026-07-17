@@ -76,8 +76,8 @@ export default function SubscribePage() {
 
     setMessage(isProvisional ? "Acceso activado por 5 dias mientras se verifica tu pago. Ya puedes usar la plataforma." : "Solicitud registrada. Realiza el pago y envia tu comprobante para activar tu acceso.");
   }
-  const cardStyle = { padding: 28, background: "#12161F", border: "1px solid #1F2937", borderRadius: 16, cursor: "pointer", boxShadow: "0 4px 20px rgba(0,0,0,0.3)" };
-  const selectedCardStyle = { ...cardStyle, border: "2px solid #2DD4BF", boxShadow: "0 8px 30px #2DD4BF25" };
+  const cardStyle = { padding: 36, background: "#12161F", border: "2px solid #2DD4BF30", borderRadius: 20, cursor: "pointer", boxShadow: "0 6px 25px rgba(0,0,0,0.4)" };
+  const selectedCardStyle = { ...cardStyle, border: "3px solid #2DD4BF", boxShadow: "0 10px 40px #2DD4BF40" };
 
   return (
     <div style={{ position: "relative", minHeight: "100vh", background: "#0B0E14", color: "white", fontFamily: "'IBM Plex Sans', sans-serif", overflow: "hidden" }}>
@@ -94,9 +94,9 @@ export default function SubscribePage() {
             onClick={() => setSelectedPlan(p)}
             style={selectedPlan?.id === p.id ? selectedCardStyle : cardStyle}
           >
-            <h3 style={{ fontSize: 20, fontWeight: 700 }}>{p.plan_name}</h3>
-            <p style={{ fontSize: 34, fontWeight: 900, marginTop: 10, fontFamily: "monospace" }}>${p.monthly_price_usd}<span style={{ fontSize: 16, color: "#8B93A7" }}>/mes</span></p>
-            <div style={{ marginTop: 16, fontSize: 15, color: "#B0B8C8", lineHeight: 1.9 }}>
+            <h3 style={{ fontSize: 24, fontWeight: 700 }}>{p.plan_name}</h3>
+            <p style={{ fontSize: 40, fontWeight: 900, marginTop: 14, fontFamily: "monospace" }}>${p.monthly_price_usd}<span style={{ fontSize: 18, color: "#8B93A7" }}>/mes</span></p>
+            <div style={{ marginTop: 16, fontSize: 17, color: "#B0B8C8", lineHeight: 2 }}>
               {p.includes_reclaimfi && <p>✓ ReclaimFi</p>}
               {p.includes_accounting && <p>✓ Contabilidad</p>}
               {p.includes_apu && <p>✓ APU / Licitaciones</p>}
@@ -107,31 +107,30 @@ export default function SubscribePage() {
 
       <h2 style={{ marginTop: 48, fontSize: 22, color: "#8B93A7", fontWeight: 700 }}>2. Elige tu Metodo de Pago</h2>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 24, marginTop: 20, maxWidth: 1300 }}>
-        {paymentMethods.map((m) => (
-          <div
-            key={m.id}
-            onClick={() => setSelectedMethod(m)}
-            style={selectedMethod?.id === m.id ? { ...cardStyle, border: "2px solid #818CF8", boxShadow: "0 8px 30px #818CF825" } : cardStyle}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div style={{
-                width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 13, fontWeight: 900, color: "white",
-                background: m.method_code === "BINANCE_PAY" ? "#F0B90B" :
-                            m.method_code === "ZINLI" ? "#6C5CE7" :
-                            m.method_code === "PAYPAL" ? "#0070BA" :
-                            m.method_code.includes("BANESCO") ? "#004990" :
-                            "#EC1C24"
-              }}>
-                {m.method_code === "BINANCE_PAY" ? "B" :
-                 m.method_code === "ZINLI" ? "Z" :
-                 m.method_code === "PAYPAL" ? "P" :
-                 m.method_code.includes("BANESCO") ? "BC" : "BV"}
-              </div>
-              <h3 style={{ fontSize: 17, fontWeight: 700, color: "#818CF8" }}>{m.method_name}</h3>
+        {paymentMethods.map((m) => {
+          const brandColor = m.method_code === "BINANCE_PAY" ? "#F0B90B" :
+                              m.method_code === "ZINLI" ? "#6C5CE7" :
+                              m.method_code === "PAYPAL" ? "#0070BA" :
+                              m.method_code.includes("BANESCO") ? "#004990" :
+                              "#EC1C24";
+          const textColor = m.method_code === "BINANCE_PAY" ? "#0B0E14" : "white";
+          const isSelected = selectedMethod?.id === m.id;
+          return (
+            <div
+              key={m.id}
+              onClick={() => setSelectedMethod(m)}
+              style={{
+                padding: 28, borderRadius: 18, cursor: "pointer",
+                background: brandColor, color: textColor,
+                border: isSelected ? "3px solid white" : "3px solid transparent",
+                boxShadow: isSelected ? "0 10px 40px " + brandColor + "80" : "0 6px 20px rgba(0,0,0,0.3)",
+                display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center",
+              }}
+            >
+              <h3 style={{ fontSize: 20, fontWeight: 900 }}>{m.method_name}</h3>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {paymentMethods.length === 0 && (
