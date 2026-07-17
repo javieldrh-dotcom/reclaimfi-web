@@ -43,16 +43,37 @@ export default function SubscribePage() {
       receiptUrl = urlData.publicUrl;
     }
 
+    const isProvisional = receiptUrl !== null;
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 5);
+
     const { error } = await supabase.from("subscriptions").insert([{
       company_id: companyId,
       plan_id: selectedPlan.id,
       payment_method_id: selectedMethod.id,
-      status: "PENDING_PAYMENT",
+      status: isProvisional ? "ACTIVE" : "PENDING_PAYMENT",
       receipt_url: receiptUrl,
+      approved_at: isProvisional ? new Date().toISOString() : null,
+      expires_at: isProvisional ? expiresAt.toISOString().slice(0, 10) : null,
     }]);
 
     if (error) { setMessage("Error: " + error.message); return; }
-    setMessage(receiptUrl ? "Solicitud y comprobante enviados. Tu suscripcion sera activada tras verificacion." : "Solicitud registrada. Realiza el pago y vuelve a enviar tu comprobante para activar tu suscripcion.");
+
+    if (isProvisional && selectedPlan) {
+      const roleMap: Record<string, string> = { RECLAIMFI: "AUDITOR", CONTABILIDAD: "CONTADOR", APU: "CONTADOR", COMPLETO: "ADMIN" };
+      const roleName = roleMap[selectedPlan.plan_code] ?? "SOLO_LECTURA";
+      const { data: roleData } = await supabase.from("user_roles").select("id").eq("name", roleName).single();
+      const { data: userData } = await supabase.auth.getUser();
+      if (roleData && userData?.user && companyId) {
+        await supabase.from("user_role_assignments").insert([{
+          user_id: userData.user.id,
+          role_id: roleData.id,
+          company_id: companyId,
+        }]);
+      }
+    }
+
+    setMessage(isProvisional ? "Acceso activado por 5 dias mientras se verifica tu pago. Ya puedes usar la plataforma." : "Solicitud registrada. Realiza el pago y envia tu comprobante para activar tu acceso.");
   }
 
   const cardStyle = { padding: 24, background: "#12161F", border: "1px solid #1F2937", borderRadius: 16, cursor: "pointer" };
