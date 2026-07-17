@@ -113,7 +113,23 @@ export default function SubscribePage() {
             onClick={() => setSelectedMethod(m)}
             style={selectedMethod?.id === m.id ? { ...cardStyle, border: "2px solid #818CF8", boxShadow: "0 8px 30px #818CF825" } : cardStyle}
           >
-            <h3 style={{ fontSize: 18, fontWeight: 700, color: "#818CF8" }}>{m.method_name}</h3>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{
+                width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 13, fontWeight: 900, color: "white",
+                background: m.method_code === "BINANCE_PAY" ? "#F0B90B" :
+                            m.method_code === "ZINLI" ? "#6C5CE7" :
+                            m.method_code === "PAYPAL" ? "#0070BA" :
+                            m.method_code.includes("BANESCO") ? "#004990" :
+                            "#EC1C24"
+              }}>
+                {m.method_code === "BINANCE_PAY" ? "B" :
+                 m.method_code === "ZINLI" ? "Z" :
+                 m.method_code === "PAYPAL" ? "P" :
+                 m.method_code.includes("BANESCO") ? "BC" : "BV"}
+              </div>
+              <h3 style={{ fontSize: 17, fontWeight: 700, color: "#818CF8" }}>{m.method_name}</h3>
+            </div>
           </div>
         ))}
       </div>
@@ -128,8 +144,13 @@ export default function SubscribePage() {
           <p style={{ marginTop: 12, fontSize: 17, fontFamily: "monospace", background: "#0B0E14", padding: 14, borderRadius: 10 }}>{selectedMethod.account_details}</p>
           <p style={{ marginTop: 8, fontSize: 14, color: "#8B93A7" }}>Titular: {selectedMethod.account_holder}</p>
           {selectedMethod.method_code === "BINANCE_PAY" && (
-            <a href={selectedMethod.account_details} target="_blank" rel="noopener noreferrer" style={{ display: "inline-block", marginTop: 16, padding: "12px 24px", background: "#818CF8", color: "#0B0E14", borderRadius: 10, textDecoration: "none", fontWeight: 700, fontSize: 15 }}>
-              Abrir enlace de pago
+            <a href="https://s.binance.com/RFaCraV0" target="_blank" rel="noopener noreferrer" style={{ display: "inline-block", marginTop: 16, padding: "12px 24px", background: "#F0B90B", color: "#0B0E14", borderRadius: 10, textDecoration: "none", fontWeight: 700, fontSize: 15 }}>
+              Abrir Binance Pay
+            </a>
+          )}
+          {selectedMethod.method_code === "PAYPAL" && (
+            <a href="https://www.paypal.com" target="_blank" rel="noopener noreferrer" style={{ display: "inline-block", marginTop: 16, padding: "12px 24px", background: "#0070BA", color: "white", borderRadius: 10, textDecoration: "none", fontWeight: 700, fontSize: 15 }}>
+              Pagar con PayPal
             </a>
           )}
         </div>
