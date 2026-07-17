@@ -19,10 +19,14 @@ export default function VerticalSidebar({ vertical, brandName, navItems }: Props
   const theme = getVerticalTheme(vertical);
 
   return (
-    <div style={{ width: 240, minHeight: "100vh", background: "#0B0E14", borderRight: "1px solid #1F2937", padding: "24px 16px", position: "fixed", left: 0, top: 0, overflowY: "auto" }}>
-      <div style={{ marginBottom: 24 }}>
-        <div style={{ fontSize: 20, fontWeight: 900, color: theme.accent, letterSpacing: "0.05em", fontFamily: theme.titleStyle.fontFamily }}>{brandName}</div>
-        <div style={{ fontSize: 10, color: "#8B93A7", letterSpacing: "0.15em", marginTop: 4 }}>CENTRAL OPERATIVA</div>
+    <div style={{ width: 280, minHeight: "100vh", background: "#0B0E14", borderRight: "1px solid #1F2937", padding: "32px 20px", position: "fixed", left: 0, top: 0, overflowY: "auto" }}>
+      <style>{`
+        .sidebar-link { transition: all 0.2s ease; }
+        .sidebar-link:hover { background: #1F2937 !important; transform: translateX(4px); }
+      `}</style>
+      <div style={{ marginBottom: 32 }}>
+        <div style={{ fontSize: 24, fontWeight: 900, color: theme.accent, letterSpacing: "0.05em", fontFamily: theme.titleStyle.fontFamily }}>{brandName}</div>
+        <div style={{ fontSize: 11, color: "#8B93A7", letterSpacing: "0.15em", marginTop: 6 }}>CENTRAL OPERATIVA</div>
       </div>
       {navItems.map((item) => {
         const isActive = pathname === item.href;
@@ -30,16 +34,17 @@ export default function VerticalSidebar({ vertical, brandName, navItems }: Props
           <Link
             key={item.href}
             href={item.href}
+            className="sidebar-link"
             style={{
               display: "block",
-              padding: "10px 12px",
-              marginBottom: 6,
-              borderRadius: 8,
-              fontSize: 12,
+              padding: "14px 16px",
+              marginBottom: 8,
+              borderRadius: 10,
+              fontSize: 14,
               fontWeight: 700,
-              letterSpacing: "0.04em",
+              letterSpacing: "0.03em",
               textDecoration: "none",
-              color: isActive ? "#0B0E14" : "#8B93A7",
+              color: isActive ? "#0B0E14" : "#B0B8C8",
               background: isActive ? theme.accent : "transparent",
               border: isActive ? "none" : "1px solid #1F2937",
             }}
