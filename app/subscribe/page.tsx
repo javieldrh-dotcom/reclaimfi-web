@@ -1,6 +1,7 @@
 ﻿"use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
+import AuroraBackground from "@/app/components/AuroraBackground";
 
 export default function SubscribePage() {
   const [companyId, setCompanyId] = useState<string | null>(null);
@@ -79,12 +80,14 @@ export default function SubscribePage() {
   const selectedCardStyle = { ...cardStyle, border: "2px solid #2DD4BF", boxShadow: "0 8px 30px #2DD4BF25" };
 
   return (
-    <div style={{ padding: "48px 40px", color: "white", background: "#0B0E14", minHeight: "100vh", fontFamily: "'IBM Plex Sans', sans-serif" }}>
+    <div style={{ position: "relative", minHeight: "100vh", background: "#0B0E14", color: "white", fontFamily: "'IBM Plex Sans', sans-serif", overflow: "hidden" }}>
+      <AuroraBackground />
+      <div style={{ position: "relative", zIndex: 1, padding: "48px 60px", maxWidth: 1400, margin: "0 auto" }}>
       <h1 style={{ fontSize: 36, fontWeight: 900, color: "#2DD4BF", fontFamily: "'IBM Plex Serif', serif" }}>Suscripcion</h1>
       <p style={{ marginTop: 10, color: "#B0B8C8", fontSize: 18 }}>Elige tu plan y metodo de pago preferido para activar tu acceso.</p>
 
       <h2 style={{ marginTop: 48, fontSize: 22, color: "#8B93A7", fontWeight: 700 }}>1. Elige tu Plan</h2>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 20, marginTop: 20, maxWidth: 1000 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 24, marginTop: 20, maxWidth: 1300 }}>
         {plans.map((p) => (
           <div
             key={p.id}
@@ -103,7 +106,7 @@ export default function SubscribePage() {
       </div>
 
       <h2 style={{ marginTop: 48, fontSize: 22, color: "#8B93A7", fontWeight: 700 }}>2. Elige tu Metodo de Pago</h2>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 20, marginTop: 20, maxWidth: 1000 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 24, marginTop: 20, maxWidth: 1300 }}>
         {paymentMethods.map((m) => (
           <div
             key={m.id}
@@ -143,6 +146,7 @@ export default function SubscribePage() {
         Confirmar Solicitud de Suscripcion
       </button>
       {message && <p style={{ marginTop: 20, fontSize: 16, color: message.includes("Error") ? "#F87171" : "#4ade80", maxWidth: 550, lineHeight: 1.6 }}>{message}</p>}
+      </div>
     </div>
   );
 }
