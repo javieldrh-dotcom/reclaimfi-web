@@ -75,24 +75,25 @@ export default function SubscribePage() {
 
     setMessage(isProvisional ? "Acceso activado por 5 dias mientras se verifica tu pago. Ya puedes usar la plataforma." : "Solicitud registrada. Realiza el pago y envia tu comprobante para activar tu acceso.");
   }
+  const cardStyle = { padding: 28, background: "#12161F", border: "1px solid #1F2937", borderRadius: 16, cursor: "pointer", boxShadow: "0 4px 20px rgba(0,0,0,0.3)" };
+  const selectedCardStyle = { ...cardStyle, border: "2px solid #2DD4BF", boxShadow: "0 8px 30px #2DD4BF25" };
 
-  const cardStyle = { padding: 24, background: "#12161F", border: "1px solid #1F2937", borderRadius: 16, cursor: "pointer" };
   return (
-    <div style={{ padding: 40, color: "white", background: "#0B0E14", minHeight: "100vh", fontFamily: "'IBM Plex Sans', sans-serif" }}>
-      <h1 style={{ fontSize: 32, fontWeight: 900, color: "#2DD4BF", fontFamily: "'IBM Plex Serif', serif" }}>Suscripcion</h1>
-      <p style={{ marginTop: 8, color: "#8B93A7", fontSize: 16 }}>Elige tu plan y metodo de pago preferido.</p>
+    <div style={{ padding: "48px 40px", color: "white", background: "#0B0E14", minHeight: "100vh", fontFamily: "'IBM Plex Sans', sans-serif" }}>
+      <h1 style={{ fontSize: 36, fontWeight: 900, color: "#2DD4BF", fontFamily: "'IBM Plex Serif', serif" }}>Suscripcion</h1>
+      <p style={{ marginTop: 10, color: "#B0B8C8", fontSize: 18 }}>Elige tu plan y metodo de pago preferido para activar tu acceso.</p>
 
-      <h2 style={{ marginTop: 32, fontSize: 20, color: "#8B93A7" }}>1. Elige tu Plan</h2>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16, marginTop: 16, maxWidth: 900 }}>
+      <h2 style={{ marginTop: 48, fontSize: 22, color: "#8B93A7", fontWeight: 700 }}>1. Elige tu Plan</h2>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 20, marginTop: 20, maxWidth: 1000 }}>
         {plans.map((p) => (
           <div
             key={p.id}
             onClick={() => setSelectedPlan(p)}
-            style={{ ...cardStyle, border: selectedPlan?.id === p.id ? "2px solid #2DD4BF" : "1px solid #1F2937" }}
+            style={selectedPlan?.id === p.id ? selectedCardStyle : cardStyle}
           >
-            <h3 style={{ fontSize: 18, fontWeight: 700 }}>{p.plan_name}</h3>
-            <p style={{ fontSize: 28, fontWeight: 900, marginTop: 8, fontFamily: "monospace" }}>${p.monthly_price_usd}<span style={{ fontSize: 14, color: "#8B93A7" }}>/mes</span></p>
-            <div style={{ marginTop: 12, fontSize: 13, color: "#8B93A7" }}>
+            <h3 style={{ fontSize: 20, fontWeight: 700 }}>{p.plan_name}</h3>
+            <p style={{ fontSize: 34, fontWeight: 900, marginTop: 10, fontFamily: "monospace" }}>${p.monthly_price_usd}<span style={{ fontSize: 16, color: "#8B93A7" }}>/mes</span></p>
+            <div style={{ marginTop: 16, fontSize: 15, color: "#B0B8C8", lineHeight: 1.9 }}>
               {p.includes_reclaimfi && <p>✓ ReclaimFi</p>}
               {p.includes_accounting && <p>✓ Contabilidad</p>}
               {p.includes_apu && <p>✓ APU / Licitaciones</p>}
@@ -101,41 +102,47 @@ export default function SubscribePage() {
         ))}
       </div>
 
-      <h2 style={{ marginTop: 32, fontSize: 20, color: "#8B93A7" }}>2. Elige tu Metodo de Pago</h2>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginTop: 16, maxWidth: 900 }}>
+      <h2 style={{ marginTop: 48, fontSize: 22, color: "#8B93A7", fontWeight: 700 }}>2. Elige tu Metodo de Pago</h2>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 20, marginTop: 20, maxWidth: 1000 }}>
         {paymentMethods.map((m) => (
           <div
             key={m.id}
             onClick={() => setSelectedMethod(m)}
-            style={{ ...cardStyle, border: selectedMethod?.id === m.id ? "2px solid #818CF8" : "1px solid #1F2937" }}
+            style={selectedMethod?.id === m.id ? { ...cardStyle, border: "2px solid #818CF8", boxShadow: "0 8px 30px #818CF825" } : cardStyle}
           >
-            <h3 style={{ fontSize: 16, fontWeight: 700, color: "#818CF8" }}>{m.method_name}</h3>
+            <h3 style={{ fontSize: 18, fontWeight: 700, color: "#818CF8" }}>{m.method_name}</h3>
           </div>
         ))}
       </div>
 
+      {paymentMethods.length === 0 && (
+        <p style={{ marginTop: 20, color: "#8B93A7", fontSize: 15 }}>Cargando metodos de pago...</p>
+      )}
+
       {selectedMethod && (
-        <div style={{ marginTop: 20, padding: 20, background: "#12161F", border: "1px solid #818CF860", borderRadius: 12, maxWidth: 500 }}>
-          <p style={{ fontSize: 14, color: "#8B93A7" }}>Datos para pagar con {selectedMethod.method_name}:</p>
-          <p style={{ marginTop: 8, fontSize: 15, fontFamily: "monospace" }}>{selectedMethod.account_details}</p>
-          <p style={{ marginTop: 4, fontSize: 13, color: "#8B93A7" }}>Titular: {selectedMethod.account_holder}</p>
+        <div style={{ marginTop: 24, padding: 28, background: "#12161F", border: "1px solid #818CF860", borderRadius: 16, maxWidth: 550, boxShadow: "0 8px 30px #818CF815" }}>
+          <p style={{ fontSize: 15, color: "#8B93A7", fontWeight: 600 }}>DATOS PARA PAGAR CON {selectedMethod.method_name.toUpperCase()}</p>
+          <p style={{ marginTop: 12, fontSize: 17, fontFamily: "monospace", background: "#0B0E14", padding: 14, borderRadius: 10 }}>{selectedMethod.account_details}</p>
+          <p style={{ marginTop: 8, fontSize: 14, color: "#8B93A7" }}>Titular: {selectedMethod.account_holder}</p>
           {selectedMethod.method_code === "BINANCE_PAY" && (
-            <a href={selectedMethod.account_details} target="_blank" rel="noopener noreferrer" style={{ display: "inline-block", marginTop: 12, padding: "10px 20px", background: "#818CF8", color: "#0B0E14", borderRadius: 8, textDecoration: "none", fontWeight: 700, fontSize: 14 }}>
+            <a href={selectedMethod.account_details} target="_blank" rel="noopener noreferrer" style={{ display: "inline-block", marginTop: 16, padding: "12px 24px", background: "#818CF8", color: "#0B0E14", borderRadius: 10, textDecoration: "none", fontWeight: 700, fontSize: 15 }}>
               Abrir enlace de pago
             </a>
           )}
         </div>
       )}
 
-      <div style={{ marginTop: 24, maxWidth: 500 }}>
-        <label style={{ fontSize: 13, color: "#8B93A7" }}>Comprobante de pago (opcional, puedes enviarlo despues)</label>
-        <input type="file" accept="image/*,.pdf" onChange={(e) => setReceiptFile(e.target.files?.[0] ?? null)} style={{ marginTop: 6, display: "block", color: "white", fontSize: 14 }} />
+      <div style={{ marginTop: 32, maxWidth: 550 }}>
+        <label style={{ fontSize: 15, color: "#8B93A7", fontWeight: 600 }}>COMPROBANTE DE PAGO (opcional, puedes enviarlo despues)</label>
+        <div style={{ marginTop: 10, padding: 20, background: "#12161F", border: "1px dashed #1F2937", borderRadius: 12 }}>
+          <input type="file" accept="image/*,.pdf" onChange={(e) => setReceiptFile(e.target.files?.[0] ?? null)} style={{ color: "white", fontSize: 15 }} />
+        </div>
       </div>
 
-      <button onClick={requestSubscription} style={{ marginTop: 32, padding: "16px 32px", background: "#2DD4BF", color: "#0B0E14", fontWeight: 900, borderRadius: 12, border: "none", fontSize: 16, cursor: "pointer" }}>
+      <button onClick={requestSubscription} style={{ marginTop: 32, padding: "18px 40px", background: "#2DD4BF", color: "#0B0E14", fontWeight: 900, borderRadius: 14, border: "none", fontSize: 18, cursor: "pointer", boxShadow: "0 8px 30px #2DD4BF40" }}>
         Confirmar Solicitud de Suscripcion
       </button>
-      {message && <p style={{ marginTop: 16, color: message.includes("Error") ? "#F87171" : "#4ade80", maxWidth: 500 }}>{message}</p>}
+      {message && <p style={{ marginTop: 20, fontSize: 16, color: message.includes("Error") ? "#F87171" : "#4ade80", maxWidth: 550, lineHeight: 1.6 }}>{message}</p>}
     </div>
   );
 }
