@@ -108,26 +108,25 @@ export default function SubscribePage() {
       <h2 style={{ marginTop: 48, fontSize: 22, color: "#8B93A7", fontWeight: 700 }}>2. Elige tu Metodo de Pago</h2>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 24, marginTop: 20, maxWidth: 1300 }}>
         {paymentMethods.map((m) => {
-          const brandColor = m.method_code === "BINANCE_PAY" ? "#F0B90B" :
-                              m.method_code === "ZINLI" ? "#6C5CE7" :
-                              m.method_code === "PAYPAL" ? "#0070BA" :
-                              m.method_code.includes("BANESCO") ? "#004990" :
-                              "#EC1C24";
-          const textColor = m.method_code === "BINANCE_PAY" ? "#0B0E14" : "white";
+          const logoFile = m.method_code === "BINANCE_PAY" ? "binance.png" :
+                            m.method_code === "ZINLI" ? "zinli.png" :
+                            m.method_code === "PAYPAL" ? "paypal.png" :
+                            m.method_code.includes("BANESCO") ? "banesco.png" :
+                            "banco-venezuela.png";
           const isSelected = selectedMethod?.id === m.id;
           return (
             <div
               key={m.id}
               onClick={() => setSelectedMethod(m)}
               style={{
-                padding: 28, borderRadius: 18, cursor: "pointer",
-                background: brandColor, color: textColor,
-                border: isSelected ? "3px solid white" : "3px solid transparent",
-                boxShadow: isSelected ? "0 10px 40px " + brandColor + "80" : "0 6px 20px rgba(0,0,0,0.3)",
-                display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center",
+                padding: 24, borderRadius: 18, cursor: "pointer",
+                background: "white",
+                border: isSelected ? "3px solid #2DD4BF" : "3px solid transparent",
+                boxShadow: isSelected ? "0 10px 40px #2DD4BF60" : "0 6px 20px rgba(0,0,0,0.3)",
+                display: "flex", alignItems: "center", justifyContent: "center", minHeight: 90,
               }}
             >
-              <h3 style={{ fontSize: 20, fontWeight: 900 }}>{m.method_name}</h3>
+              <img src={"/logos/" + logoFile} alt={m.method_name} style={{ maxWidth: "100%", maxHeight: 50, objectFit: "contain" }} />
             </div>
           );
         })}
@@ -138,7 +137,7 @@ export default function SubscribePage() {
       )}
 
       {selectedMethod && (
-        <div style={{ marginTop: 24, padding: 28, background: "#12161F", border: "1px solid #818CF860", borderRadius: 16, maxWidth: 550, boxShadow: "0 8px 30px #818CF815" }}>
+        <div style={{ marginTop: 24, padding: 28, background: "#12161F", border: "1px solid #818CF860", borderRadius: 16, maxWidth: 1300, boxShadow: "0 8px 30px #818CF815" }}>
           <p style={{ fontSize: 15, color: "#8B93A7", fontWeight: 600 }}>DATOS PARA PAGAR CON {selectedMethod.method_name.toUpperCase()}</p>
           <p style={{ marginTop: 12, fontSize: 17, fontFamily: "monospace", background: "#0B0E14", padding: 14, borderRadius: 10 }}>{selectedMethod.account_details}</p>
           <p style={{ marginTop: 8, fontSize: 14, color: "#8B93A7" }}>Titular: {selectedMethod.account_holder}</p>
