@@ -63,7 +63,7 @@ export default function AccountingDashboard() {
   const cardStyle = { background: "#0d1117", border: "1px solid #1a3050", borderRadius: 12, padding: 20 };
 
   return (
-    <div style={{ padding: 40, color: "white", background: "#000a16", minHeight: "100vh" }}>
+    <div style={{ padding: 40, color: "white", minHeight: "100vh" }}>
       <h1 style={{ fontSize: 32, fontWeight: 900, color: "#7dd3fc" }}>Contabilidad Financiera</h1>
       <p style={{ marginTop: 6, color: "#9ca3af", fontSize: 13 }}>{companyName}</p>
 

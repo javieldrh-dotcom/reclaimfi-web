@@ -117,7 +117,7 @@ export default function ApuProjectsPage() {
 
   const inputStyle = { background: "#0d1117", border: "1px solid #1a3050", borderRadius: 8, padding: 10, color: "white", width: "100%" };
   return (
-    <div style={{ padding: 40, color: "white", background: "#000a16", minHeight: "100vh" }}>
+    <div style={{ padding: 40, color: "white", minHeight: "100vh" }}>
       <h1 style={{ fontSize: 32, fontWeight: 900, color: "#7dd3fc" }}>Licitaciones y Ofertas al Estado</h1>
       <p style={{ marginTop: 8, color: "#9ca3af", fontSize: 12 }}>
         Modulo de Analisis de Precios Unitarios (APU) - Aplicable a cualquier pais o moneda.

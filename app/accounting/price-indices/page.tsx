@@ -57,7 +57,7 @@ export default function PriceIndicesPage() {
 
   const inputStyle = { background: "#0d1117", border: "1px solid #1a3050", borderRadius: 8, padding: 10, color: "white", width: "100%" };
   return (
-    <div style={{ padding: 40, color: "white", background: "#000a16", minHeight: "100vh" }}>
+    <div style={{ padding: 40, color: "white", minHeight: "100vh" }}>
       <h1 style={{ fontSize: 32, fontWeight: 900, color: "#7dd3fc" }}>Indices de Precios por Pais</h1>
       <p style={{ marginTop: 8, color: "#9ca3af", fontSize: 12 }}>
         Estos indices se usan para calcular el REPOMO y la reexpresion por inflacion (NIC 29 / NIF B-10).

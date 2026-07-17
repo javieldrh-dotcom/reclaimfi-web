@@ -76,7 +76,7 @@ export default function IncomeStatementPage() {
   if (loading) return <div style={{ padding: 40, color: "#7dd3fc" }}>Cargando...</div>;
 
   return (
-    <div style={{ padding: 40, color: "white", background: "#000a16", minHeight: "100vh" }}>
+    <div style={{ padding: 40, color: "white", minHeight: "100vh" }}>
       <h1 style={{ fontSize: 32, fontWeight: 900, color: "#7dd3fc" }}>Estado de Resultados</h1>
 
       <h2 style={{ marginTop: 30, fontSize: 18, color: "#4ade80" }}>Ingresos</h2>

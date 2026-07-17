@@ -72,7 +72,7 @@ export default function CashFlowPage() {
 
   if (loading) return <div style={{ padding: 40, color: "#7dd3fc" }}>Cargando...</div>;
   return (
-    <div style={{ padding: 40, color: "white", background: "#000a16", minHeight: "100vh" }}>
+    <div style={{ padding: 40, color: "white", minHeight: "100vh" }}>
       <h1 style={{ fontSize: 32, fontWeight: 900, color: "#7dd3fc" }}>Estado de Flujo de Efectivo</h1>
       <p style={{ marginTop: 10, color: "#9ca3af", fontSize: 13 }}>Movimientos de cuentas de Caja y Bancos</p>
 

@@ -56,7 +56,7 @@ export default function BankReconciliationPage() {
     AMOUNT_MISMATCH: "Monto distinto",
   };
   return (
-    <div style={{ padding: 40, color: "white", background: "#000a16", minHeight: "100vh" }}>
+    <div style={{ padding: 40, color: "white", minHeight: "100vh" }}>
       <h1 style={{ fontSize: 32, fontWeight: 900, color: "#7dd3fc" }}>Conciliacion Bancaria con IA</h1>
       <p style={{ marginTop: 10, color: "#9ca3af", fontSize: 13 }}>
         Pega los movimientos del estado de cuenta del banco (uno por linea). La IA los comparara con tu libro contable.

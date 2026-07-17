@@ -47,7 +47,7 @@ export default function LedgerPage() {
 
   if (loading) return <div style={{ padding: 40, color: "#7dd3fc" }}>Cargando...</div>;
   return (
-    <div style={{ padding: 40, color: "white", background: "#000a16", minHeight: "100vh" }}>
+    <div style={{ padding: 40, color: "white", minHeight: "100vh" }}>
       <Link href="/accounting/trial-balance" style={{ color: "#7dd3fc", fontSize: 13 }}>Volver al Balance</Link>
       <h1 style={{ fontSize: 32, fontWeight: 900, color: "#7dd3fc", marginTop: 12 }}>Mayor Auxiliar: {account?.account_code} - {account?.account_name}</h1>
       <table style={{ width: "100%", marginTop: 30, borderCollapse: "collapse" }}>

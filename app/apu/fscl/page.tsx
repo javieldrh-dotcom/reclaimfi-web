@@ -120,7 +120,7 @@ export default function FsclCalculatorPage() {
   const r = calculateFscl();
 
   return (
-    <div style={{ padding: 40, color: "white", background: "#000a16", minHeight: "100vh" }}>
+    <div style={{ padding: 40, color: "white", minHeight: "100vh" }}>
       <h1 style={{ fontSize: 32, fontWeight: 900, color: "#7dd3fc" }}>Calculadora FSCL (Factor Sobre Costo de Labor)</h1>
       <p style={{ marginTop: 8, color: "#9ca3af", fontSize: 12 }}>
         Contrato Colectivo Petrolero (CCTP) - Calcula el factor multiplicador sobre el salario basico diario.
