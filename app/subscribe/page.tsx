@@ -119,15 +119,16 @@ export default function SubscribePage() {
               key={m.id}
               onClick={() => setSelectedMethod(m)}
               style={{
-                padding: 24, borderRadius: 18, cursor: "pointer",
-                background: "white",
+                borderRadius: 18, cursor: "pointer",
+                backgroundImage: "url(/logos/" + logoFile + ")",
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                backgroundColor: "white",
                 border: isSelected ? "3px solid #2DD4BF" : "3px solid transparent",
                 boxShadow: isSelected ? "0 10px 40px #2DD4BF60" : "0 6px 20px rgba(0,0,0,0.3)",
-                display: "flex", alignItems: "center", justifyContent: "center", minHeight: 90,
+                minHeight: 100,
               }}
-            >
-              <img src={"/logos/" + logoFile} alt={m.method_name} style={{ maxWidth: "100%", maxHeight: 50, objectFit: "contain" }} />
-            </div>
+            />
           );
         })}
       </div>
