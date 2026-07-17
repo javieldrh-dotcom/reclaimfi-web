@@ -1,9 +1,11 @@
 ﻿"use client";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/app/lib/supabase";
 import AuroraBackground from "@/app/components/AuroraBackground";
 
 export default function SubscribePage() {
+  const router = useRouter();
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [plans, setPlans] = useState<any[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
@@ -88,7 +90,13 @@ export default function SubscribePage() {
       }
     }
 
-    setMessage(isProvisional ? "Acceso activado por 5 dias mientras se verifica tu pago. Ya puedes usar la plataforma." : "Solicitud registrada. Realiza el pago y envia tu comprobante para activar tu acceso.");
+    setMessage(isProvisional ? "Acceso activado por 5 dias mientras se verifica tu pago. Redirigiendo..." : "Solicitud registrada. Realiza el pago y envia tu comprobante para activar tu acceso.");
+
+    if (isProvisional) {
+      setTimeout(() => {
+        router.push("/dashboard");
+      }, 2000);
+    }
   }
   const cardStyle = { padding: 36, background: "#12161F", border: "2px solid #2DD4BF30", borderRadius: 20, cursor: "pointer", boxShadow: "0 6px 25px rgba(0,0,0,0.4)" };
   const selectedCardStyle = { ...cardStyle, border: "3px solid #2DD4BF", boxShadow: "0 10px 40px #2DD4BF40" };
