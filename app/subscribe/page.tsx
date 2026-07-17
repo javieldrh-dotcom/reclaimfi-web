@@ -121,22 +121,25 @@ export default function SubscribePage() {
                             m.method_code === "PAYPAL" ? "paypal.png" :
                             m.method_code.includes("BANESCO") ? "banesco.png" :
                             "banco-venezuela.png";
+          const bgSize = m.method_code === "ZINLI" ? "contain" : "cover";
           const isSelected = selectedMethod?.id === m.id;
           return (
-            <div
-              key={m.id}
-              onClick={() => setSelectedMethod(m)}
-              className="sub-logo-card" style={{
-                borderRadius: 18, cursor: "pointer",
-                backgroundImage: "url(/logos/" + logoFile + ")",
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-                backgroundColor: "white",
-                border: isSelected ? "3px solid #2DD4BF" : "3px solid transparent",
-                boxShadow: isSelected ? "0 10px 40px #2DD4BF60" : "0 6px 20px rgba(0,0,0,0.3)",
-                minHeight: 100,
-              }}
-            />
+            <div key={m.id} onClick={() => setSelectedMethod(m)} style={{ cursor: "pointer" }}>
+              <div
+                className="sub-logo-card" style={{
+                  borderRadius: 18,
+                  backgroundImage: "url(/logos/" + logoFile + ")",
+                  backgroundSize: bgSize,
+                  backgroundPosition: "center",
+                  backgroundRepeat: "no-repeat",
+                  backgroundColor: "white",
+                  border: isSelected ? "3px solid #2DD4BF" : "3px solid transparent",
+                  boxShadow: isSelected ? "0 10px 40px #2DD4BF60" : "0 6px 20px rgba(0,0,0,0.3)",
+                  minHeight: 100,
+                }}
+              />
+              <p style={{ textAlign: "center", fontSize: 13, color: "#8B93A7", marginTop: 8, fontWeight: 600 }}>{m.method_name}</p>
+            </div>
           );
         })}
       </div>
