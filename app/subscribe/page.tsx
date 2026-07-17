@@ -93,8 +93,15 @@ export default function SubscribePage() {
     setMessage(isProvisional ? "Acceso activado por 5 dias mientras se verifica tu pago. Redirigiendo..." : "Solicitud registrada. Realiza el pago y envia tu comprobante para activar tu acceso.");
 
     if (isProvisional) {
+      const redirectMap: Record<string, string> = {
+        RECLAIMFI: "/dashboard",
+        CONTABILIDAD: "/accounting",
+        APU: "/apu/projects",
+        COMPLETO: "/select-module",
+      };
+      const redirectTo = redirectMap[selectedPlan.plan_code] ?? "/select-module";
       setTimeout(() => {
-        router.push("/dashboard");
+        router.push(redirectTo);
       }, 2000);
     }
   }
