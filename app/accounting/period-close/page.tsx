@@ -1,8 +1,11 @@
 ﻿"use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
+import { getVerticalTheme } from "@/app/core/design/tokens";
+import VerticalPageLayout from "@/app/components/VerticalPageLayout";
 
 export default function PeriodClosePage() {
+  const theme = getVerticalTheme("accounting");
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [revenueAccounts, setRevenueAccounts] = useState<any[]>([]);
   const [expenseAccounts, setExpenseAccounts] = useState<any[]>([]);
@@ -17,6 +20,7 @@ export default function PeriodClosePage() {
     const { data } = await supabase.from("fiscal_periods").select("*").eq("company_id", cid).order("period_end", { ascending: false });
     setPeriods(data ?? []);
   }
+
   useEffect(() => {
     async function load() {
       const { data: userData } = await supabase.auth.getUser();
@@ -111,41 +115,31 @@ export default function PeriodClosePage() {
     setLoading(false);
     await loadPeriods(companyId);
   }
-
-  const inputStyle = { background: "#0d1117", border: "1px solid #1a3050", borderRadius: 8, padding: 10, color: "white", width: "100%" };
+  const inputStyle = { ...theme.inputStyle, fontSize: 20 };
 
   return (
-    <div style={{ padding: 40, color: "white", minHeight: "100vh" }}>
-      <h1 style={{ fontSize: 32, fontWeight: 900, color: "#7dd3fc" }}>Cierre de Ejercicio</h1>
-      <p style={{ marginTop: 8, color: "#9ca3af", fontSize: 12 }}>
-        Genera el asiento de cierre: lleva Ingresos y Gastos a cero y traslada el resultado a Resultados Acumulados.
-      </p>
-
-      <div style={{ marginTop: 30, display: "grid", gap: 10, maxWidth: 500 }}>
-        <div>
-          <label style={{ fontSize: 13, color: "#7dd3fc" }}>INICIO DEL PERIODO</label>
-          <input type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} style={{ ...inputStyle, marginTop: 6 }} />
-        </div>
-        <div>
-          <label style={{ fontSize: 13, color: "#7dd3fc" }}>FIN DEL PERIODO</label>
-          <input type="date" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} style={{ ...inputStyle, marginTop: 6 }} />
-        </div>
-        <button onClick={closeperiod} disabled={loading} style={{ padding: 14, background: "#f87171", color: "black", fontWeight: 900, borderRadius: 12, border: "none" }}>
+    <VerticalPageLayout vertical="accounting" title="Cierre de Ejercicio" subtitle="Genera el asiento de cierre: lleva Ingresos y Gastos a cero y traslada el resultado a Resultados Acumulados" fullWidth>
+      <div style={{ maxWidth: 600 }}>
+        <label style={{ fontSize: 18, color: theme.accent, fontWeight: 700 }}>Inicio del Periodo</label>
+        <input type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} style={{ ...inputStyle, marginTop: 6 }} />
+        <label style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginTop: 14, display: "block" }}>Fin del Periodo</label>
+        <input type="date" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} style={{ ...inputStyle, marginTop: 6 }} />
+        <button onClick={closeperiod} disabled={loading} style={{ ...theme.buttonStyle, marginTop: 18, fontSize: 18, background: "#f87171" }}>
           {loading ? "CERRANDO..." : "EJECUTAR CIERRE DE EJERCICIO"}
         </button>
-        {message && <p style={{ color: message.includes("Error") || message.includes("No hay") ? "#f87171" : "#4ade80" }}>{message}</p>}
+        {message && <p style={{ marginTop: 10, fontSize: 18, color: message.includes("Error") || message.includes("No hay") ? "#f87171" : theme.accent }}>{message}</p>}
       </div>
 
       {periods.length > 0 && (
         <div style={{ marginTop: 40 }}>
-          <h2 style={{ fontSize: 20, color: "#7dd3fc" }}>Periodos Cerrados</h2>
+          <h2 style={{ fontSize: 24, color: theme.accent, fontWeight: 700 }}>Periodos Cerrados</h2>
           {periods.map((p) => (
-            <div key={p.id} style={{ padding: 10, borderBottom: "1px solid #1a3050" }}>
-              {p.period_start} a {p.period_end} - Resultado: {p.net_result?.toLocaleString()} - {p.status}
+            <div key={p.id} style={{ padding: 14, borderBottom: "1px solid #1F2937", fontSize: 20 }}>
+              {p.period_start} a {p.period_end} - Resultado: <span style={theme.numberStyle}>{p.net_result?.toLocaleString()}</span> - {p.status}
             </div>
           ))}
         </div>
       )}
-    </div>
+    </VerticalPageLayout>
   );
 }
