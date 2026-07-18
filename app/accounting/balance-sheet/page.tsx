@@ -1,9 +1,12 @@
 ﻿"use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
+import { getVerticalTheme } from "@/app/core/design/tokens";
+import VerticalPageLayout from "@/app/components/VerticalPageLayout";
 import { generateFinancialStatementPdf } from "@/app/core/reports/generateFinancialStatementPdf";
 
 export default function BalanceSheetPage() {
+  const theme = getVerticalTheme("accounting");
   const [assets, setAssets] = useState<any[]>([]);
   const [liabilities, setLiabilities] = useState<any[]>([]);
   const [equity, setEquity] = useState<any[]>([]);
@@ -90,60 +93,66 @@ export default function BalanceSheetPage() {
     doc.save("estado-situacion-financiera.pdf");
   }
 
-  if (loading) return <div style={{ padding: 40, color: "#7dd3fc" }}>Cargando...</div>;  return (
-    <div style={{ padding: 40, color: "white", minHeight: "100vh" }}>
-      <h1 style={{ fontSize: 32, fontWeight: 900, color: "#7dd3fc" }}>Estado de Situacion Financiera</h1>
-
-      <h2 style={{ marginTop: 30, fontSize: 18, color: "#7dd3fc" }}>Activos</h2>
-      {assets.map((r) => (
-        <div key={r.code} style={{ display: "flex", justifyContent: "space-between", padding: 6 }}>
-          <span>{r.code} - {r.name}</span>
-          <span>{r.amount.toLocaleString()}</span>
+  if (loading) return <div style={{ padding: 40, color: "#7dd3fc" }}>Cargando...</div>;
+  return (
+    <VerticalPageLayout
+      vertical="accounting"
+      title="Estado de Situacion Financiera"
+      fullWidth
+      actions={
+        <button onClick={downloadPdf} style={{ ...theme.buttonStyle, fontSize: 13, padding: "10px 20px" }}>
+          Descargar PDF
+        </button>
+      }
+    >
+      <div style={{ maxWidth: 700 }}>
+        <h2 style={{ marginTop: 20, fontSize: 24, color: theme.accent, fontWeight: 700 }}>Activos</h2>
+        {assets.map((r) => (
+          <div key={r.code} style={{ display: "flex", justifyContent: "space-between", padding: 8, fontSize: 22 }}>
+            <span>{r.code} - {r.name}</span>
+            <span style={theme.numberStyle}>{r.amount.toLocaleString()}</span>
+          </div>
+        ))}
+        <div style={{ display: "flex", justifyContent: "space-between", padding: 8, fontWeight: 700, fontSize: 22, borderTop: "1px solid #1F2937" }}>
+          <span>Total Activos</span>
+          <span style={theme.numberStyle}>{totalAssets.toLocaleString()}</span>
         </div>
-      ))}
-      <div style={{ display: "flex", justifyContent: "space-between", padding: 6, fontWeight: 700, borderTop: "1px solid #1a3050" }}>
-        <span>Total Activos</span>
-        <span>{totalAssets.toLocaleString()}</span>
-      </div>
 
-      <h2 style={{ marginTop: 30, fontSize: 18, color: "#facc15" }}>Pasivos</h2>
-      {liabilities.map((r) => (
-        <div key={r.code} style={{ display: "flex", justifyContent: "space-between", padding: 6 }}>
-          <span>{r.code} - {r.name}</span>
-          <span>{r.amount.toLocaleString()}</span>
+        <h2 style={{ marginTop: 30, fontSize: 24, color: "#facc15", fontWeight: 700 }}>Pasivos</h2>
+        {liabilities.map((r) => (
+          <div key={r.code} style={{ display: "flex", justifyContent: "space-between", padding: 8, fontSize: 22 }}>
+            <span>{r.code} - {r.name}</span>
+            <span style={theme.numberStyle}>{r.amount.toLocaleString()}</span>
+          </div>
+        ))}
+        <div style={{ display: "flex", justifyContent: "space-between", padding: 8, fontWeight: 700, fontSize: 22, borderTop: "1px solid #1F2937" }}>
+          <span>Total Pasivos</span>
+          <span style={theme.numberStyle}>{totalLiabilities.toLocaleString()}</span>
         </div>
-      ))}
-      <div style={{ display: "flex", justifyContent: "space-between", padding: 6, fontWeight: 700, borderTop: "1px solid #1a3050" }}>
-        <span>Total Pasivos</span>
-        <span>{totalLiabilities.toLocaleString()}</span>
-      </div>
 
-      <h2 style={{ marginTop: 30, fontSize: 18, color: "#4ade80" }}>Patrimonio</h2>
-      {equity.map((r) => (
-        <div key={r.code} style={{ display: "flex", justifyContent: "space-between", padding: 6 }}>
-          <span>{r.code} - {r.name}</span>
-          <span>{r.amount.toLocaleString()}</span>
+        <h2 style={{ marginTop: 30, fontSize: 24, color: "#4ade80", fontWeight: 700 }}>Patrimonio</h2>
+        {equity.map((r) => (
+          <div key={r.code} style={{ display: "flex", justifyContent: "space-between", padding: 8, fontSize: 22 }}>
+            <span>{r.code} - {r.name}</span>
+            <span style={theme.numberStyle}>{r.amount.toLocaleString()}</span>
+          </div>
+        ))}
+        <div style={{ display: "flex", justifyContent: "space-between", padding: 8, fontSize: 22, color: netResult >= 0 ? "#4ade80" : "#f87171" }}>
+          <span>Resultado del Ejercicio (no cerrado)</span>
+          <span style={theme.numberStyle}>{netResult.toLocaleString()}</span>
         </div>
-      ))}
-      <div style={{ display: "flex", justifyContent: "space-between", padding: 6, color: netResult >= 0 ? "#4ade80" : "#f87171" }}>
-        <span>Resultado del Ejercicio (no cerrado)</span>
-        <span>{netResult.toLocaleString()}</span>
-      </div>
-      <div style={{ display: "flex", justifyContent: "space-between", padding: 6, fontWeight: 700, borderTop: "1px solid #1a3050" }}>
-        <span>Total Patrimonio</span>
-        <span>{totalEquity.toLocaleString()}</span>
-      </div>
+        <div style={{ display: "flex", justifyContent: "space-between", padding: 8, fontWeight: 700, fontSize: 22, borderTop: "1px solid #1F2937" }}>
+          <span>Total Patrimonio</span>
+          <span style={theme.numberStyle}>{totalEquity.toLocaleString()}</span>
+        </div>
 
-      <div style={{ marginTop: 30, padding: 16, background: "#0d1117", borderRadius: 12, display: "flex", justifyContent: "space-between", fontSize: 18, fontWeight: 900 }}>
-        <span>Activos = Pasivos + Patrimonio</span>
-        <span style={{ color: totalAssets === totalLiabilities + totalEquity ? "#4ade80" : "#f87171" }}>
-          {totalAssets.toLocaleString()} {totalAssets === (totalLiabilities + totalEquity) ? "= " : "no cuadra "} {(totalLiabilities + totalEquity).toLocaleString()}
-        </span>
+        <div style={{ marginTop: 24, padding: 18, background: "#0B0E14", borderRadius: 12, display: "flex", justifyContent: "space-between", fontSize: 22, fontWeight: 900 }}>
+          <span>Activos = Pasivos + Patrimonio</span>
+          <span style={{ ...theme.numberStyle, color: totalAssets === totalLiabilities + totalEquity ? "#4ade80" : "#f87171" }}>
+            {totalAssets.toLocaleString()} {totalAssets === (totalLiabilities + totalEquity) ? "= " : "no cuadra "} {(totalLiabilities + totalEquity).toLocaleString()}
+          </span>
+        </div>
       </div>
-
-      <button onClick={downloadPdf} style={{ marginTop: 30, padding: 14, background: "#4ade80", color: "black", fontWeight: 900, borderRadius: 12, border: "none" }}>
-        DESCARGAR PDF
-      </button>
-    </div>
+    </VerticalPageLayout>
   );
 }
