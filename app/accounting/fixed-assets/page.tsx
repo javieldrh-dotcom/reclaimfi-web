@@ -1,8 +1,11 @@
 ﻿"use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
+import { getVerticalTheme } from "@/app/core/design/tokens";
+import VerticalPageLayout from "@/app/components/VerticalPageLayout";
 
 export default function FixedAssetsPage() {
+  const theme = getVerticalTheme("accounting");
   const [assets, setAssets] = useState<any[]>([]);
   const [accounts, setAccounts] = useState<any[]>([]);
   const [companyId, setCompanyId] = useState<string | null>(null);
@@ -34,6 +37,7 @@ export default function FixedAssetsPage() {
     }
     load();
   }, []);
+
   function calculateDepreciation(asset: any) {
     const cost = asset.acquisition_cost;
     const salvage = asset.salvage_value || 0;
@@ -66,54 +70,51 @@ export default function FixedAssetsPage() {
     setAssetName(""); setAcquisitionDate(""); setAcquisitionCost("");
     if (companyId) await loadAssets(companyId);
   }
-
-  const inputStyle = { background: "#0d1117", border: "1px solid #1a3050", borderRadius: 8, padding: 10, color: "white", width: "100%" };
+  const inputStyle = { ...theme.inputStyle, fontSize: 20 };
 
   return (
-    <div style={{ padding: 40, color: "white", minHeight: "100vh" }}>
-      <h1 style={{ fontSize: 32, fontWeight: 900, color: "#7dd3fc" }}>Activos Fijos y Depreciacion</h1>
-
-      <div style={{ marginTop: 30, display: "grid", gap: 10, maxWidth: 500 }}>
+    <VerticalPageLayout vertical="accounting" title="Activos Fijos y Depreciacion" fullWidth>
+      <div style={{ maxWidth: 600 }}>
         <input value={assetName} onChange={(e) => setAssetName(e.target.value)} style={inputStyle} placeholder="Nombre del activo" />
-        <select value={accountId} onChange={(e) => setAccountId(e.target.value)} style={inputStyle}>
+        <select value={accountId} onChange={(e) => setAccountId(e.target.value)} style={{ ...inputStyle, marginTop: 10 }}>
           <option value="">Cuenta contable (opcional)</option>
           {accounts.map((a) => <option key={a.id} value={a.id}>{a.account_code} - {a.account_name}</option>)}
         </select>
-        <input type="date" value={acquisitionDate} onChange={(e) => setAcquisitionDate(e.target.value)} style={inputStyle} />
-        <input type="number" value={acquisitionCost} onChange={(e) => setAcquisitionCost(e.target.value)} style={inputStyle} placeholder="Costo de adquisicion" />
-        <div style={{ display: "flex", gap: 8 }}>
+        <input type="date" value={acquisitionDate} onChange={(e) => setAcquisitionDate(e.target.value)} style={{ ...inputStyle, marginTop: 10 }} />
+        <input type="number" value={acquisitionCost} onChange={(e) => setAcquisitionCost(e.target.value)} style={{ ...inputStyle, marginTop: 10 }} placeholder="Costo de adquisicion" />
+        <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
           <input type="number" value={usefulLife} onChange={(e) => setUsefulLife(e.target.value)} style={inputStyle} placeholder="Vida util (años)" />
           <input type="number" value={salvageValue} onChange={(e) => setSalvageValue(e.target.value)} style={inputStyle} placeholder="Valor residual" />
         </div>
-        <button onClick={addAsset} style={{ padding: 14, background: "#22d3ee", color: "black", fontWeight: 900, borderRadius: 12, border: "none" }}>
+        <button onClick={addAsset} style={{ ...theme.buttonStyle, marginTop: 16, fontSize: 18 }}>
           REGISTRAR ACTIVO
         </button>
-        {message && <p style={{ color: message.includes("Error") ? "#f87171" : "#4ade80" }}>{message}</p>}
+        {message && <p style={{ marginTop: 8, fontSize: 18, color: message.includes("Error") ? "#f87171" : theme.accent }}>{message}</p>}
       </div>
 
       {assets.length > 0 && (
         <div style={{ marginTop: 40 }}>
-          <h2 style={{ fontSize: 20, color: "#7dd3fc" }}>Activos Registrados</h2>
+          <h2 style={{ fontSize: 24, color: theme.accent, fontWeight: 700 }}>Activos Registrados</h2>
           <table style={{ width: "100%", marginTop: 16, borderCollapse: "collapse" }}>
             <thead>
-              <tr style={{ textAlign: "left", color: "#7dd3fc", fontSize: 12 }}>
-                <th style={{ padding: 8 }}>Activo</th>
-                <th style={{ padding: 8 }}>Costo</th>
-                <th style={{ padding: 8 }}>Dep. Mensual</th>
-                <th style={{ padding: 8 }}>Dep. Acumulada</th>
-                <th style={{ padding: 8 }}>Valor en Libros</th>
+              <tr style={{ textAlign: "left", color: theme.accent, fontSize: 16, fontWeight: 700 }}>
+                <th style={{ padding: 10 }}>Activo</th>
+                <th style={{ padding: 10 }}>Costo</th>
+                <th style={{ padding: 10 }}>Dep. Mensual</th>
+                <th style={{ padding: 10 }}>Dep. Acumulada</th>
+                <th style={{ padding: 10 }}>Valor en Libros</th>
               </tr>
             </thead>
             <tbody>
               {assets.map((a) => {
                 const d = calculateDepreciation(a);
                 return (
-                  <tr key={a.id} style={{ borderBottom: "1px solid #1a3050" }}>
-                    <td style={{ padding: 8 }}>{a.asset_name}</td>
-                    <td style={{ padding: 8 }}>{a.acquisition_cost.toLocaleString()}</td>
-                    <td style={{ padding: 8 }}>{d.monthlyDep.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
-                    <td style={{ padding: 8 }}>{d.accumulated.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
-                    <td style={{ padding: 8, fontWeight: 700 }}>{d.bookValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
+                  <tr key={a.id} style={{ borderBottom: "1px solid #1F2937" }}>
+                    <td style={{ padding: 10, fontSize: 20 }}>{a.asset_name}</td>
+                    <td style={{ padding: 10, fontSize: 20, ...theme.numberStyle }}>{a.acquisition_cost.toLocaleString()}</td>
+                    <td style={{ padding: 10, fontSize: 20, ...theme.numberStyle }}>{d.monthlyDep.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
+                    <td style={{ padding: 10, fontSize: 20, ...theme.numberStyle }}>{d.accumulated.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
+                    <td style={{ padding: 10, fontWeight: 700, fontSize: 20, ...theme.numberStyle }}>{d.bookValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
                   </tr>
                 );
               })}
@@ -121,6 +122,6 @@ export default function FixedAssetsPage() {
           </table>
         </div>
       )}
-    </div>
+    </VerticalPageLayout>
   );
 }
