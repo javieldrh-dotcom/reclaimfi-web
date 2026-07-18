@@ -5,6 +5,7 @@ import NeuralBackground from "@/app/components/NeuralBackground";
 const navItems = [
   { href: "/accounting", label: "DASHBOARD" },
   { href: "/accounting/journal", label: "LIBRO DIARIO" },
+  { href: "/accounting/general-ledger", label: "LIBRO MAYOR" },
   { href: "/accounting/trial-balance", label: "BALANCE COMPROBACION" },
   { href: "/accounting/balance-sheet", label: "SITUACION FINANCIERA" },
   { href: "/accounting/income-statement", label: "ESTADO RESULTADOS" },
