@@ -1,7 +1,8 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
+import NeuralBackground from "@/app/components/NeuralBackground";
 
 interface Evaluation {
   id: number;
@@ -34,9 +35,10 @@ export default function AuditsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-black text-white p-10">
+    <main className="min-h-screen bg-black text-white p-10 relative overflow-hidden">
+      <NeuralBackground color="#00ccff" particleCount={120} />
 
-      <div className="mx-auto max-w-7xl">
+      <div className="mx-auto max-w-7xl relative z-10">
 
         {/* HEADER */}
         <div className="flex items-center justify-between">
@@ -103,7 +105,7 @@ export default function AuditsPage() {
                   ${
                     item.risk.includes("Alto")
                       ? "bg-red-400/10 text-red-300"
-                      : item.risk.includes("Revisión")
+                      : item.risk.includes("RevisiÃ³n")
                       ? "bg-yellow-400/10 text-yellow-300"
                       : "bg-green-400/10 text-green-300"
                   }

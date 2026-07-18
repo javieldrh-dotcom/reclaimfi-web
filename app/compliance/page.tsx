@@ -1,8 +1,10 @@
+﻿import NeuralBackground from "@/app/components/NeuralBackground";
 export default function CompliancePage() {
   return (
-    <main className="min-h-screen bg-black text-white p-10">
+    <main className="min-h-screen bg-black text-white p-10 relative overflow-hidden">
+      <NeuralBackground color="#00ccff" particleCount={120} />
 
-      <div className="mx-auto max-w-7xl">
+      <div className="mx-auto max-w-7xl relative z-10">
 
         <div className="flex items-center justify-between">
 
@@ -31,7 +33,7 @@ export default function CompliancePage() {
             </h2>
 
             <p className="mt-4 text-gray-500">
-              Verificación institucional de identidad.
+              VerificaciÃ³n institucional de identidad.
             </p>
 
           </div>

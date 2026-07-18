@@ -1,7 +1,8 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
+import NeuralBackground from "@/app/components/NeuralBackground";
 
 interface Evaluation {
   id: number;
@@ -38,7 +39,7 @@ export default function RiskPage() {
   ).length;
 
   const manualReview = evaluations.filter((e) =>
-    e.risk.includes("Revisión")
+    e.risk.includes("RevisiÃ³n")
   ).length;
 
   const lowRisk = evaluations.filter((e) =>
@@ -46,9 +47,10 @@ export default function RiskPage() {
   ).length;
 
   return (
-    <main className="min-h-screen bg-black text-white p-10">
+    <main className="min-h-screen bg-black text-white p-10 relative overflow-hidden">
+      <NeuralBackground color="#00ccff" particleCount={120} />
 
-      <div className="mx-auto max-w-7xl">
+      <div className="mx-auto max-w-7xl relative z-10">
 
         <div className="flex items-center justify-between">
 
@@ -58,7 +60,7 @@ export default function RiskPage() {
             </h1>
 
             <p className="mt-3 text-gray-500">
-              Sistema dinámico AML.
+              Sistema dinÃ¡mico AML.
             </p>
           </div>
 
@@ -78,7 +80,7 @@ export default function RiskPage() {
 
           <div className="rounded-3xl border border-white/5 bg-white/[0.03] p-8">
             <p className="text-gray-500">
-              Revisión Manual
+              RevisiÃ³n Manual
             </p>
 
             <h2 className="mt-4 text-5xl font-bold text-yellow-400">

@@ -1,6 +1,7 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
+import NeuralBackground from "@/app/components/NeuralBackground";
 
 export default function TrackingPage() {
 
@@ -70,9 +71,10 @@ export default function TrackingPage() {
 
   return (
 
-    <main className="min-h-screen bg-black text-white p-10">
+    <main className="min-h-screen bg-black text-white p-10 relative overflow-hidden">
+      <NeuralBackground color="#00ccff" particleCount={120} />
 
-      <div className="mx-auto max-w-7xl">
+      <div className="mx-auto max-w-7xl relative z-10">
 
         {/* HEADER */}
         <div className="flex items-center justify-between">
