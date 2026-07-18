@@ -16,6 +16,7 @@ const navItems = [
   { href: "/accounting/fixed-assets", label: "ACTIVOS FIJOS" },
   { href: "/accounting/inventory", label: "INVENTARIO" },
   { href: "/accounting/payroll", label: "NOMINA" },
+  { href: "/accounting/sales-book", label: "LIBRO DE VENTAS" },
   { href: "/accounting/bank-reconciliation", label: "CONCILIACION" },
   { href: "/accounting/period-close", label: "CIERRE EJERCICIO" },
   { href: "/accounting/financial-notes", label: "NOTAS EEFF" },
