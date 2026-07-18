@@ -1,7 +1,8 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
+import NeuralBackground from "@/app/components/NeuralBackground";
 
 export default function AlertsPage() {
 
@@ -38,9 +39,10 @@ export default function AlertsPage() {
 
   return (
 
-    <main className="min-h-screen bg-black p-10 text-white">
+    <main className="min-h-screen bg-black p-10 text-white relative overflow-hidden">
+      <NeuralBackground color="#00ccff" particleCount={120} />
 
-      <div className="mx-auto max-w-7xl">
+      <div className="mx-auto max-w-7xl relative z-10">
 
         {/* HEADER */}
         <div className="flex items-center justify-between">
