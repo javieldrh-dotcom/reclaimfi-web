@@ -250,7 +250,7 @@ export default function PartidasPage() {
             </div>
           )}
 
-          <h3 style={{ marginTop: 28, color: "#4ade80", fontSize: 19, display: "flex", alignItems: "center", gap: 8 }}>
+          <h3 style={{ marginTop: 28, color: "#4ade80", fontSize: 24, fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#4ade80", display: "inline-block" }}></span>
             Materiales
           </h3>
@@ -270,7 +270,7 @@ export default function PartidasPage() {
           ))}
           <button onClick={addMaterial} style={{ marginTop: 10, color: "#4ade80", fontSize: 15, background: "none", border: "1px dashed #4ade8060", borderRadius: 8, padding: "8px 16px", cursor: "pointer" }}>+ Agregar Material</button>
 
-          <h3 style={{ marginTop: 28, color: "#facc15", fontSize: 19, display: "flex", alignItems: "center", gap: 8 }}>
+          <h3 style={{ marginTop: 28, color: "#facc15", fontSize: 24, fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#facc15", display: "inline-block" }}></span>
             Equipos
           </h3>
@@ -290,7 +290,7 @@ export default function PartidasPage() {
           ))}
           <button onClick={addEquipment} style={{ marginTop: 10, color: "#facc15", fontSize: 15, background: "none", border: "1px dashed #facc1560", borderRadius: 8, padding: "8px 16px", cursor: "pointer" }}>+ Agregar Equipo</button>
 
-          <h3 style={{ marginTop: 28, color: "#f87171", fontSize: 19, display: "flex", alignItems: "center", gap: 8 }}>
+          <h3 style={{ marginTop: 28, color: "#f87171", fontSize: 24, fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#f87171", display: "inline-block" }}></span>
             Labor Directa
           </h3>
