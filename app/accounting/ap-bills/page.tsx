@@ -1,8 +1,11 @@
 ﻿"use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
+import { getVerticalTheme } from "@/app/core/design/tokens";
+import VerticalPageLayout from "@/app/components/VerticalPageLayout";
 
 export default function ApBillsPage() {
+  const theme = getVerticalTheme("accounting");
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [bills, setBills] = useState<any[]>([]);
   const [accounts, setAccounts] = useState<any[]>([]);
@@ -35,6 +38,7 @@ export default function ApBillsPage() {
     }
     load();
   }, []);
+
   async function createBill() {
     setMessage("");
     if (!companyId || !vendorName || !billNumber || !amount || !apAccountId || !expenseAccountId) {
@@ -90,67 +94,61 @@ export default function ApBillsPage() {
     }
     if (companyId) await loadBills(companyId);
   }
-
-  const inputStyle = { background: "#0d1117", border: "1px solid #1a3050", borderRadius: 8, padding: 10, color: "white", width: "100%" };
+  const inputStyle = { ...theme.inputStyle, fontSize: 20 };
 
   return (
-    <div style={{ padding: 40, color: "white", minHeight: "100vh" }}>
-      <h1 style={{ fontSize: 32, fontWeight: 900, color: "#7dd3fc" }}>Cuentas por Pagar</h1>
-      <p style={{ marginTop: 8, color: "#9ca3af", fontSize: 12 }}>
-        Cada factura de proveedor genera automaticamente su asiento contable en el Libro Diario.
-      </p>
-
-      <div style={{ marginTop: 30, display: "grid", gap: 10, maxWidth: 500 }}>
+    <VerticalPageLayout vertical="accounting" title="Cuentas por Pagar" subtitle="Cada factura de proveedor genera automaticamente su asiento contable en el Libro Diario" fullWidth>
+      <div style={{ maxWidth: 600 }}>
         <input value={vendorName} onChange={(e) => setVendorName(e.target.value)} style={inputStyle} placeholder="Nombre del proveedor" />
-        <input value={billNumber} onChange={(e) => setBillNumber(e.target.value)} style={inputStyle} placeholder="Numero de factura" />
-        <div style={{ display: "flex", gap: 8 }}>
+        <input value={billNumber} onChange={(e) => setBillNumber(e.target.value)} style={{ ...inputStyle, marginTop: 10 }} placeholder="Numero de factura" />
+        <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
           <input type="date" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} style={inputStyle} />
           <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} style={inputStyle} placeholder="Vencimiento" />
         </div>
-        <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} style={inputStyle} placeholder="Monto" />
-        <select value={apAccountId} onChange={(e) => setApAccountId(e.target.value)} style={inputStyle}>
+        <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} style={{ ...inputStyle, marginTop: 10 }} placeholder="Monto" />
+        <select value={apAccountId} onChange={(e) => setApAccountId(e.target.value)} style={{ ...inputStyle, marginTop: 10 }}>
           <option value="">Cuenta de Cuentas por Pagar</option>
           {accounts.filter(a => a.account_type === "LIABILITY").map((a) => <option key={a.id} value={a.id}>{a.account_code} - {a.account_name}</option>)}
         </select>
-        <select value={expenseAccountId} onChange={(e) => setExpenseAccountId(e.target.value)} style={inputStyle}>
+        <select value={expenseAccountId} onChange={(e) => setExpenseAccountId(e.target.value)} style={{ ...inputStyle, marginTop: 10 }}>
           <option value="">Cuenta de Gasto</option>
           {accounts.filter(a => a.account_type === "EXPENSE").map((a) => <option key={a.id} value={a.id}>{a.account_code} - {a.account_name}</option>)}
         </select>
-        <button onClick={createBill} style={{ padding: 14, background: "#22d3ee", color: "black", fontWeight: 900, borderRadius: 12, border: "none" }}>
+        <button onClick={createBill} style={{ ...theme.buttonStyle, marginTop: 16, fontSize: 18 }}>
           CREAR FACTURA
         </button>
-        {message && <p style={{ color: message.includes("Error") ? "#f87171" : "#4ade80" }}>{message}</p>}
+        {message && <p style={{ marginTop: 8, fontSize: 18, color: message.includes("Error") ? "#f87171" : theme.accent }}>{message}</p>}
       </div>
 
       {bills.length > 0 && (
         <div style={{ marginTop: 40 }}>
-          <h2 style={{ fontSize: 20, color: "#7dd3fc" }}>Facturas de Proveedores</h2>
+          <h2 style={{ fontSize: 24, color: theme.accent, fontWeight: 700 }}>Facturas de Proveedores</h2>
           <table style={{ width: "100%", marginTop: 16, borderCollapse: "collapse" }}>
             <thead>
-              <tr style={{ textAlign: "left", color: "#7dd3fc", fontSize: 12 }}>
-                <th style={{ padding: 8 }}>Factura</th>
-                <th style={{ padding: 8 }}>Proveedor</th>
-                <th style={{ padding: 8 }}>Vencimiento</th>
-                <th style={{ padding: 8 }}>Monto</th>
-                <th style={{ padding: 8 }}>Estado</th>
-                <th style={{ padding: 8 }}></th>
+              <tr style={{ textAlign: "left", color: theme.accent, fontSize: 16, fontWeight: 700 }}>
+                <th style={{ padding: 10 }}>Factura</th>
+                <th style={{ padding: 10 }}>Proveedor</th>
+                <th style={{ padding: 10 }}>Vencimiento</th>
+                <th style={{ padding: 10 }}>Monto</th>
+                <th style={{ padding: 10 }}>Estado</th>
+                <th style={{ padding: 10 }}></th>
               </tr>
             </thead>
             <tbody>
               {bills.map((b) => (
-                <tr key={b.id} style={{ borderBottom: "1px solid #1a3050" }}>
-                  <td style={{ padding: 8 }}>{b.bill_number}</td>
-                  <td style={{ padding: 8 }}>{b.vendor_name}</td>
-                  <td style={{ padding: 8 }}>{b.due_date}</td>
-                  <td style={{ padding: 8 }}>{b.amount.toLocaleString()}</td>
-                  <td style={{ padding: 8, color: b.status === "PAID" ? "#4ade80" : "#facc15" }}>{b.status}</td>
-                  <td style={{ padding: 8 }}>
+                <tr key={b.id} style={{ borderBottom: "1px solid #1F2937" }}>
+                  <td style={{ padding: 10, fontSize: 20 }}>{b.bill_number}</td>
+                  <td style={{ padding: 10, fontSize: 20 }}>{b.vendor_name}</td>
+                  <td style={{ padding: 10, fontSize: 20 }}>{b.due_date}</td>
+                  <td style={{ padding: 10, fontSize: 20, ...theme.numberStyle }}>{b.amount.toLocaleString()}</td>
+                  <td style={{ padding: 10, fontSize: 20, color: b.status === "PAID" ? "#4ade80" : "#facc15" }}>{b.status}</td>
+                  <td style={{ padding: 10 }}>
                     {b.status === "PENDING" && (
                       <>
-                        <button onClick={() => markAsPaid(b.id)} style={{ background: "none", border: "1px solid #4ade80", color: "#4ade80", padding: "4px 10px", borderRadius: 8, fontSize: 11, marginRight: 6 }}>
+                        <button onClick={() => markAsPaid(b.id)} style={{ background: "none", border: "1px solid #4ade80", color: "#4ade80", padding: "6px 14px", borderRadius: 8, fontSize: 15, marginRight: 6 }}>
                           Marcar Pagada
                         </button>
-                        <button onClick={() => voidBill(b.id, b.journal_entry_id)} style={{ background: "none", border: "1px solid #f87171", color: "#f87171", padding: "4px 10px", borderRadius: 8, fontSize: 11 }}>
+                        <button onClick={() => voidBill(b.id, b.journal_entry_id)} style={{ background: "none", border: "1px solid #f87171", color: "#f87171", padding: "6px 14px", borderRadius: 8, fontSize: 15 }}>
                           Anular
                         </button>
                       </>
@@ -162,6 +160,6 @@ export default function ApBillsPage() {
           </table>
         </div>
       )}
-    </div>
+    </VerticalPageLayout>
   );
 }
