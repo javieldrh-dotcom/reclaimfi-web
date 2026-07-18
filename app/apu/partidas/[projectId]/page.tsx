@@ -323,8 +323,8 @@ export default function PartidasPage() {
 
         <div style={{ position: "sticky", top: 20, alignSelf: "start" }}>
           <div style={{ padding: 24, background: "#12161F", borderRadius: 16, border: "1px solid " + apuTheme.accent + "40" }}>
-            <h3 style={{ fontSize: 16, color: apuTheme.accent, marginBottom: 16, textTransform: "uppercase", letterSpacing: "0.05em" }}>Resumen del Costo</h3>
-            <div style={{ fontSize: 15, lineHeight: 1.8 }}>
+            <h3 style={{ fontSize: 22, fontWeight: 700, color: apuTheme.accent, marginBottom: 16 }}>Resumen del Costo</h3>
+            <div style={{ fontSize: 20, lineHeight: 1.9 }}>
               <p>Materiales: {t.materialsCost.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
               <p>Equipos: {t.equipmentCost.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
               <p>Labor: {t.laborCost.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
