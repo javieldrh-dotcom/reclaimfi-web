@@ -178,7 +178,7 @@ export default function PartidasPage() {
   }
 
   const apuTheme = getVerticalTheme("apu");
-  const inputStyle = { ...apuTheme.inputStyle, fontSize: 22, padding: 16 };
+  const inputStyle = { ...apuTheme.inputStyle, fontSize: 20, padding: 14 };
   const labelStyle = { fontSize: 14, color: "#8B93A7", fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.05em", display: "block", marginBottom: 6 };
 
   async function downloadOfferPdf() {
