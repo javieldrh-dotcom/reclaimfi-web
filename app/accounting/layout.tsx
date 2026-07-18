@@ -18,6 +18,7 @@ const navItems = [
   { href: "/accounting/payroll", label: "NOMINA" },
   { href: "/accounting/sales-book", label: "LIBRO DE VENTAS" },
   { href: "/accounting/purchase-book", label: "LIBRO DE COMPRAS" },
+  { href: "/accounting/vat-summary", label: "RESUMEN DE IVA" },
   { href: "/accounting/bank-reconciliation", label: "CONCILIACION" },
   { href: "/accounting/period-close", label: "CIERRE EJERCICIO" },
   { href: "/accounting/financial-notes", label: "NOTAS EEFF" },
