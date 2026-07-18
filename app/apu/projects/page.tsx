@@ -2,15 +2,17 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/app/lib/supabase";
+import { getVerticalTheme } from "@/app/core/design/tokens";
+import VerticalPageLayout from "@/app/components/VerticalPageLayout";
 
 export default function ApuProjectsPage() {
+  const theme = getVerticalTheme("apu");
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [projects, setProjects] = useState<any[]>([]);
   const [procedureNumber, setProcedureNumber] = useState("");
   const [projectDescription, setProjectDescription] = useState("");
   const [contractingEntity, setContractingEntity] = useState("");
   const [submissionDate, setSubmissionDate] = useState(new Date().toISOString().slice(0, 10));
-  const [currency, setCurrency] = useState("USD");
   const [message, setMessage] = useState("");
   const [arAccounts, setArAccounts] = useState<any[]>([]);
   const [revenueAccounts, setRevenueAccounts] = useState<any[]>([]);
@@ -43,9 +45,27 @@ export default function ApuProjectsPage() {
     }
     load();
   }, []);
+  async function createProject() {
+    setMessage("");
+    if (!companyId || !procedureNumber) { setMessage("Completa al menos el numero de procedimiento."); return; }
+
+    const { error } = await supabase.from("apu_projects").insert([{
+      company_id: companyId,
+      procedure_number: procedureNumber,
+      project_description: projectDescription,
+      contracting_entity: contractingEntity,
+      submission_date: submissionDate,
+      status: "DRAFT",
+    }]);
+
+    if (error) { setMessage("Error: " + error.message); return; }
+    setMessage("Proyecto creado correctamente.");
+    setProcedureNumber(""); setProjectDescription(""); setContractingEntity("");
+    if (companyId) await loadProjects(companyId);
+  }
 
   async function awardProject(project: any) {
-    if (!window.confirm("Marcar este proyecto como ADJUDICADO y generar la factura por cobrar automaticamente?")) return;
+    if (!window.confirm("Marcar este proyecto como ADJUDICADO y registrar el compromiso contractual?")) return;
 
     const { data: partidas } = await supabase.from("apu_partidas").select("*").eq("apu_project_id", project.id);
 
@@ -92,70 +112,47 @@ export default function ApuProjectsPage() {
       { journal_entry_id: entry.id, account_id: orderCreditorAccount.id, debit: 0, credit: grandTotal },
     ]);
 
-    setMessage("Proyecto adjudicado. Compromiso contractual por " + grandTotal.toLocaleString() + " registrado en Cuentas de Orden (no afecta el Balance ni el Estado de Resultados todavia). Factura por avance de obra o anticipo se registra manualmente en Cuentas por Cobrar cuando corresponda.");
+    setMessage("Proyecto adjudicado. Compromiso contractual por " + grandTotal.toLocaleString() + " registrado en Cuentas de Orden.");
     if (companyId) await loadProjects(companyId);
   }
 
-  async function createProject() {
-    setMessage("");
-    if (!companyId || !procedureNumber) { setMessage("Completa al menos el numero de procedimiento."); return; }
+  const inputStyle = { ...theme.inputStyle, fontSize: 20 };
 
-    const { error } = await supabase.from("apu_projects").insert([{
-      company_id: companyId,
-      procedure_number: procedureNumber,
-      project_description: projectDescription,
-      contracting_entity: contractingEntity,
-      submission_date: submissionDate,
-      status: "DRAFT",
-    }]);
-
-    if (error) { setMessage("Error: " + error.message); return; }
-    setMessage("Proyecto creado correctamente.");
-    setProcedureNumber(""); setProjectDescription(""); setContractingEntity("");
-    if (companyId) await loadProjects(companyId);
-  }
-
-  const inputStyle = { background: "#0d1117", border: "1px solid #1a3050", borderRadius: 8, padding: 10, color: "white", width: "100%" };
   return (
-    <div style={{ padding: 40, color: "white", minHeight: "100vh" }}>
-      <h1 style={{ fontSize: 32, fontWeight: 900, color: "#7dd3fc" }}>Licitaciones y Ofertas al Estado</h1>
-      <p style={{ marginTop: 8, color: "#9ca3af", fontSize: 12 }}>
-        Modulo de Analisis de Precios Unitarios (APU) - Aplicable a cualquier pais o moneda.
-      </p>
-
-      <div style={{ marginTop: 30, display: "grid", gap: 10, maxWidth: 500 }}>
+    <VerticalPageLayout vertical="apu" title="Licitaciones y Ofertas al Estado" subtitle="Modulo de Analisis de Precios Unitarios (APU) - Aplicable a cualquier pais o moneda" fullWidth>
+      <div style={{ maxWidth: 600 }}>
         <input value={procedureNumber} onChange={(e) => setProcedureNumber(e.target.value)} style={inputStyle} placeholder="Numero de procedimiento/licitacion" />
-        <input value={projectDescription} onChange={(e) => setProjectDescription(e.target.value)} style={inputStyle} placeholder="Descripcion del proyecto/obra" />
-        <input value={contractingEntity} onChange={(e) => setContractingEntity(e.target.value)} style={inputStyle} placeholder="Ente contratante" />
-        <div>
-          <label style={{ fontSize: 12, color: "#7dd3fc" }}>FECHA DE PRESENTACION DE LA OFERTA</label>
-          <input type="date" value={submissionDate} onChange={(e) => setSubmissionDate(e.target.value)} style={{ ...inputStyle, marginTop: 4 }} />
-        </div>
-        <button onClick={createProject} style={{ padding: 14, background: "#22d3ee", color: "black", fontWeight: 900, borderRadius: 12, border: "none" }}>
+        <input value={projectDescription} onChange={(e) => setProjectDescription(e.target.value)} style={{ ...inputStyle, marginTop: 10 }} placeholder="Descripcion del proyecto/obra" />
+        <input value={contractingEntity} onChange={(e) => setContractingEntity(e.target.value)} style={{ ...inputStyle, marginTop: 10 }} placeholder="Ente contratante" />
+        <label style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginTop: 14, display: "block" }}>Fecha de Presentacion de la Oferta</label>
+        <input type="date" value={submissionDate} onChange={(e) => setSubmissionDate(e.target.value)} style={{ ...inputStyle, marginTop: 6 }} />
+        <button onClick={createProject} style={{ ...theme.buttonStyle, marginTop: 16, fontSize: 18 }}>
           CREAR PROYECTO
         </button>
-        {message && <p style={{ color: message.includes("Error") ? "#f87171" : "#4ade80" }}>{message}</p>}
+        {message && <p style={{ marginTop: 8, fontSize: 18, color: message.includes("Error") ? "#f87171" : theme.accent }}>{message}</p>}
       </div>
 
       {projects.length > 0 && (
         <div style={{ marginTop: 40 }}>
-          <h2 style={{ fontSize: 20, color: "#7dd3fc" }}>Proyectos Registrados</h2>
+          <h2 style={{ fontSize: 24, color: theme.accent, fontWeight: 700 }}>Proyectos Registrados</h2>
           {projects.map((p) => (
-            <div key={p.id} style={{ padding: 12, borderBottom: "1px solid #1a3050" }}>
-              <Link href={"/apu/partidas/" + p.id} style={{ color: "#7dd3fc", fontWeight: 700 }}>
+            <div key={p.id} style={{ ...theme.cardStyle, marginTop: 12 }}>
+              <Link href={"/apu/partidas/" + p.id} style={{ color: theme.accent, fontWeight: 700, fontSize: 22, textDecoration: "none" }}>
                 {p.procedure_number}
               </Link>
-              <p style={{ fontSize: 13, color: "#9ca3af" }}>{p.project_description} - {p.contracting_entity}</p>
-              <span style={{ fontSize: 11, color: p.status === "AWARDED" ? "#4ade80" : "#facc15" }}>{p.status}</span>
-              {p.status === "DRAFT" && (
-                <button onClick={() => awardProject(p)} style={{ marginLeft: 12, padding: "4px 12px", background: "none", border: "1px solid #4ade80", color: "#4ade80", borderRadius: 8, fontSize: 12, cursor: "pointer" }}>
-                  Marcar como Adjudicado
-                </button>
-              )}
+              <p style={{ fontSize: 18, color: "#B0B8C8", marginTop: 4 }}>{p.project_description} - {p.contracting_entity}</p>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
+                <span style={{ fontSize: 16, color: p.status === "AWARDED" ? "#4ade80" : "#facc15", fontWeight: 700 }}>{p.status}</span>
+                {p.status === "DRAFT" && (
+                  <button onClick={() => awardProject(p)} style={{ padding: "8px 16px", background: "none", border: "1px solid #4ade80", color: "#4ade80", borderRadius: 8, fontSize: 15, cursor: "pointer" }}>
+                    Marcar como Adjudicado
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>
       )}
-    </div>
+    </VerticalPageLayout>
   );
 }
