@@ -1,7 +1,8 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
+import NeuralBackground from "@/app/components/NeuralBackground";
 import jsPDF from "jspdf";
 
 interface Evaluation {
@@ -78,7 +79,7 @@ export default function ReportsPage() {
     if (item.risk.includes("Alto")) {
       recommendation =
         "Immediate forensic investigation recommended.";
-    } else if (item.risk.includes("Revisión")) {
+    } else if (item.risk.includes("RevisiÃ³n")) {
       recommendation =
         "Manual compliance review recommended.";
     } else {
@@ -99,9 +100,10 @@ export default function ReportsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-black text-white p-10">
+    <main className="min-h-screen bg-black text-white p-10 relative overflow-hidden">
+      <NeuralBackground color="#00ccff" particleCount={120} />
 
-      <div className="mx-auto max-w-7xl">
+      <div className="mx-auto max-w-7xl relative z-10">
 
         {/* HEADER */}
         <div className="flex items-center justify-between">
@@ -113,7 +115,7 @@ export default function ReportsPage() {
             </h1>
 
             <p className="mt-3 text-gray-500">
-              Reportería institucional y trazabilidad AML.
+              ReporterÃ­a institucional y trazabilidad AML.
             </p>
 
           </div>
@@ -159,7 +161,7 @@ export default function ReportsPage() {
                   className={`rounded-full px-4 py-2 text-sm ${
                     item.risk.includes("Alto")
                       ? "bg-red-400/10 text-red-300"
-                      : item.risk.includes("Revisión")
+                      : item.risk.includes("RevisiÃ³n")
                       ? "bg-yellow-400/10 text-yellow-300"
                       : "bg-green-400/10 text-green-300"
                   }`}
@@ -175,7 +177,7 @@ export default function ReportsPage() {
                 <div className="rounded-2xl border border-white/5 bg-black/30 p-5">
 
                   <p className="text-sm text-gray-500">
-                    Tipo de Auditoría
+                    Tipo de AuditorÃ­a
                   </p>
 
                   <h3 className="mt-3 text-lg font-medium">
@@ -227,16 +229,16 @@ export default function ReportsPage() {
               <div className="mt-8 rounded-2xl border border-cyan-400/10 bg-cyan-400/5 p-6">
 
                 <p className="text-sm text-cyan-300">
-                  Recomendación AGI
+                  RecomendaciÃ³n AGI
                 </p>
 
                 <p className="mt-4 leading-7 text-gray-300">
 
                   {item.risk.includes("Alto")
-                    ? "Se recomienda investigación inmediata y trazabilidad blockchain avanzada."
-                    : item.risk.includes("Revisión")
-                    ? "Se recomienda validación manual por compliance."
-                    : "Actividad preliminar dentro de parámetros aceptables."
+                    ? "Se recomienda investigaciÃ³n inmediata y trazabilidad blockchain avanzada."
+                    : item.risk.includes("RevisiÃ³n")
+                    ? "Se recomienda validaciÃ³n manual por compliance."
+                    : "Actividad preliminar dentro de parÃ¡metros aceptables."
                   }
 
                 </p>
