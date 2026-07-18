@@ -116,8 +116,8 @@ export default function GeneralLedgerPage() {
                 border: selectedAccountId === a.id ? "1px solid " + theme.accent : "1px solid transparent",
               }}
             >
-              <p style={{ fontSize: 16, fontWeight: 600 }}>{a.account_code}</p>
-              <p style={{ fontSize: 15, color: "#8B93A7" }}>{a.account_name}</p>
+              <p style={{ fontSize: 20, fontWeight: 700 }}>{a.account_code}</p>
+              <p style={{ fontSize: 18, color: "#B0B8C8" }}>{a.account_name}</p>
             </div>
           ))}
         </div>
@@ -127,10 +127,10 @@ export default function GeneralLedgerPage() {
           {selectedAccountId && loadingMovements && <p style={{ color: "#8B93A7", fontSize: 16 }}>Cargando movimientos...</p>}
           {selectedAccountId && !loadingMovements && (
             <>
-              <h3 style={{ fontSize: 20, color: theme.accent, marginBottom: 16, fontWeight: 700 }}>{selectedAccount?.account_code} - {selectedAccount?.account_name}</h3>
+              <h3 style={{ fontSize: 26, color: theme.accent, marginBottom: 20, fontWeight: 700 }}>{selectedAccount?.account_code} - {selectedAccount?.account_name}</h3>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
-                  <tr style={{ textAlign: "left", color: theme.accent, fontSize: 14, fontWeight: 700 }}>
+                  <tr style={{ textAlign: "left", color: theme.accent, fontSize: 17, fontWeight: 700 }}>
                     <th style={{ padding: 10 }}>Fecha</th>
                     <th style={{ padding: 10 }}>Descripcion</th>
                     <th style={{ padding: 10, textAlign: "right" }}>Debe</th>
@@ -141,11 +141,11 @@ export default function GeneralLedgerPage() {
                 <tbody>
                   {movements.map((m, idx) => (
                     <tr key={idx} style={{ borderBottom: "1px solid #1F2937" }}>
-                      <td style={{ padding: 10, fontSize: 16 }}>{m.date}</td>
-                      <td style={{ padding: 10, fontSize: 16 }}>{m.description}</td>
-                      <td style={{ padding: 10, textAlign: "right", fontSize: 16, ...theme.numberStyle }}>{m.debit > 0 ? m.debit.toLocaleString() : ""}</td>
-                      <td style={{ padding: 10, textAlign: "right", fontSize: 16, ...theme.numberStyle }}>{m.credit > 0 ? m.credit.toLocaleString() : ""}</td>
-                      <td style={{ padding: 10, textAlign: "right", fontWeight: 700, fontSize: 16, ...theme.numberStyle }}>{m.balance.toLocaleString()}</td>
+                      <td style={{ padding: 10, fontSize: 22 }}>{m.date}</td>
+                      <td style={{ padding: 10, fontSize: 22 }}>{m.description}</td>
+                      <td style={{ padding: 10, textAlign: "right", fontSize: 22, ...theme.numberStyle }}>{m.debit > 0 ? m.debit.toLocaleString() : ""}</td>
+                      <td style={{ padding: 10, textAlign: "right", fontSize: 22, ...theme.numberStyle }}>{m.credit > 0 ? m.credit.toLocaleString() : ""}</td>
+                      <td style={{ padding: 10, textAlign: "right", fontWeight: 700, fontSize: 22, ...theme.numberStyle }}>{m.balance.toLocaleString()}</td>
                     </tr>
                   ))}
                 </tbody>
