@@ -105,6 +105,7 @@ export default function JournalPage() {
     <VerticalPageLayout
       vertical="accounting"
       title="Libro Diario"
+      fullWidth
       actions={entries.length > 0 ? (
         <button onClick={downloadPdf} style={{ ...theme.buttonStyle, fontSize: 13, padding: "10px 20px" }}>
           Descargar PDF
@@ -143,13 +144,13 @@ export default function JournalPage() {
 
       {entries.length > 0 && (
         <div style={{ marginTop: 32 }}>
-          <h2 style={{ fontSize: 20, color: theme.accent, fontFamily: theme.titleStyle.fontFamily }}>Asientos Recientes</h2>
+          <h2 style={{ fontSize: 26, color: theme.accent, fontFamily: theme.titleStyle.fontFamily, fontWeight: 700 }}>Asientos Recientes</h2>
           {entries.map((e) => (
             <div key={e.id} style={{ ...theme.cardStyle, marginTop: 12, opacity: e.status === "VOIDED" ? 0.5 : 1 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontWeight: 600, fontSize: 15 }}>
+                <span style={{ fontWeight: 700, fontSize: 22 }}>
                   {e.entry_date} - {e.description}
-                  {e.status === "VOIDED" && <span style={{ color: "#F87171", marginLeft: 8, fontSize: 12 }}>[ANULADO]</span>}
+                  {e.status === "VOIDED" && <span style={{ color: "#F87171", marginLeft: 8, fontSize: 16 }}>[ANULADO]</span>}
                 </span>
                 {e.status === "ACTIVE" && (
                   <button onClick={() => voidEntry(e.id)} style={{ background: "none", border: "1px solid #F87171", color: "#F87171", padding: "4px 12px", borderRadius: 8, fontSize: 13, cursor: "pointer" }}>
@@ -158,7 +159,7 @@ export default function JournalPage() {
                 )}
               </div>
               {(e.journal_lines ?? []).map((l: any, idx: number) => (
-                <div key={idx} style={{ display: "flex", justifyContent: "space-between", fontSize: 14, color: "#8B93A7", marginTop: 6, paddingLeft: 12 }}>
+                <div key={idx} style={{ display: "flex", justifyContent: "space-between", fontSize: 20, color: "#B0B8C8", marginTop: 6, paddingLeft: 12 }}>
                   <span>{l.chart_of_accounts?.account_code} - {l.chart_of_accounts?.account_name}</span>
                   <span style={theme.numberStyle}>{l.debit > 0 ? "Debe: " + l.debit.toLocaleString() : "Haber: " + l.credit.toLocaleString()}</span>
                 </div>
