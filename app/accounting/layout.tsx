@@ -1,6 +1,6 @@
 ﻿"use client";
 import VerticalSidebar from "@/app/components/VerticalSidebar";
-import AuroraBackground from "@/app/components/AuroraBackground";
+import NeuralBackground from "@/app/components/NeuralBackground";
 
 const navItems = [
   { href: "/accounting", label: "DASHBOARD" },
@@ -22,7 +22,7 @@ const navItems = [
 export default function AccountingLayout({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ display: "flex", position: "relative" }}>
-      <AuroraBackground />
+      <NeuralBackground color="#818CF8" particleCount={100} />
       <VerticalSidebar vertical="accounting" brandName="CONTABILIDAD" navItems={navItems} />
       <div style={{ marginLeft: 280, flex: 1, position: "relative", zIndex: 1 }}>
         {children}
