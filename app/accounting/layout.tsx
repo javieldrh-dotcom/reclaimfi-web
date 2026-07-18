@@ -14,6 +14,7 @@ const navItems = [
   { href: "/accounting/ar-invoices", label: "CUENTAS POR COBRAR" },
   { href: "/accounting/ap-bills", label: "CUENTAS POR PAGAR" },
   { href: "/accounting/fixed-assets", label: "ACTIVOS FIJOS" },
+  { href: "/accounting/inventory", label: "INVENTARIO" },
   { href: "/accounting/bank-reconciliation", label: "CONCILIACION" },
   { href: "/accounting/period-close", label: "CIERRE EJERCICIO" },
   { href: "/accounting/financial-notes", label: "NOTAS EEFF" },
