@@ -1,6 +1,8 @@
 ﻿"use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
+import { getVerticalTheme } from "@/app/core/design/tokens";
+import VerticalPageLayout from "@/app/components/VerticalPageLayout";
 
 const COUNTRIES = [
   { code: "VE", name: "Venezuela" },
@@ -15,6 +17,7 @@ const COUNTRIES = [
 ];
 
 export default function PriceIndicesPage() {
+  const theme = getVerticalTheme("accounting");
   const [indices, setIndices] = useState<any[]>([]);
   const [countryCode, setCountryCode] = useState("VE");
   const [indexName, setIndexName] = useState("INPC_BCV");
@@ -55,48 +58,43 @@ export default function PriceIndicesPage() {
     await loadIndices();
   }
 
-  const inputStyle = { background: "#0d1117", border: "1px solid #1a3050", borderRadius: 8, padding: 10, color: "white", width: "100%" };
+  const inputStyle = { ...theme.inputStyle, fontSize: 20 };
   return (
-    <div style={{ padding: 40, color: "white", minHeight: "100vh" }}>
-      <h1 style={{ fontSize: 32, fontWeight: 900, color: "#7dd3fc" }}>Indices de Precios por Pais</h1>
-      <p style={{ marginTop: 8, color: "#9ca3af", fontSize: 12 }}>
-        Estos indices se usan para calcular el REPOMO y la reexpresion por inflacion (NIC 29 / NIF B-10).
-      </p>
-
-      <div style={{ marginTop: 30, display: "grid", gap: 10, maxWidth: 500 }}>
+    <VerticalPageLayout vertical="accounting" title="Indices de Precios por Pais" subtitle="Estos indices se usan para calcular el REPOMO y la reexpresion por inflacion (NIC 29 / NIF B-10)" fullWidth>
+      <div style={{ maxWidth: 600 }}>
         <select value={countryCode} onChange={(e) => setCountryCode(e.target.value)} style={inputStyle}>
           {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
         </select>
-        <input value={indexName} onChange={(e) => setIndexName(e.target.value)} style={inputStyle} placeholder="Nombre del indice (ej. INPC_BCV)" />
-        <input type="date" value={periodDate} onChange={(e) => setPeriodDate(e.target.value)} style={inputStyle} />
-        <input type="number" step="0.01" value={indexValue} onChange={(e) => setIndexValue(e.target.value)} style={inputStyle} placeholder="Valor del indice" />
-        <button onClick={addIndex} style={{ padding: 14, background: "#22d3ee", color: "black", fontWeight: 900, borderRadius: 12, border: "none" }}>
+        <input value={indexName} onChange={(e) => setIndexName(e.target.value)} style={{ ...inputStyle, marginTop: 10 }} placeholder="Nombre del indice (ej. INPC_BCV)" />
+        <input type="date" value={periodDate} onChange={(e) => setPeriodDate(e.target.value)} style={{ ...inputStyle, marginTop: 10 }} />
+        <input type="number" step="0.01" value={indexValue} onChange={(e) => setIndexValue(e.target.value)} style={{ ...inputStyle, marginTop: 10 }} placeholder="Valor del indice" />
+        <button onClick={addIndex} style={{ ...theme.buttonStyle, marginTop: 16, fontSize: 18 }}>
           AGREGAR INDICE
         </button>
-        {message && <p style={{ color: message.includes("Error") ? "#f87171" : "#4ade80" }}>{message}</p>}
+        {message && <p style={{ marginTop: 8, fontSize: 18, color: message.includes("Error") ? "#f87171" : theme.accent }}>{message}</p>}
       </div>
 
       <div style={{ marginTop: 40 }}>
-        <h2 style={{ fontSize: 20, color: "#7dd3fc" }}>Indices Cargados</h2>
+        <h2 style={{ fontSize: 24, color: theme.accent, fontWeight: 700 }}>Indices Cargados</h2>
         <table style={{ width: "100%", marginTop: 16, borderCollapse: "collapse" }}>
           <thead>
-            <tr style={{ textAlign: "left", color: "#7dd3fc", fontSize: 12 }}>
-              <th style={{ padding: 8 }}>Pais</th>
-              <th style={{ padding: 8 }}>Indice</th>
-              <th style={{ padding: 8 }}>Fecha</th>
-              <th style={{ padding: 8 }}>Valor</th>
-              <th style={{ padding: 8 }}></th>
+            <tr style={{ textAlign: "left", color: theme.accent, fontSize: 16, fontWeight: 700 }}>
+              <th style={{ padding: 10 }}>Pais</th>
+              <th style={{ padding: 10 }}>Indice</th>
+              <th style={{ padding: 10 }}>Fecha</th>
+              <th style={{ padding: 10 }}>Valor</th>
+              <th style={{ padding: 10 }}></th>
             </tr>
           </thead>
           <tbody>
             {indices.map((i) => (
-              <tr key={i.id} style={{ borderBottom: "1px solid #1a3050" }}>
-                <td style={{ padding: 8 }}>{i.country_code}</td>
-                <td style={{ padding: 8 }}>{i.index_name}</td>
-                <td style={{ padding: 8 }}>{i.period_date}</td>
-                <td style={{ padding: 8 }}>{i.index_value}</td>
-                <td style={{ padding: 8 }}>
-                  <button onClick={() => deleteIndex(i.id)} style={{ background: "none", border: "1px solid #f87171", color: "#f87171", padding: "4px 10px", borderRadius: 8, fontSize: 11 }}>
+              <tr key={i.id} style={{ borderBottom: "1px solid #1F2937" }}>
+                <td style={{ padding: 10, fontSize: 20 }}>{i.country_code}</td>
+                <td style={{ padding: 10, fontSize: 20 }}>{i.index_name}</td>
+                <td style={{ padding: 10, fontSize: 20 }}>{i.period_date}</td>
+                <td style={{ padding: 10, fontSize: 20, ...theme.numberStyle }}>{i.index_value}</td>
+                <td style={{ padding: 10 }}>
+                  <button onClick={() => deleteIndex(i.id)} style={{ background: "none", border: "1px solid #f87171", color: "#f87171", padding: "6px 14px", borderRadius: 8, fontSize: 15 }}>
                     Eliminar
                   </button>
                 </td>
@@ -105,6 +103,6 @@ export default function PriceIndicesPage() {
           </tbody>
         </table>
       </div>
-    </div>
+    </VerticalPageLayout>
   );
 }
