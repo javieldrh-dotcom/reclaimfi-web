@@ -1,9 +1,12 @@
 ﻿"use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
+import { getVerticalTheme } from "@/app/core/design/tokens";
+import VerticalPageLayout from "@/app/components/VerticalPageLayout";
 import { generateFinancialStatementPdf } from "@/app/core/reports/generateFinancialStatementPdf";
 
 export default function IncomeStatementPage() {
+  const theme = getVerticalTheme("accounting");
   const [revenue, setRevenue] = useState<any[]>([]);
   const [expenses, setExpenses] = useState<any[]>([]);
   const [companyName, setCompanyName] = useState("");
@@ -54,6 +57,7 @@ export default function IncomeStatementPage() {
     }
     load();
   }, []);
+
   const totalRevenue = revenue.reduce((s, r) => s + r.amount, 0);
   const totalExpenses = expenses.reduce((s, r) => s + r.amount, 0);
   const netResult = totalRevenue - totalExpenses;
@@ -74,43 +78,47 @@ export default function IncomeStatementPage() {
   }
 
   if (loading) return <div style={{ padding: 40, color: "#7dd3fc" }}>Cargando...</div>;
-
   return (
-    <div style={{ padding: 40, color: "white", minHeight: "100vh" }}>
-      <h1 style={{ fontSize: 32, fontWeight: 900, color: "#7dd3fc" }}>Estado de Resultados</h1>
-
-      <h2 style={{ marginTop: 30, fontSize: 18, color: "#4ade80" }}>Ingresos</h2>
-      {revenue.map((r) => (
-        <div key={r.code} style={{ display: "flex", justifyContent: "space-between", padding: 6 }}>
-          <span>{r.code} - {r.name}</span>
-          <span>{r.amount.toLocaleString()}</span>
+    <VerticalPageLayout
+      vertical="accounting"
+      title="Estado de Resultados"
+      fullWidth
+      actions={
+        <button onClick={downloadPdf} style={{ ...theme.buttonStyle, fontSize: 13, padding: "10px 20px" }}>
+          Descargar PDF
+        </button>
+      }
+    >
+      <div style={{ maxWidth: 700 }}>
+        <h2 style={{ marginTop: 20, fontSize: 24, color: "#4ade80", fontWeight: 700 }}>Ingresos</h2>
+        {revenue.map((r) => (
+          <div key={r.code} style={{ display: "flex", justifyContent: "space-between", padding: 8, fontSize: 22 }}>
+            <span>{r.code} - {r.name}</span>
+            <span style={theme.numberStyle}>{r.amount.toLocaleString()}</span>
+          </div>
+        ))}
+        <div style={{ display: "flex", justifyContent: "space-between", padding: 8, fontWeight: 700, fontSize: 22, borderTop: "1px solid #1F2937" }}>
+          <span>Total Ingresos</span>
+          <span style={theme.numberStyle}>{totalRevenue.toLocaleString()}</span>
         </div>
-      ))}
-      <div style={{ display: "flex", justifyContent: "space-between", padding: 6, fontWeight: 700, borderTop: "1px solid #1a3050" }}>
-        <span>Total Ingresos</span>
-        <span>{totalRevenue.toLocaleString()}</span>
-      </div>
 
-      <h2 style={{ marginTop: 30, fontSize: 18, color: "#f87171" }}>Gastos</h2>
-      {expenses.map((r) => (
-        <div key={r.code} style={{ display: "flex", justifyContent: "space-between", padding: 6 }}>
-          <span>{r.code} - {r.name}</span>
-          <span>{r.amount.toLocaleString()}</span>
+        <h2 style={{ marginTop: 30, fontSize: 24, color: "#f87171", fontWeight: 700 }}>Gastos</h2>
+        {expenses.map((r) => (
+          <div key={r.code} style={{ display: "flex", justifyContent: "space-between", padding: 8, fontSize: 22 }}>
+            <span>{r.code} - {r.name}</span>
+            <span style={theme.numberStyle}>{r.amount.toLocaleString()}</span>
+          </div>
+        ))}
+        <div style={{ display: "flex", justifyContent: "space-between", padding: 8, fontWeight: 700, fontSize: 22, borderTop: "1px solid #1F2937" }}>
+          <span>Total Gastos</span>
+          <span style={theme.numberStyle}>{totalExpenses.toLocaleString()}</span>
         </div>
-      ))}
-      <div style={{ display: "flex", justifyContent: "space-between", padding: 6, fontWeight: 700, borderTop: "1px solid #1a3050" }}>
-        <span>Total Gastos</span>
-        <span>{totalExpenses.toLocaleString()}</span>
-      </div>
 
-      <div style={{ marginTop: 30, padding: 16, background: "#0d1117", borderRadius: 12, display: "flex", justifyContent: "space-between", fontSize: 20, fontWeight: 900, color: netResult >= 0 ? "#4ade80" : "#f87171" }}>
-        <span>{netResult >= 0 ? "Utilidad Neta" : "Perdida Neta"}</span>
-        <span>{Math.abs(netResult).toLocaleString()}</span>
+        <div style={{ marginTop: 24, padding: 18, background: "#0B0E14", borderRadius: 12, display: "flex", justifyContent: "space-between", fontSize: 24, fontWeight: 900, color: netResult >= 0 ? "#4ade80" : "#f87171" }}>
+          <span>{netResult >= 0 ? "Utilidad Neta" : "Perdida Neta"}</span>
+          <span style={theme.numberStyle}>{Math.abs(netResult).toLocaleString()}</span>
+        </div>
       </div>
-
-      <button onClick={downloadPdf} style={{ marginTop: 30, padding: 14, background: "#4ade80", color: "black", fontWeight: 900, borderRadius: 12, border: "none" }}>
-        DESCARGAR PDF
-      </button>
-    </div>
+    </VerticalPageLayout>
   );
 }
