@@ -1,8 +1,11 @@
 ﻿"use client";
 import { useState } from "react";
 import { supabase } from "@/app/lib/supabase";
+import { getVerticalTheme } from "@/app/core/design/tokens";
+import VerticalPageLayout from "@/app/components/VerticalPageLayout";
 
 export default function BankReconciliationPage() {
+  const theme = getVerticalTheme("accounting");
   const [bankText, setBankText] = useState("");
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -40,8 +43,6 @@ export default function BankReconciliationPage() {
     setLoading(false);
   }
 
-  const inputStyle = { background: "#0d1117", border: "1px solid #1a3050", borderRadius: 8, padding: 8, color: "white", width: "100%" };
-
   const statusColor: Record<string, string> = {
     MATCHED: "#4ade80",
     ONLY_IN_BOOK: "#facc15",
@@ -56,55 +57,46 @@ export default function BankReconciliationPage() {
     AMOUNT_MISMATCH: "Monto distinto",
   };
   return (
-    <div style={{ padding: 40, color: "white", minHeight: "100vh" }}>
-      <h1 style={{ fontSize: 32, fontWeight: 900, color: "#7dd3fc" }}>Conciliacion Bancaria con IA</h1>
-      <p style={{ marginTop: 10, color: "#9ca3af", fontSize: 13 }}>
-        Pega los movimientos del estado de cuenta del banco (uno por linea). La IA los comparara con tu libro contable.
-      </p>
-
-      <textarea
-        value={bankText}
-        onChange={(e) => setBankText(e.target.value)}
-        rows={10}
-        style={{ ...inputStyle, marginTop: 16, fontFamily: "monospace" }}
-        placeholder="15/01/2026 Transferencia recibida 5000&#10;16/01/2026 Pago de servicios -200"
-      />
-
-      <button onClick={analyze} disabled={loading} style={{ marginTop: 16, padding: 14, background: "#22d3ee", color: "black", fontWeight: 900, borderRadius: 12, border: "none" }}>
-        {loading ? "ANALIZANDO CON IA..." : "COMPARAR CON LIBRO"}
-      </button>
+    <VerticalPageLayout vertical="accounting" title="Conciliacion Bancaria" subtitle="Analisis asistido por IA de tus movimientos" fullWidth>
+      <div style={{ maxWidth: 700 }}>
+        <label style={{ fontSize: 18, color: theme.accent, fontWeight: 700 }}>Pega el texto de tu estado de cuenta bancario</label>
+        <textarea
+          value={bankText}
+          onChange={(e) => setBankText(e.target.value)}
+          rows={8}
+          style={{ ...theme.inputStyle, marginTop: 10, fontSize: 18 }}
+          placeholder="Ej: 15/01/2026 Pago de Local -10000"
+        />
+        <button onClick={analyze} disabled={loading} style={{ ...theme.buttonStyle, marginTop: 16, fontSize: 18 }}>
+          {loading ? "ANALIZANDO..." : "ANALIZAR CON IA"}
+        </button>
+      </div>
 
       {result && (
-        <div style={{ marginTop: 30 }}>
-          {result.summary && (
-            <div style={{ padding: 16, background: "#0d1117", borderRadius: 12, marginBottom: 20 }}>
-              <p style={{ color: "#7dd3fc", fontWeight: 700, marginBottom: 8 }}>Resumen del Agente</p>
-              <p>{result.summary}</p>
-            </div>
+        <div style={{ marginTop: 32 }}>
+          {result.error && <p style={{ color: "#f87171", fontSize: 20 }}>{result.error}</p>}
+          {result.matches && (
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr style={{ textAlign: "left", color: theme.accent, fontSize: 16, fontWeight: 700 }}>
+                  <th style={{ padding: 10 }}>Descripcion</th>
+                  <th style={{ padding: 10 }}>Monto</th>
+                  <th style={{ padding: 10 }}>Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {result.matches.map((m: any, idx: number) => (
+                  <tr key={idx} style={{ borderBottom: "1px solid #1F2937" }}>
+                    <td style={{ padding: 10, fontSize: 20 }}>{m.description}</td>
+                    <td style={{ padding: 10, fontSize: 20, ...theme.numberStyle }}>{m.amount?.toLocaleString()}</td>
+                    <td style={{ padding: 10, fontSize: 20, color: statusColor[m.status] ?? "white", fontWeight: 700 }}>{statusLabel[m.status] ?? m.status}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
-
-          {result.matches && result.matches.map((m: any, idx: number) => (
-            <div key={idx} style={{ padding: 12, borderBottom: "1px solid #1a3050" }}>
-              <span style={{
-                display: "inline-block",
-                padding: "2px 10px",
-                borderRadius: 999,
-                fontSize: 11,
-                fontWeight: 700,
-                background: statusColor[m.status] + "22",
-                color: statusColor[m.status],
-                marginBottom: 6,
-              }}>
-                {statusLabel[m.status] ?? m.status}
-              </span>
-              <p style={{ fontSize: 13 }}>
-                <strong>Libro:</strong> {m.bookDescription ?? "-"} | <strong>Banco:</strong> {m.bankLine ?? "-"}
-              </p>
-              <p style={{ fontSize: 12, color: "#9ca3af", marginTop: 4 }}>{m.explanation}</p>
-            </div>
-          ))}
         </div>
       )}
-    </div>
+    </VerticalPageLayout>
   );
 }
