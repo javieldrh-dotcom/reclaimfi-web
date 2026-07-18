@@ -334,8 +334,8 @@ export default function PartidasPage() {
                 <p>+ Utilidad: {t.profit.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
               </div>
               <div style={{ marginTop: 14, padding: 14, background: "#0B0E14", borderRadius: 10 }}>
-                <p style={{ fontWeight: 700, color: "#4ade80", fontSize: 18 }}>Precio Unitario</p>
-                <p style={{ fontWeight: 700, fontSize: 24, fontFamily: "monospace" }}>{t.unitPrice.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+                <p style={{ fontWeight: 700, color: "#4ade80", fontSize: 22 }}>Precio Unitario</p>
+                <p style={{ fontWeight: 700, fontSize: 30, fontFamily: "monospace" }}>{t.unitPrice.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
                 <p style={{ fontWeight: 700, color: "#8B93A7", fontSize: 14, marginTop: 8 }}>Total (x {quantity})</p>
                 <p style={{ fontWeight: 700, fontSize: 20, fontFamily: "monospace" }}>{t.total.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
               </div>
@@ -344,7 +344,7 @@ export default function PartidasPage() {
 
           {partidas.length > 0 && (
             <div style={{ marginTop: 24 }}>
-              <h3 style={{ fontSize: 18, color: apuTheme.accent, marginBottom: 12 }}>Partidas Guardadas ({partidas.length})</h3>
+              <h3 style={{ fontSize: 22, fontWeight: 700, color: apuTheme.accent, marginBottom: 12 }}>Partidas Guardadas ({partidas.length})</h3>
               {partidas.map((p) => (
                 <div key={p.id} style={{ padding: 16, background: "#12161F", borderRadius: 12, border: "1px solid #1F2937", marginBottom: 10 }}>
                   <p style={{ fontSize: 15, fontWeight: 600 }}>{p.item_number}. {p.description}</p>
