@@ -4,6 +4,7 @@ import NeuralBackground from "@/app/components/NeuralBackground";
 
 const navItems = [
   { href: "/apu/projects", label: "PROYECTOS" },
+  { href: "/apu/financial-qualification", label: "CALIFICACION FINANCIERA" },
   { href: "/apu/fscl", label: "CALCULADORA FSCL" },
 ];
 
