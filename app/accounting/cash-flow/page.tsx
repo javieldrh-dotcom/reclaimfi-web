@@ -134,24 +134,24 @@ export default function CashFlowPage() {
       }
     >
       <div style={{ ...theme.cardStyle, maxWidth: 700 }}>
-        <h3 style={{ color: "#4ade80", fontSize: 18, marginBottom: 12 }}>Actividades de Operacion</h3>
-        <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0" }}><span>Utilidad del Ejercicio</span><span style={theme.numberStyle}>{netIncome.toLocaleString()}</span></div>
-        <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0" }}><span>+ Depreciacion</span><span style={theme.numberStyle}>{depreciation.toLocaleString()}</span></div>
-        <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0" }}><span>Variacion en Cuentas por Cobrar</span><span style={theme.numberStyle}>{arChange.toLocaleString()}</span></div>
-        <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0" }}><span>Variacion en Cuentas por Pagar</span><span style={theme.numberStyle}>{apChange.toLocaleString()}</span></div>
-        <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", marginTop: 8, borderTop: "1px solid #1F2937", fontWeight: 700 }}>
+        <h3 style={{ color: "#4ade80", fontSize: 24, marginBottom: 16, fontWeight: 700 }}>Actividades de Operacion</h3>
+        <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", fontSize: 22 }}><span>Utilidad del Ejercicio</span><span style={theme.numberStyle}>{netIncome.toLocaleString()}</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", fontSize: 22 }}><span>+ Depreciacion</span><span style={theme.numberStyle}>{depreciation.toLocaleString()}</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", fontSize: 22 }}><span>Variacion en Cuentas por Cobrar</span><span style={theme.numberStyle}>{arChange.toLocaleString()}</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", fontSize: 22 }}><span>Variacion en Cuentas por Pagar</span><span style={theme.numberStyle}>{apChange.toLocaleString()}</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", marginTop: 8, borderTop: "1px solid #1F2937", fontWeight: 700, fontSize: 22 }}>
           <span>Efectivo Neto de Operacion</span><span style={theme.numberStyle}>{operatingCashFlow.toLocaleString()}</span>
         </div>
 
-        <h3 style={{ color: "#facc15", fontSize: 18, marginTop: 24, marginBottom: 12 }}>Actividades de Inversion</h3>
-        <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0" }}><span>Adquisicion de Activos Fijos</span><span style={theme.numberStyle}>{(-fixedAssetPurchases).toLocaleString()}</span></div>
-        <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", marginTop: 8, borderTop: "1px solid #1F2937", fontWeight: 700 }}>
+        <h3 style={{ color: "#facc15", fontSize: 24, marginTop: 28, marginBottom: 16, fontWeight: 700 }}>Actividades de Inversion</h3>
+        <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", fontSize: 22 }}><span>Adquisicion de Activos Fijos</span><span style={theme.numberStyle}>{(-fixedAssetPurchases).toLocaleString()}</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", marginTop: 8, borderTop: "1px solid #1F2937", fontWeight: 700, fontSize: 22 }}>
           <span>Efectivo Neto de Inversion</span><span style={theme.numberStyle}>{investingCashFlow.toLocaleString()}</span>
         </div>
 
-        <h3 style={{ color: "#818CF8", fontSize: 18, marginTop: 24, marginBottom: 12 }}>Actividades de Financiamiento</h3>
-        <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0" }}><span>Variacion en Patrimonio y Deuda</span><span style={theme.numberStyle}>{financingCashFlow.toLocaleString()}</span></div>
-        <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", marginTop: 8, borderTop: "1px solid #1F2937", fontWeight: 700 }}>
+        <h3 style={{ color: "#818CF8", fontSize: 24, marginTop: 28, marginBottom: 16, fontWeight: 700 }}>Actividades de Financiamiento</h3>
+        <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", fontSize: 22 }}><span>Variacion en Patrimonio y Deuda</span><span style={theme.numberStyle}>{financingCashFlow.toLocaleString()}</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", marginTop: 8, borderTop: "1px solid #1F2937", fontWeight: 700, fontSize: 22 }}>
           <span>Efectivo Neto de Financiamiento</span><span style={theme.numberStyle}>{financingCashFlow.toLocaleString()}</span>
         </div>
 
