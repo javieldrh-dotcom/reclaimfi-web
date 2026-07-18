@@ -1,8 +1,11 @@
 ﻿"use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
+import { getVerticalTheme } from "@/app/core/design/tokens";
+import VerticalPageLayout from "@/app/components/VerticalPageLayout";
 
 export default function FinancialNotesPage() {
+  const theme = getVerticalTheme("accounting");
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [notes, setNotes] = useState<any[]>([]);
   const [title, setTitle] = useState("");
@@ -29,9 +32,7 @@ export default function FinancialNotesPage() {
   async function addNote() {
     setMessage("");
     if (!companyId || !title || !content) { setMessage("Completa titulo y contenido."); return; }
-
     const nextNumber = notes.length > 0 ? Math.max(...notes.map((n) => n.note_number)) + 1 : 1;
-
     const { error } = await supabase.from("financial_statement_notes").insert([{
       company_id: companyId,
       note_number: nextNumber,
@@ -39,41 +40,35 @@ export default function FinancialNotesPage() {
       content,
       period_end: new Date().toISOString().slice(0, 10),
     }]);
-
     if (error) { setMessage("Error: " + error.message); return; }
     setMessage("Nota agregada correctamente.");
     setTitle(""); setContent("");
     await loadNotes(companyId);
   }
 
-  const inputStyle = { background: "#0d1117", border: "1px solid #1a3050", borderRadius: 8, padding: 10, color: "white", width: "100%" };
+  const inputStyle = { ...theme.inputStyle, fontSize: 20 };
   return (
-    <div style={{ padding: 40, color: "white", minHeight: "100vh" }}>
-      <h1 style={{ fontSize: 32, fontWeight: 900, color: "#7dd3fc" }}>Notas a los Estados Financieros</h1>
-      <p style={{ marginTop: 8, color: "#9ca3af", fontSize: 12 }}>
-        Politicas contables, detalle de partidas, contingencias y hechos posteriores segun NIIF.
-      </p>
-
-      <div style={{ marginTop: 30, display: "grid", gap: 10, maxWidth: 600 }}>
+    <VerticalPageLayout vertical="accounting" title="Notas a los Estados Financieros" subtitle="Politicas contables, detalle de partidas, contingencias y hechos posteriores segun NIIF" fullWidth>
+      <div style={{ maxWidth: 700 }}>
         <input value={title} onChange={(e) => setTitle(e.target.value)} style={inputStyle} placeholder="Titulo de la nota (ej. Politicas de Reconocimiento de Ingresos)" />
-        <textarea value={content} onChange={(e) => setContent(e.target.value)} rows={6} style={inputStyle} placeholder="Contenido de la nota..." />
-        <button onClick={addNote} style={{ padding: 14, background: "#22d3ee", color: "black", fontWeight: 900, borderRadius: 12, border: "none" }}>
+        <textarea value={content} onChange={(e) => setContent(e.target.value)} rows={6} style={{ ...inputStyle, marginTop: 10 }} placeholder="Contenido de la nota..." />
+        <button onClick={addNote} style={{ ...theme.buttonStyle, marginTop: 16, fontSize: 18 }}>
           AGREGAR NOTA
         </button>
-        {message && <p style={{ color: message.includes("Error") ? "#f87171" : "#4ade80" }}>{message}</p>}
+        {message && <p style={{ marginTop: 8, fontSize: 18, color: message.includes("Error") ? "#f87171" : theme.accent }}>{message}</p>}
       </div>
 
       {notes.length > 0 && (
         <div style={{ marginTop: 40 }}>
-          <h2 style={{ fontSize: 20, color: "#7dd3fc" }}>Notas Registradas</h2>
+          <h2 style={{ fontSize: 24, color: theme.accent, fontWeight: 700 }}>Notas Registradas</h2>
           {notes.map((n) => (
-            <div key={n.id} style={{ marginTop: 16, padding: 16, background: "#0d1117", borderRadius: 12 }}>
-              <p style={{ fontWeight: 700, color: "#7dd3fc" }}>Nota {n.note_number}: {n.title}</p>
-              <p style={{ marginTop: 8, fontSize: 13, whiteSpace: "pre-wrap" }}>{n.content}</p>
+            <div key={n.id} style={{ ...theme.cardStyle, marginTop: 16 }}>
+              <p style={{ fontWeight: 700, color: theme.accent, fontSize: 22 }}>Nota {n.note_number}: {n.title}</p>
+              <p style={{ marginTop: 10, fontSize: 18, whiteSpace: "pre-wrap" }}>{n.content}</p>
             </div>
           ))}
         </div>
       )}
-    </div>
+    </VerticalPageLayout>
   );
 }
