@@ -1,8 +1,11 @@
 ﻿"use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
+import { getVerticalTheme } from "@/app/core/design/tokens";
+import VerticalPageLayout from "@/app/components/VerticalPageLayout";
 
 export default function FsclCalculatorPage() {
+  const theme = getVerticalTheme("apu");
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [projects, setProjects] = useState<any[]>([]);
   const [selectedProject, setSelectedProject] = useState("");
@@ -115,74 +118,69 @@ export default function FsclCalculatorPage() {
     setMessage("Calculo FSCL guardado. Factor: " + r.factor.toFixed(4));
   }
 
-  const inputStyle = { background: "#0d1117", border: "1px solid #1a3050", borderRadius: 8, padding: 8, color: "white", width: "100%" };
+  const inputStyle = { ...theme.inputStyle, fontSize: 20 };
 
   const r = calculateFscl();
 
   return (
-    <div style={{ padding: 40, color: "white", minHeight: "100vh" }}>
-      <h1 style={{ fontSize: 32, fontWeight: 900, color: "#7dd3fc" }}>Calculadora FSCL (Factor Sobre Costo de Labor)</h1>
-      <p style={{ marginTop: 8, color: "#9ca3af", fontSize: 12 }}>
-        Contrato Colectivo Petrolero (CCTP) - Calcula el factor multiplicador sobre el salario basico diario.
-      </p>
-
-      <div style={{ marginTop: 30, display: "grid", gap: 10, maxWidth: 600 }}>
+    <VerticalPageLayout vertical="apu" title="Calculadora FSCL (Factor Sobre Costo de Labor)" subtitle="Contrato Colectivo Petrolero (CCTP) - Calcula el factor multiplicador sobre el salario basico diario" fullWidth>
+      <div style={{ maxWidth: 700 }}>
         <select value={selectedProject} onChange={(e) => setSelectedProject(e.target.value)} style={inputStyle}>
           <option value="">Selecciona un proyecto/licitacion</option>
           {projects.map((p) => <option key={p.id} value={p.id}>{p.procedure_number} - {p.project_description}</option>)}
         </select>
 
-        <input value={workSystem} onChange={(e) => setWorkSystem(e.target.value)} style={inputStyle} placeholder="Sistema de trabajo (ej. 5X2-36-DIA)" />
+        <input value={workSystem} onChange={(e) => setWorkSystem(e.target.value)} style={{ ...inputStyle, marginTop: 10 }} placeholder="Sistema de trabajo (ej. 5X2-36-DIA)" />
 
-        <div>
-          <label style={{ fontSize: 12, color: "#7dd3fc" }}>SALARIO BASICO DIARIO</label>
-          <input type="number" value={dailyBasicSalary} onChange={(e) => setDailyBasicSalary(e.target.value)} style={{ ...inputStyle, marginTop: 4 }} />
+        <div style={{ marginTop: 10 }}>
+          <label style={{ fontSize: 16, color: theme.accent, fontWeight: 700 }}>SALARIO BASICO DIARIO</label>
+          <input type="number" value={dailyBasicSalary} onChange={(e) => setDailyBasicSalary(e.target.value)} style={{ ...inputStyle, marginTop: 6 }} />
         </div>
 
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
           <input type="number" value={calendarDays} onChange={(e) => setCalendarDays(e.target.value)} style={inputStyle} placeholder="Dias calendario" />
           <input type="number" value={nonWorkedDays} onChange={(e) => setNonWorkedDays(e.target.value)} style={inputStyle} placeholder="Dias no laborados" />
         </div>
 
-        <h3 style={{ marginTop: 10, color: "#4ade80" }}>Sub Total A - Pagos Directos</h3>
-        <div style={{ display: "flex", gap: 8 }}>
+        <h3 style={{ marginTop: 20, color: "#4ade80", fontSize: 20, fontWeight: 700 }}>Sub Total A - Pagos Directos</h3>
+        <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
           <input type="number" value={isaPercentage} onChange={(e) => setIsaPercentage(e.target.value)} style={inputStyle} placeholder="% ISA" />
           <input type="number" value={travelTimeAmount} onChange={(e) => setTravelTimeAmount(e.target.value)} style={inputStyle} placeholder="Tiempo de viaje" />
         </div>
 
-        <h3 style={{ marginTop: 10, color: "#facc15" }}>Sub Total B - Indemnizacion Laboral (en dias de salario)</h3>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <h3 style={{ marginTop: 20, color: "#facc15", fontSize: 20, fontWeight: 700 }}>Sub Total B - Indemnizacion Laboral (en dias de salario)</h3>
+        <div style={{ display: "flex", gap: 10, marginTop: 8, flexWrap: "wrap" }}>
           <input type="number" value={preavisoDays} onChange={(e) => setPreavisoDays(e.target.value)} style={inputStyle} placeholder="Preaviso" />
           <input type="number" value={antiguedadLegalDays} onChange={(e) => setAntiguedadLegalDays(e.target.value)} style={inputStyle} placeholder="Antiguedad Legal" />
           <input type="number" value={antiguedadContractualDays} onChange={(e) => setAntiguedadContractualDays(e.target.value)} style={inputStyle} placeholder="Antiguedad Contractual" />
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
           <input type="number" value={vacacionesDays} onChange={(e) => setVacacionesDays(e.target.value)} style={inputStyle} placeholder="Vacaciones" />
           <input type="number" value={bonoVacacionalDays} onChange={(e) => setBonoVacacionalDays(e.target.value)} style={inputStyle} placeholder="Bono Vacacional" />
           <input type="number" value={utilidadesDays} onChange={(e) => setUtilidadesDays(e.target.value)} style={inputStyle} placeholder="Utilidades" />
         </div>
 
-        <h3 style={{ marginTop: 10, color: "#f87171" }}>Sub Total C - Puntos Contractuales</h3>
-        <div style={{ display: "flex", gap: 8 }}>
+        <h3 style={{ marginTop: 20, color: "#f87171", fontSize: 20, fontWeight: 700 }}>Sub Total C - Puntos Contractuales</h3>
+        <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
           <input type="number" value={eppAmount} onChange={(e) => setEppAmount(e.target.value)} style={inputStyle} placeholder="EPP" />
           <input type="number" value={aguaHieloAmount} onChange={(e) => setAguaHieloAmount(e.target.value)} style={inputStyle} placeholder="Agua/Hielo" />
           <input type="number" value={clinicaAmount} onChange={(e) => setClinicaAmount(e.target.value)} style={inputStyle} placeholder="Clinica" />
         </div>
 
-        <div style={{ marginTop: 20, padding: 16, background: "#0d1117", borderRadius: 12 }}>
-          <p style={{ fontSize: 13 }}>Sub Total A: {r.subTotalA.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
-          <p style={{ fontSize: 13 }}>Sub Total B: {r.subTotalB.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
-          <p style={{ fontSize: 13 }}>Sub Total C: {r.subTotalC.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
-          <p style={{ fontSize: 13 }}>Pagos a Terceros (SSO+INCES+LPH+PF): {r.subTotalTerceros.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
-          <p style={{ fontSize: 13, marginTop: 8 }}>Costo Diario Total: {r.totalDailyCost.toLocaleString(undefined, { maximumFractionDigits: 4 })}</p>
-          <p style={{ fontSize: 20, fontWeight: 900, color: "#4ade80", marginTop: 8 }}>Factor FSCL: {r.factor.toFixed(4)}</p>
+        <div style={{ ...theme.cardStyle, marginTop: 24 }}>
+          <p style={{ fontSize: 18 }}>Sub Total A: <span style={theme.numberStyle}>{r.subTotalA.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span></p>
+          <p style={{ fontSize: 18, marginTop: 6 }}>Sub Total B: <span style={theme.numberStyle}>{r.subTotalB.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span></p>
+          <p style={{ fontSize: 18, marginTop: 6 }}>Sub Total C: <span style={theme.numberStyle}>{r.subTotalC.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span></p>
+          <p style={{ fontSize: 18, marginTop: 6 }}>Pagos a Terceros (SSO+INCES+LPH+PF): <span style={theme.numberStyle}>{r.subTotalTerceros.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span></p>
+          <p style={{ fontSize: 18, marginTop: 12 }}>Costo Diario Total: <span style={theme.numberStyle}>{r.totalDailyCost.toLocaleString(undefined, { maximumFractionDigits: 4 })}</span></p>
+          <p style={{ fontSize: 26, fontWeight: 900, color: "#4ade80", marginTop: 12 }}>Factor FSCL: {r.factor.toFixed(4)}</p>
         </div>
 
-        <button onClick={saveCalculation} style={{ padding: 14, background: "#22d3ee", color: "black", fontWeight: 900, borderRadius: 12, border: "none" }}>
+        <button onClick={saveCalculation} style={{ ...theme.buttonStyle, marginTop: 20, fontSize: 18 }}>
           GUARDAR CALCULO FSCL
         </button>
-        {message && <p style={{ color: message.includes("Error") ? "#f87171" : "#4ade80" }}>{message}</p>}
+        {message && <p style={{ marginTop: 8, fontSize: 18, color: message.includes("Error") ? "#f87171" : theme.accent }}>{message}</p>}
       </div>
-    </div>
+    </VerticalPageLayout>
   );
 }
