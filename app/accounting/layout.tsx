@@ -22,6 +22,7 @@ const navItems = [
   { href: "/accounting/withholding-summary", label: "RESUMEN RETENCIONES" },
   { href: "/accounting/special-taxpayer", label: "CONTRIBUYENTE ESPECIAL" },
   { href: "/accounting/islr", label: "ISLR ANUAL" },
+  { href: "/accounting/deferred-tax", label: "IMPUESTO DIFERIDO" },
   { href: "/accounting/bank-reconciliation", label: "CONCILIACION" },
   { href: "/accounting/period-close", label: "CIERRE EJERCICIO" },
   { href: "/accounting/financial-notes", label: "NOTAS EEFF" },
