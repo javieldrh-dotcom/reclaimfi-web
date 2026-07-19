@@ -92,6 +92,46 @@ export default function SalesBookPage() {
     await loadEntries(companyId);
   }
 
+  async function importWithholdingTxt(file: File) {
+    setMessage("Procesando archivo...");
+    const text = await file.text();
+    const lines = text.split(/\r?\n/).filter((l) => l.trim());
+
+    let updated = 0;
+    let notFound = 0;
+
+    for (const line of lines) {
+      const cols = line.split("\t");
+      if (cols.length < 13) continue;
+
+      const invoiceNumber = cols[6];
+      const withheldAmount = parseFloat(cols[10]) || 0;
+      const receiptNumber = cols[12];
+
+      if (!invoiceNumber || withheldAmount === 0) continue;
+
+      const { data: matchingEntry } = await supabase
+        .from("sales_book_entries")
+        .select("id")
+        .eq("company_id", companyId)
+        .eq("invoice_number", invoiceNumber)
+        .limit(1)
+        .single();
+
+      if (matchingEntry) {
+        await supabase.from("sales_book_entries").update({
+          withheld_by_customer: withheldAmount,
+        }).eq("id", matchingEntry.id);
+        updated++;
+      } else {
+        notFound++;
+      }
+    }
+
+    setMessage("Importacion completa: " + updated + " facturas actualizadas" + (notFound > 0 ? ", " + notFound + " no encontradas (verifica el numero de factura)." : "."));
+    if (companyId) await loadEntries(companyId);
+  }
+
   const inputStyle = { ...theme.inputStyle, fontSize: 22 };
 
   return (
@@ -131,7 +171,13 @@ export default function SalesBookPage() {
 
       {entries.length > 0 && (
         <div style={{ marginTop: 40 }}>
-          <h2 style={{ fontSize: 26, color: theme.accent, fontWeight: 700 }}>Registros del Periodo</h2>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <h2 style={{ fontSize: 26, color: theme.accent, fontWeight: 700 }}>Registros del Periodo</h2>
+            <label style={{ ...theme.buttonStyle, fontSize: 15, padding: "10px 20px", cursor: "pointer" }}>
+              Importar Retenciones TXT
+              <input type="file" accept=".txt" style={{ display: "none" }} onChange={(e) => { const f = e.target.files?.[0]; if (f) importWithholdingTxt(f); }} />
+            </label>
+          </div>
           <table style={{ width: "100%", marginTop: 16, borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ textAlign: "left", color: theme.accent, fontSize: 17, fontWeight: 700 }}>
