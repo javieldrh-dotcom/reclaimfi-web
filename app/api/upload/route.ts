@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { processIntelligence } from "@/app/lib/intelligenceOrchestrator";
 import { calculateRisk } from "@/app/verticals/reclaimfi/riskEngine";
 import { extractEntitiesFromText } from "@/app/core/agents/entityExtractionAgent";
@@ -29,8 +29,26 @@ export async function POST(request: Request) {
 
         let fileText = "";
         try {
-          fileText = await file.text();
-        } catch {
+          const lowerName = file.name.toLowerCase();
+          if (lowerName.endsWith(".pdf")) {
+            const { PDFParse } = await import("pdf-parse");
+            const arrayBuffer = await file.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+            const parser = new PDFParse({ data: buffer });
+            const textResult = await parser.getText();
+            fileText = textResult.text;
+            await parser.destroy();
+          } else if (lowerName.endsWith(".docx")) {
+            const mammoth = await import("mammoth");
+            const arrayBuffer = await file.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+            const result = await mammoth.extractRawText({ buffer });
+            fileText = result.value;
+          } else {
+            fileText = await file.text();
+          }
+        } catch (extractError) {
+          console.error("TEXT EXTRACTION ERROR:", extractError);
           fileText = "";
         }
 
