@@ -37,6 +37,8 @@ export default function SalesBookPage() {
       if (cid) {
         const { data: acc } = await supabase.from("chart_of_accounts").select("id, account_code, account_name, account_type").eq("company_id", cid).in("account_type", ["ASSET", "REVENUE", "LIABILITY"]);
         setAccounts(acc ?? []);
+        const vatPayableDefault = (acc ?? []).find((a: any) => a.account_name.toLowerCase().includes("iva por pagar"));
+        if (vatPayableDefault) setVatPayableAccountId(vatPayableDefault.id);
         await loadEntries(cid);
       }
     }
