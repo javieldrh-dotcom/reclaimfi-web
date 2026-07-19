@@ -20,6 +20,7 @@ const navItems = [
   { href: "/accounting/purchase-book", label: "LIBRO DE COMPRAS" },
   { href: "/accounting/vat-summary", label: "RESUMEN DE IVA" },
   { href: "/accounting/withholding-summary", label: "RESUMEN RETENCIONES" },
+  { href: "/accounting/special-taxpayer", label: "CONTRIBUYENTE ESPECIAL" },
   { href: "/accounting/bank-reconciliation", label: "CONCILIACION" },
   { href: "/accounting/period-close", label: "CIERRE EJERCICIO" },
   { href: "/accounting/financial-notes", label: "NOTAS EEFF" },
