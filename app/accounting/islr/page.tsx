@@ -56,6 +56,30 @@ export default function IslrPage() {
   async function saveDeclaration() {
     if (!companyId) return;
     const r = calculate();
+
+    const { data: accounts } = await supabase.from("chart_of_accounts").select("id, account_name").eq("company_id", companyId);
+    const expenseAccount = (accounts ?? []).find((a: any) => a.account_name.toLowerCase().includes("gasto de islr"));
+    const advanceAccount = (accounts ?? []).find((a: any) => a.account_name.toLowerCase().includes("anticipo de islr"));
+    const payableAccount = (accounts ?? []).find((a: any) => a.account_name.toLowerCase() === "islr por pagar");
+
+    let journalEntryId = null;
+    if (expenseAccount && advanceAccount && payableAccount) {
+      const advances = parseFloat(advancePayments) || 0;
+      const { data: entry } = await supabase.from("journal_entries").insert([{
+        company_id: companyId,
+        description: "ISLR Ejercicio Fiscal " + fiscalYear,
+        entry_date: new Date().toISOString().slice(0, 10),
+      }]).select("id").single();
+
+      if (entry) {
+        journalEntryId = entry.id;
+        const lines = [{ journal_entry_id: entry.id, account_id: expenseAccount.id, debit: r.islrTax, credit: 0 }];
+        if (advances > 0) lines.push({ journal_entry_id: entry.id, account_id: advanceAccount.id, debit: 0, credit: advances });
+        if (r.netPayable > 0) lines.push({ journal_entry_id: entry.id, account_id: payableAccount.id, debit: 0, credit: r.netPayable });
+        await supabase.from("journal_lines").insert(lines);
+      }
+    }
+
     const { error } = await supabase.from("islr_declarations").insert([{
       company_id: companyId,
       fiscal_year: parseInt(fiscalYear),
