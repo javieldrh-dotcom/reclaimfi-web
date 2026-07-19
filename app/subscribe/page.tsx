@@ -4,6 +4,12 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/app/lib/supabase";
 import AuroraBackground from "@/app/components/AuroraBackground";
 
+declare global {
+  interface Window {
+    paypal?: any;
+  }
+}
+
 export default function SubscribePage() {
   const router = useRouter();
   const [companyId, setCompanyId] = useState<string | null>(null);
@@ -13,6 +19,33 @@ export default function SubscribePage() {
   const [selectedMethod, setSelectedMethod] = useState<any>(null);
   const [message, setMessage] = useState("");
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
+
+  useEffect(() => {
+    if (selectedMethod?.method_code !== "PAYPAL" || !selectedPlan?.paypal_plan_id) return;
+
+    const existingScript = document.getElementById("paypal-sdk-script");
+    if (existingScript) existingScript.remove();
+
+    const script = document.createElement("script");
+    script.id = "paypal-sdk-script";
+    script.src = "https://www.paypal.com/sdk/js?client-id=BAA14BzB_9VhviO_C0gWpUwrrpSkF4AMRkzz-wI1E0_VGAEawrXQ-09k-jOguRdCZZzifZFfD41n2B97V4&vault=true&intent=subscription";
+    script.onload = () => {
+      const container = document.getElementById("paypal-button-container");
+      if (container) container.innerHTML = "";
+      if (window.paypal) {
+        window.paypal.Buttons({
+          style: { shape: "pill", color: "gold", layout: "vertical", label: "subscribe" },
+          createSubscription: function (data: any, actions: any) {
+            return actions.subscription.create({ plan_id: selectedPlan.paypal_plan_id });
+          },
+          onApprove: function (data: any) {
+            setMessage("Suscripcion PayPal iniciada correctamente. ID: " + data.subscriptionID);
+          },
+        }).render("#paypal-button-container");
+      }
+    };
+    document.body.appendChild(script);
+  }, [selectedMethod, selectedPlan]);
 
   useEffect(() => {
     async function load() {
@@ -187,10 +220,11 @@ export default function SubscribePage() {
               Abrir Binance Pay
             </a>
           )}
-          {selectedMethod.method_code === "PAYPAL" && (
-            <a href="https://www.paypal.com" target="_blank" rel="noopener noreferrer" style={{ display: "inline-block", marginTop: 16, padding: "12px 24px", background: "#0070BA", color: "white", borderRadius: 10, textDecoration: "none", fontWeight: 700, fontSize: 15 }}>
-              Pagar con PayPal
-            </a>
+          {selectedMethod.method_code === "PAYPAL" && selectedPlan && selectedPlan.paypal_plan_id && (
+            <div id="paypal-button-container" style={{ marginTop: 16 }}></div>
+          )}
+          {selectedMethod.method_code === "PAYPAL" && selectedPlan && !selectedPlan.paypal_plan_id && (
+            <p style={{ marginTop: 16, fontSize: 16, color: "#facc15" }}>Este plan aun no tiene boton de PayPal configurado.</p>
           )}
         </div>
       )}
