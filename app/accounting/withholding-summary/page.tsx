@@ -7,6 +7,7 @@ import VerticalPageLayout from "@/app/components/VerticalPageLayout";
 export default function WithholdingSummaryPage() {
   const theme = getVerticalTheme("accounting");
   const [companyId, setCompanyId] = useState<string | null>(null);
+  const [taxAgentRif, setTaxAgentRif] = useState("");
   const [periodStart, setPeriodStart] = useState("");
   const [periodEnd, setPeriodEnd] = useState("");
   const [summary, setSummary] = useState<any>(null);
@@ -23,6 +24,8 @@ export default function WithholdingSummaryPage() {
       const cid = uc?.company_id ?? null;
       setCompanyId(cid);
       if (cid) {
+        const { data: companyData } = await supabase.from("companies").select("tax_id").eq("id", cid).single();
+        setTaxAgentRif(companyData?.tax_id ?? "");
         const { data: hist } = await supabase.from("withholding_summary").select("*").eq("company_id", cid).order("period_end", { ascending: false });
         setHistory(hist ?? []);
       }
@@ -35,7 +38,7 @@ export default function WithholdingSummaryPage() {
     setLoading(true);
 
     const { data: sales } = await supabase.from("sales_book_entries").select("customer_name, entry_date, withheld_by_customer").eq("company_id", companyId).gte("entry_date", periodStart).lte("entry_date", periodEnd).gt("withheld_by_customer", 0);
-    const { data: purchases } = await supabase.from("purchase_book_entries").select("vendor_name, entry_date, withheld_amount, withholding_receipt_number").eq("company_id", companyId).gte("entry_date", periodStart).lte("entry_date", periodEnd).gt("withheld_amount", 0);
+    const { data: purchases } = await supabase.from("purchase_book_entries").select("*").eq("company_id", companyId).gte("entry_date", periodStart).lte("entry_date", periodEnd).gt("withheld_amount", 0);
 
     const totalWithheldFromUs = (sales ?? []).reduce((s: number, r: any) => s + (r.withheld_by_customer || 0), 0);
     const totalWithheldByUs = (purchases ?? []).reduce((s: number, r: any) => s + (r.withheld_amount || 0), 0);
@@ -58,6 +61,38 @@ export default function WithholdingSummaryPage() {
     }]);
     const { data: hist } = await supabase.from("withholding_summary").select("*").eq("company_id", companyId).order("period_end", { ascending: false });
     setHistory(hist ?? []);
+  }
+
+  function exportTxt() {
+    const rows = purchaseWithheld.map((p: any) => {
+      const columns = [
+        taxAgentRif,
+        periodStart.replace(/-/g, "").slice(0, 6),
+        p.entry_date,
+        "C",
+        "01",
+        p.vendor_tax_id,
+        p.invoice_number || "",
+        p.control_number || "",
+        (p.total_document_amount || 0).toFixed(2),
+        (p.taxable_base_general || 0).toFixed(2),
+        (p.withheld_amount || 0).toFixed(2),
+        p.affected_document_number || "0",
+        p.withholding_receipt_number || "",
+        (p.exempt_amount || 0).toFixed(2),
+        "16.00",
+        "",
+      ];
+      return columns.join("\t");
+    });
+    const txtContent = rows.join("\r\n");
+    const blob = new Blob([txtContent], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "retenciones-iva-" + periodStart + "-a-" + periodEnd + ".txt";
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   const inputStyle = { ...theme.inputStyle, fontSize: 22 };
@@ -90,7 +125,9 @@ export default function WithholdingSummaryPage() {
 
       {salesWithheld.length > 0 && (
         <div style={{ marginTop: 32 }}>
-          <h2 style={{ fontSize: 24, color: theme.accent, fontWeight: 700 }}>Retenciones Recibidas de Clientes</h2>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <h2 style={{ fontSize: 24, color: theme.accent, fontWeight: 700 }}>Retenciones Recibidas de Clientes</h2>
+          </div>
           {salesWithheld.map((s, idx) => (
             <div key={idx} style={{ display: "flex", justifyContent: "space-between", padding: 8, fontSize: 18, borderBottom: "1px solid #1F2937" }}>
               <span>{s.entry_date} - {s.customer_name}</span>
@@ -102,7 +139,14 @@ export default function WithholdingSummaryPage() {
 
       {purchaseWithheld.length > 0 && (
         <div style={{ marginTop: 32 }}>
-          <h2 style={{ fontSize: 24, color: theme.accent, fontWeight: 700 }}>Retenciones Efectuadas a Proveedores</h2>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <h2 style={{ fontSize: 24, color: theme.accent, fontWeight: 700 }}>Retenciones Efectuadas a Proveedores</h2>
+            {purchaseWithheld.length > 0 && (
+              <button onClick={exportTxt} style={{ ...theme.buttonStyle, fontSize: 15, padding: "10px 20px" }}>
+                Exportar TXT (Formato SENIAT)
+              </button>
+            )}
+          </div>
           {purchaseWithheld.map((p, idx) => (
             <div key={idx} style={{ display: "flex", justifyContent: "space-between", padding: 8, fontSize: 18, borderBottom: "1px solid #1F2937" }}>
               <span>{p.entry_date} - {p.vendor_name} (Comp. {p.withholding_receipt_number})</span>
