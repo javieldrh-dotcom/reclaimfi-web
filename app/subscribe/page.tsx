@@ -173,7 +173,9 @@ function SubscribePageContent() {
           >
             <div style={{
                 width: "calc(100% + 72px)", height: 140, margin: "-36px -36px 20px -36px", borderRadius: "20px 20px 0 0",
-                background: "#0B0E14",
+                background: p.plan_code === "RECLAIMFI" ? "radial-gradient(circle, #2DD4BF35 0%, #0B0E14 100%)" :
+                            p.plan_code === "CONTABILIDAD" ? "radial-gradient(circle, #818CF835 0%, #0B0E14 100%)" :
+                            "radial-gradient(circle, #FB923C35 0%, #0B0E14 100%)",
                 position: "relative", overflow: "hidden",
               }}>
                 {p.plan_code === "RECLAIMFI" && <NeuralBackground contained color="#2DD4BF" particleCount={70} />}
