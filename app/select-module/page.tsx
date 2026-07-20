@@ -5,25 +5,20 @@ import { supabase } from "@/app/lib/supabase";
 
 export default function SelectModulePage() {
   const [permissions, setPermissions] = useState<string[]>([]);
-
   useEffect(() => {
     async function load() {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData?.user) return;
-
       const { data: assignments } = await supabase
         .from("user_role_assignments")
         .select("role_id")
         .eq("user_id", userData.user.id);
-
       const roleIds = (assignments ?? []).map((a: any) => a.role_id);
       if (roleIds.length === 0) return;
-
       const { data: rolePerms } = await supabase
         .from("role_permissions")
         .select("permissions(name)")
         .in("role_id", roleIds);
-
       const permNames = (rolePerms ?? []).map((p: any) => p.permissions?.name).filter(Boolean);
       setPermissions(permNames);
     }
@@ -32,6 +27,7 @@ export default function SelectModulePage() {
 
   const hasAccounting = permissions.includes("VIEW_ACCOUNTING");
   const hasReclaimFi = permissions.includes("VIEW_RECLAIMFI");
+  const hasApu = permissions.includes("VIEW_APU");
 
   const cardStyle = (enabled: boolean) => ({
     padding: 40,
@@ -48,8 +44,7 @@ export default function SelectModulePage() {
       <h1 style={{ fontSize: 36, fontWeight: 900, color: "#7dd3fc", textAlign: "center" }}>
         Selecciona tu Modulo
       </h1>
-
-      <div style={{ marginTop: 50, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 30, maxWidth: 800, margin: "50px auto" }}>
+      <div style={{ marginTop: 50, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 30, maxWidth: 1100, margin: "50px auto" }}>
         {hasReclaimFi ? (
           <Link href="/dashboard" style={cardStyle(true)}>
             <h2 style={{ fontSize: 24, fontWeight: 900 }}>ReclaimFi</h2>
@@ -61,7 +56,6 @@ export default function SelectModulePage() {
             <p style={{ marginTop: 10, color: "#9ca3af" }}>Actualiza tu plan para acceder</p>
           </div>
         )}
-
         {hasAccounting ? (
           <Link href="/accounting/journal" style={cardStyle(true)}>
             <h2 style={{ fontSize: 24, fontWeight: 900 }}>Contabilidad Financiera</h2>
@@ -70,6 +64,17 @@ export default function SelectModulePage() {
         ) : (
           <div style={cardStyle(false)}>
             <h2 style={{ fontSize: 24, fontWeight: 900 }}>Contabilidad Financiera</h2>
+            <p style={{ marginTop: 10, color: "#9ca3af" }}>Actualiza tu plan para acceder</p>
+          </div>
+        )}
+        {hasApu ? (
+          <Link href="/apu/projects" style={cardStyle(true)}>
+            <h2 style={{ fontSize: 24, fontWeight: 900 }}>APU / Licitaciones</h2>
+            <p style={{ marginTop: 10, color: "#9ca3af" }}>Analisis de Precios Unitarios para el Estado</p>
+          </Link>
+        ) : (
+          <div style={cardStyle(false)}>
+            <h2 style={{ fontSize: 24, fontWeight: 900 }}>APU / Licitaciones</h2>
             <p style={{ marginTop: 10, color: "#9ca3af" }}>Actualiza tu plan para acceder</p>
           </div>
         )}
