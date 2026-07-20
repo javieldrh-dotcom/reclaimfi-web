@@ -1,6 +1,7 @@
 ﻿"use client";
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import NeuralBackground from "@/app/components/NeuralBackground";
 import { supabase } from "@/app/lib/supabase";
 import AuroraBackground from "@/app/components/AuroraBackground";
 
@@ -178,41 +179,43 @@ function SubscribePageContent() {
                             "linear-gradient(135deg, #1F2937, #0B0E14)",
                 position: "relative", overflow: "hidden",
               }}>
-                <svg width="100%" height="100%" viewBox="0 0 400 140" style={{ position: "absolute", top: 0, left: 0 }}>
-                  {p.plan_code === "RECLAIMFI" && (
-                    <g stroke="#2DD4BF" strokeWidth="1.5" opacity="0.5">
-                      <circle cx="60" cy="40" r="4" fill="#2DD4BF" /><circle cx="150" cy="70" r="4" fill="#2DD4BF" />
-                      <circle cx="250" cy="30" r="4" fill="#2DD4BF" /><circle cx="340" cy="90" r="4" fill="#2DD4BF" />
-                      <circle cx="200" cy="110" r="4" fill="#2DD4BF" /><circle cx="100" cy="100" r="4" fill="#2DD4BF" />
-                      <line x1="60" y1="40" x2="150" y2="70" /><line x1="150" y1="70" x2="250" y2="30" />
-                      <line x1="250" y1="30" x2="340" y2="90" /><line x1="150" y1="70" x2="200" y2="110" />
-                      <line x1="100" y1="100" x2="150" y2="70" /><line x1="200" y1="110" x2="340" y2="90" />
-                    </g>
-                  )}
-                  {p.plan_code === "CONTABILIDAD" && (
-                    <g stroke="#818CF8" strokeWidth="1" opacity="0.4">
-                      <line x1="0" y1="30" x2="400" y2="30" /><line x1="0" y1="60" x2="400" y2="60" />
-                      <line x1="0" y1="90" x2="400" y2="90" /><line x1="0" y1="120" x2="400" y2="120" />
-                      <g fill="#818CF8" opacity="0.7">
-                        <rect x="280" y="80" width="20" height="40" /><rect x="310" y="60" width="20" height="60" />
-                        <rect x="340" y="40" width="20" height="80" /><rect x="370" y="20" width="20" height="100" />
+                {p.plan_code === "RECLAIMFI" && <NeuralBackground contained color="#2DD4BF" particleCount={35} />}
+                {p.plan_code === "CONTABILIDAD" && (
+                  <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 8, paddingBottom: 20 }}>
+                    <style>{`
+                      @keyframes growBar { 0% { height: 10%; } 50% { height: 90%; } 100% { height: 10%; } }
+                      .bar1 { animation: growBar 3s ease-in-out infinite; }
+                      .bar2 { animation: growBar 3s ease-in-out infinite 0.3s; }
+                      .bar3 { animation: growBar 3s ease-in-out infinite 0.6s; }
+                      .bar4 { animation: growBar 3s ease-in-out infinite 0.9s; }
+                      .bar5 { animation: growBar 3s ease-in-out infinite 1.2s; }
+                    `}</style>
+                    <div className="bar1" style={{ width: 18, background: "#818CF8", opacity: 0.6, borderRadius: "4px 4px 0 0" }} />
+                    <div className="bar2" style={{ width: 18, background: "#818CF8", opacity: 0.6, borderRadius: "4px 4px 0 0" }} />
+                    <div className="bar3" style={{ width: 18, background: "#818CF8", opacity: 0.6, borderRadius: "4px 4px 0 0" }} />
+                    <div className="bar4" style={{ width: 18, background: "#818CF8", opacity: 0.6, borderRadius: "4px 4px 0 0" }} />
+                    <div className="bar5" style={{ width: 18, background: "#818CF8", opacity: 0.6, borderRadius: "4px 4px 0 0" }} />
+                  </div>
+                )}
+                {p.plan_code === "APU" && (
+                  <div style={{ position: "absolute", inset: 0 }}>
+                    <style>{`
+                      @keyframes pulseGrid { 0%, 100% { opacity: 0.2; } 50% { opacity: 0.6; } }
+                      .grid-pulse { animation: pulseGrid 2.5s ease-in-out infinite; }
+                    `}</style>
+                    <svg width="100%" height="100%" viewBox="0 0 400 140" className="grid-pulse">
+                      <g stroke="#FB923C" strokeWidth="1">
+                        {[0,40,80,120,160,200,240,280,320,360,400].map((x) => <line key={x} x1={x} y1="0" x2={x} y2="140" />)}
+                        {[0,35,70,105,140].map((y) => <line key={y} x1="0" y1={y} x2="400" y2={y} />)}
                       </g>
-                    </g>
-                  )}
-                  {p.plan_code === "APU" && (
-                    <g stroke="#FB923C" strokeWidth="1" opacity="0.35">
-                      {[0,40,80,120,160,200,240,280,320,360,400].map((x) => <line key={x} x1={x} y1="0" x2={x} y2="140" />)}
-                      {[0,35,70,105,140].map((y) => <line key={y} x1="0" y1={y} x2="400" y2={y} />)}
-                      <g stroke="#FB923C" strokeWidth="2" opacity="0.8">
-                        <path d="M 40 100 L 80 60 L 120 100 Z" fill="none" />
-                        <line x1="80" y1="60" x2="80" y2="30" />
-                      </g>
-                    </g>
-                  )}
-                </svg>
+                    </svg>
+                  </div>
+                )}
               </div>
-              <h3 style={{ fontSize: 24, fontWeight: 700 }}>{p.plan_name}</h3>
-            <p style={{ fontSize: 40, fontWeight: 900, marginTop: 14, fontFamily: "monospace" }}>${p.monthly_price_usd}<span style={{ fontSize: 18, color: "#8B93A7" }}>/mes</span></p>
+              <div style={{ textAlign: "center" }}>
+                <h3 style={{ fontSize: 30, fontWeight: 900, textShadow: "0 0 20px " + (p.plan_code === "RECLAIMFI" ? "#2DD4BF" : p.plan_code === "CONTABILIDAD" ? "#818CF8" : "#FB923C") + "80" }}>{p.plan_name}</h3>
+                <p style={{ fontSize: 46, fontWeight: 900, marginTop: 14, fontFamily: "monospace", textShadow: "0 0 25px " + (p.plan_code === "RECLAIMFI" ? "#2DD4BF" : p.plan_code === "CONTABILIDAD" ? "#818CF8" : "#FB923C") + "60" }}>${p.monthly_price_usd}<span style={{ fontSize: 20, color: "#8B93A7" }}>/mes</span></p>
+              </div>
             <div style={{ marginTop: 16, fontSize: 17, color: "#B0B8C8", lineHeight: 2 }}>
               {p.includes_reclaimfi && <p>✓ ReclaimFi</p>}
               {p.includes_accounting && <p>✓ Contabilidad</p>}

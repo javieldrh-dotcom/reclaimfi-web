@@ -4,10 +4,12 @@ import { useEffect, useRef } from "react";
 interface Props {
   color?: string;
   particleCount?: number;
+  contained?: boolean;
 }
 
-export default function NeuralBackground({ color = "#2DD4BF", particleCount = 140 }: Props) {
+export default function NeuralBackground({ color = "#2DD4BF", particleCount = 140, contained = false }: Props) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -18,14 +20,22 @@ export default function NeuralBackground({ color = "#2DD4BF", particleCount = 14
     let particles: any[] = [];
     let animationId: number;
 
+    function getSize() {
+      if (contained && containerRef.current) {
+        return { w: containerRef.current.clientWidth, h: containerRef.current.clientHeight };
+      }
+      return { w: window.innerWidth, h: window.innerHeight };
+    }
+
     function init() {
-      canvas!.width = window.innerWidth;
-      canvas!.height = window.innerHeight;
+      const { w, h } = getSize();
+      canvas!.width = w;
+      canvas!.height = h;
       particles = [];
       for (let i = 0; i < particleCount; i++) {
         particles.push({
-          x: Math.random() * canvas!.width,
-          y: Math.random() * canvas!.height,
+          x: Math.random() * w,
+          y: Math.random() * h,
           vx: (Math.random() - 0.5) * 0.8,
           vy: (Math.random() - 0.5) * 0.8,
         });
@@ -41,8 +51,8 @@ export default function NeuralBackground({ color = "#2DD4BF", particleCount = 14
         if (p.y < 0 || p.y > canvas!.height) p.vy *= -1;
 
         ctx!.beginPath();
-        ctx!.arc(p.x, p.y, 2.5, 0, Math.PI * 2);
-        ctx!.shadowBlur = 20;
+        ctx!.arc(p.x, p.y, contained ? 2 : 2.5, 0, Math.PI * 2);
+        ctx!.shadowBlur = contained ? 12 : 20;
         ctx!.shadowColor = color;
         ctx!.fillStyle = color;
         ctx!.fill();
@@ -50,12 +60,13 @@ export default function NeuralBackground({ color = "#2DD4BF", particleCount = 14
 
         for (let j = idx + 1; j < particles.length; j++) {
           const d = Math.hypot(p.x - particles[j].x, p.y - particles[j].y);
-          if (d < 200) {
+          const maxDist = contained ? 90 : 200;
+          if (d < maxDist) {
             ctx!.beginPath();
             ctx!.moveTo(p.x, p.y);
             ctx!.lineTo(particles[j].x, particles[j].y);
             ctx!.lineWidth = 1;
-            ctx!.strokeStyle = color + Math.floor((1 - d / 200) * 60).toString(16).padStart(2, "0");
+            ctx!.strokeStyle = color + Math.floor((1 - d / maxDist) * 60).toString(16).padStart(2, "0");
             ctx!.stroke();
           }
         }
@@ -70,7 +81,15 @@ export default function NeuralBackground({ color = "#2DD4BF", particleCount = 14
       window.removeEventListener("resize", init);
       cancelAnimationFrame(animationId);
     };
-  }, [color, particleCount]);
+  }, [color, particleCount, contained]);
+
+  if (contained) {
+    return (
+      <div ref={containerRef} style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
+        <canvas ref={canvasRef} style={{ position: "absolute", top: 0, left: 0, opacity: 0.7 }} />
+      </div>
+    );
+  }
 
   return (
     <canvas
