@@ -1,6 +1,6 @@
 ﻿"use client";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/app/lib/supabase";
 import AuroraBackground from "@/app/components/AuroraBackground";
 
@@ -10,8 +10,10 @@ declare global {
   }
 }
 
-export default function SubscribePage() {
+function SubscribePageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const preselectedPlanCode = searchParams.get("plan");
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [plans, setPlans] = useState<any[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
@@ -56,6 +58,10 @@ export default function SubscribePage() {
 
       const { data: plansData } = await supabase.from("subscription_plans").select("*").order("monthly_price_usd");
       setPlans(plansData ?? []);
+      if (preselectedPlanCode) {
+        const match = (plansData ?? []).find((p: any) => p.plan_code === preselectedPlanCode);
+        if (match) setSelectedPlan(match);
+      }
 
       const { data: methodsData } = await supabase.from("payment_methods").select("*").eq("is_active", true);
       setPaymentMethods(methodsData ?? []);
@@ -158,7 +164,7 @@ export default function SubscribePage() {
 
       <h2 style={{ marginTop: 48, fontSize: 22, color: "#8B93A7", fontWeight: 700 }}>1. Elige tu Plan</h2>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 24, marginTop: 20, maxWidth: 1300 }}>
-        {plans.map((p) => (
+        {(preselectedPlanCode ? plans.filter((p) => p.plan_code === preselectedPlanCode) : plans).map((p) => (
           <div
             key={p.id}
             onClick={() => setSelectedPlan(p)}
@@ -242,5 +248,14 @@ export default function SubscribePage() {
       {message && <p style={{ marginTop: 20, fontSize: 16, color: message.includes("Error") ? "#F87171" : "#4ade80", maxWidth: 550, lineHeight: 1.6 }}>{message}</p>}
       </div>
     </div>
+  );
+}
+
+
+export default function SubscribePage() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: "100vh", background: "#0B0E14", color: "white" }}></div>}>
+      <SubscribePageContent />
+    </Suspense>
   );
 }

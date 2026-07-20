@@ -36,15 +36,15 @@ export default function SelectModulePage() {
   const cardStyle = (enabled: boolean, color: string) => ({
     padding: 44,
     borderRadius: 20,
-    border: enabled ? "2px solid " + color + "60" : "1px solid #1F2937",
+    border: "3px solid " + color,
     background: "#12161F",
-    opacity: enabled ? 1 : 0.5,
-    cursor: enabled ? "pointer" : "not-allowed",
+    opacity: enabled ? 1 : 0.7,
+    cursor: "pointer",
     textAlign: "center" as const,
     textDecoration: "none",
     color: "white",
     display: "block",
-    boxShadow: enabled ? "0 8px 30px " + color + "20" : "none",
+    boxShadow: "0 8px 30px " + color + "30",
   });
 
   if (loading) {
@@ -67,39 +67,21 @@ export default function SelectModulePage() {
         </p>
 
         <div style={{ marginTop: 60, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 30, maxWidth: 1100, margin: "60px auto 0" }}>
-          {hasReclaimFi ? (
-            <Link href="/dashboard" style={cardStyle(true, "#2DD4BF")}>
-              <h2 style={{ fontSize: 28, fontWeight: 900, color: "#2DD4BF" }}>ReclaimFi</h2>
-              <p style={{ marginTop: 14, fontSize: 18, color: "#B0B8C8" }}>Auditoria Forense y Blockchain Intelligence</p>
-            </Link>
-          ) : (
-            <div style={cardStyle(false, "#2DD4BF")}>
-              <h2 style={{ fontSize: 28, fontWeight: 900 }}>ReclaimFi</h2>
-              <p style={{ marginTop: 14, fontSize: 18, color: "#8B93A7" }}>Actualiza tu plan para acceder</p>
-            </div>
-          )}
-          {hasAccounting ? (
-            <Link href="/accounting/journal" style={cardStyle(true, "#818CF8")}>
-              <h2 style={{ fontSize: 28, fontWeight: 900, color: "#818CF8" }}>Contabilidad Financiera</h2>
-              <p style={{ marginTop: 14, fontSize: 18, color: "#B0B8C8" }}>NIIF Multi-Sector con IA</p>
-            </Link>
-          ) : (
-            <div style={cardStyle(false, "#818CF8")}>
-              <h2 style={{ fontSize: 28, fontWeight: 900 }}>Contabilidad Financiera</h2>
-              <p style={{ marginTop: 14, fontSize: 18, color: "#8B93A7" }}>Actualiza tu plan para acceder</p>
-            </div>
-          )}
-          {hasApu ? (
-            <Link href="/apu/projects" style={cardStyle(true, "#FB923C")}>
-              <h2 style={{ fontSize: 28, fontWeight: 900, color: "#FB923C" }}>APU / Licitaciones</h2>
-              <p style={{ marginTop: 14, fontSize: 18, color: "#B0B8C8" }}>Analisis de Precios Unitarios para el Estado</p>
-            </Link>
-          ) : (
-            <div style={cardStyle(false, "#FB923C")}>
-              <h2 style={{ fontSize: 28, fontWeight: 900 }}>APU / Licitaciones</h2>
-              <p style={{ marginTop: 14, fontSize: 18, color: "#8B93A7" }}>Actualiza tu plan para acceder</p>
-            </div>
-          )}
+          <Link href={hasReclaimFi ? "/dashboard" : "/subscribe?plan=RECLAIMFI"} style={cardStyle(hasReclaimFi, "#2DD4BF")}>
+            <h2 style={{ fontSize: 28, fontWeight: 900, color: "#2DD4BF" }}>ReclaimFi</h2>
+            <p style={{ marginTop: 14, fontSize: 18, color: "#B0B8C8" }}>Auditoria Forense y Blockchain Intelligence</p>
+            {!hasReclaimFi && <p style={{ marginTop: 10, fontSize: 15, color: "#2DD4BF", fontWeight: 700 }}>Suscribirse →</p>}
+          </Link>
+          <Link href={hasAccounting ? "/accounting/journal" : "/subscribe?plan=CONTABILIDAD"} style={cardStyle(hasAccounting, "#818CF8")}>
+            <h2 style={{ fontSize: 28, fontWeight: 900, color: "#818CF8" }}>Contabilidad Financiera</h2>
+            <p style={{ marginTop: 14, fontSize: 18, color: "#B0B8C8" }}>NIIF Multi-Sector con IA</p>
+            {!hasAccounting && <p style={{ marginTop: 10, fontSize: 15, color: "#818CF8", fontWeight: 700 }}>Suscribirse →</p>}
+          </Link>
+          <Link href={hasApu ? "/apu/projects" : "/subscribe?plan=APU"} style={cardStyle(hasApu, "#FB923C")}>
+            <h2 style={{ fontSize: 28, fontWeight: 900, color: "#FB923C" }}>APU / Licitaciones</h2>
+            <p style={{ marginTop: 14, fontSize: 18, color: "#B0B8C8" }}>Analisis de Precios Unitarios para el Estado</p>
+            {!hasApu && <p style={{ marginTop: 10, fontSize: 15, color: "#FB923C", fontWeight: 700 }}>Suscribirse →</p>}
+          </Link>
         </div>
       </div>
     </div>
