@@ -171,9 +171,13 @@ function SubscribePageContent() {
       `}</style>
       <div style={{ position: "relative", zIndex: 1, padding: "48px 60px", maxWidth: 1400, margin: "0 auto" }}>
         <h1 style={{ fontSize: 36, fontWeight: 900, color: "#2DD4BF", fontFamily: "'IBM Plex Serif', serif" }}>Suscripcion</h1>
-        <p style={{ marginTop: 8, color: "#8B93A7", fontSize: 16 }}>Elige tu plan y metodo de pago preferido.</p>
+        <style>{`
+          @keyframes twinkle { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+          .twinkle-subtitle { animation: twinkle 2s ease-in-out infinite; }
+        `}</style>
+        <p className="twinkle-subtitle" style={{ marginTop: 8, color: "#7dd3fc", fontSize: 18, fontWeight: 600 }}>Elige tu plan y metodo de pago preferido.</p>
 
-        <h2 style={{ marginTop: 32, fontSize: 20, color: "#8B93A7" }}>1. Elige tu Plan</h2>
+        {!preselectedPlanCode && <h2 style={{ marginTop: 32, fontSize: 20, color: "#8B93A7" }}>1. Elige tu Plan</h2>}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 30, marginTop: 20, maxWidth: 1300 }}>
           {(preselectedPlanCode ? plans.filter((p) => p.plan_code === preselectedPlanCode) : plans).map((p) => (
             <div
