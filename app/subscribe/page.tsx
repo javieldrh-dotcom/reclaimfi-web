@@ -173,13 +173,10 @@ function SubscribePageContent() {
           >
             <div style={{
                 width: "calc(100% + 72px)", height: 140, margin: "-36px -36px 20px -36px", borderRadius: "20px 20px 0 0",
-                background: p.plan_code === "RECLAIMFI" ? "linear-gradient(135deg, #0D3B38, #0B0E14)" :
-                            p.plan_code === "CONTABILIDAD" ? "linear-gradient(135deg, #2A2A5C, #0B0E14)" :
-                            p.plan_code === "APU" ? "linear-gradient(135deg, #5C3A1E, #0B0E14)" :
-                            "linear-gradient(135deg, #1F2937, #0B0E14)",
+                background: "#0B0E14",
                 position: "relative", overflow: "hidden",
               }}>
-                {p.plan_code === "RECLAIMFI" && <NeuralBackground contained color="#2DD4BF" particleCount={35} />}
+                {p.plan_code === "RECLAIMFI" && <NeuralBackground contained color="#2DD4BF" particleCount={70} />}
                 {p.plan_code === "CONTABILIDAD" && (
                   <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 8, paddingBottom: 20 }}>
                     <style>{`
@@ -213,14 +210,10 @@ function SubscribePageContent() {
                 )}
               </div>
               <div style={{ textAlign: "center" }}>
-                <h3 style={{ fontSize: 30, fontWeight: 900, textShadow: "0 0 20px " + (p.plan_code === "RECLAIMFI" ? "#2DD4BF" : p.plan_code === "CONTABILIDAD" ? "#818CF8" : "#FB923C") + "80" }}>{p.plan_name}</h3>
-                <p style={{ fontSize: 46, fontWeight: 900, marginTop: 14, fontFamily: "monospace", textShadow: "0 0 25px " + (p.plan_code === "RECLAIMFI" ? "#2DD4BF" : p.plan_code === "CONTABILIDAD" ? "#818CF8" : "#FB923C") + "60" }}>${p.monthly_price_usd}<span style={{ fontSize: 20, color: "#8B93A7" }}>/mes</span></p>
+                <h3 style={{ fontSize: 36, fontWeight: 900, textShadow: "0 0 20px " + (p.plan_code === "RECLAIMFI" ? "#2DD4BF" : p.plan_code === "CONTABILIDAD" ? "#818CF8" : "#FB923C") + "80" }}>{p.plan_name}</h3>
+                <p style={{ fontSize: 56, fontWeight: 900, marginTop: 14, fontFamily: "monospace", textShadow: "0 0 25px " + (p.plan_code === "RECLAIMFI" ? "#2DD4BF" : p.plan_code === "CONTABILIDAD" ? "#818CF8" : "#FB923C") + "60" }}>${p.monthly_price_usd}<span style={{ fontSize: 20, color: "#8B93A7" }}>/mes</span></p>
               </div>
-            <div style={{ marginTop: 16, fontSize: 17, color: "#B0B8C8", lineHeight: 2 }}>
-              {p.includes_reclaimfi && <p>✓ ReclaimFi</p>}
-              {p.includes_accounting && <p>✓ Contabilidad</p>}
-              {p.includes_apu && <p>✓ APU / Licitaciones</p>}
-            </div>
+            
           </div>
         ))}
       </div>
