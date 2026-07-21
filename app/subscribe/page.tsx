@@ -158,18 +158,18 @@ function SubscribePageContent() {
     if (isProvisional && selectedPlan) {
       try {
         const { data: userData } = await supabase.auth.getUser();
-        if (userData?.user && companyId) {
+        if (userData?.user && effectiveCompanyId) {
           const { data: existingRoles } = await supabase
             .from("user_role_assignments")
             .select("id")
             .eq("user_id", userData.user.id)
-            .eq("company_id", companyId);
+            .eq("company_id", effectiveCompanyId);
           if (!existingRoles || existingRoles.length === 0) {
             const roleMap: Record<string, string> = { RECLAIMFI: "AUDITOR", CONTABILIDAD: "CONTADOR", APU: "CONTADOR", COMPLETO: "ADMIN" };
             const roleName = roleMap[selectedPlan.plan_code] ?? "SOLO_LECTURA";
             const { data: roleData } = await supabase.from("user_roles").select("id").eq("name", roleName).limit(1);
             if (roleData && roleData.length > 0) {
-              await supabase.from("user_role_assignments").insert([{ user_id: userData.user.id, role_id: roleData[0].id, company_id: companyId }]);
+              await supabase.from("user_role_assignments").insert([{ user_id: userData.user.id, role_id: roleData[0].id, company_id: effectiveCompanyId }]);
             }
           }
         }
