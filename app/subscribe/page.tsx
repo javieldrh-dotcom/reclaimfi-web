@@ -97,9 +97,37 @@ function SubscribePageContent() {
 
   async function requestSubscription() {
     setMessage("");
-    if (!companyId || !selectedPlan || !selectedMethod) {
+    if (!selectedPlan || !selectedMethod) {
       setMessage("Selecciona un plan y un metodo de pago.");
       return;
+    }
+
+    let effectiveCompanyId = companyId;
+
+    if (!effectiveCompanyId) {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData?.user) { setMessage("Error: sesion no valida."); return; }
+
+      const { data: newCompany, error: companyError } = await supabase.from("companies").insert([{
+        name: "Mi Empresa",
+        owner_id: userData.user.id,
+        industry_sector: "GENERIC",
+        country: "VE",
+        functional_currency: "USD",
+      }]).select("id").single();
+
+      if (companyError || !newCompany) { setMessage("Error al crear tu empresa: " + companyError?.message); return; }
+
+      await supabase.from("user_companies").insert([{ user_id: userData.user.id, company_id: newCompany.id }]);
+
+      const { data: baseAccounts } = await supabase.from("chart_of_accounts").select("account_code, account_name, account_type").eq("company_id", "32dcf25d-12e4-45f5-9de0-9dfef2c54bef");
+      if (baseAccounts && baseAccounts.length > 0) {
+        const newAccounts = baseAccounts.map((a: any) => ({ ...a, company_id: newCompany.id }));
+        await supabase.from("chart_of_accounts").insert(newAccounts);
+      }
+
+      effectiveCompanyId = newCompany.id;
+      setCompanyId(newCompany.id);
     }
 
     let receiptUrl = null;
@@ -116,7 +144,7 @@ function SubscribePageContent() {
     expiresAt.setDate(expiresAt.getDate() + 5);
 
     const { error } = await supabase.from("subscriptions").insert([{
-      company_id: companyId,
+      company_id: effectiveCompanyId,
       plan_id: selectedPlan.id,
       payment_method_id: selectedMethod.id,
       status: isProvisional ? "ACTIVE" : "PENDING_PAYMENT",
