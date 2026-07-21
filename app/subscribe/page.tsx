@@ -108,15 +108,16 @@ function SubscribePageContent() {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData?.user) { setMessage("Error: sesion no valida."); return; }
 
-      const { data: newCompany, error: companyError } = await supabase.from("companies").insert([{
+      const { data: newCompanyRows, error: companyError } = await supabase.from("companies").insert([{
         name: "Mi Empresa",
         owner_id: userData.user.id,
         industry_sector: "GENERIC",
         country: "VE",
         functional_currency: "USD",
-      }]).select("id").single();
+      }]).select("id");
 
-      if (companyError || !newCompany) { setMessage("Error al crear tu empresa: " + companyError?.message); return; }
+      if (companyError || !newCompanyRows || newCompanyRows.length === 0) { setMessage("Error al crear tu empresa: " + companyError?.message); return; }
+        const newCompany = newCompanyRows[0];
 
       await supabase.from("user_companies").insert([{ user_id: userData.user.id, company_id: newCompany.id }]);
 
