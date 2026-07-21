@@ -119,7 +119,7 @@ function SubscribePageContent() {
       if (companyError || !newCompanyRows || newCompanyRows.length === 0) { setMessage("Error al crear tu empresa: " + companyError?.message); return; }
         const newCompany = newCompanyRows[0];
 
-      await supabase.from("user_companies").insert([{ user_id: userData.user.id, company_id: newCompany.id }]);
+      const { error: ucError } = await supabase.from("user_companies").insert([{ user_id: userData.user.id, company_id: newCompany.id }]);
 
       const { data: baseAccounts } = await supabase.from("chart_of_accounts").select("account_code, account_name, account_type").eq("company_id", "32dcf25d-12e4-45f5-9de0-9dfef2c54bef");
       if (baseAccounts && baseAccounts.length > 0) {
