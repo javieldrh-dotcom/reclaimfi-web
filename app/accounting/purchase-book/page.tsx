@@ -28,6 +28,7 @@ export default function PurchaseBookPage() {
   const [taxableBaseGeneral, setTaxableBaseGeneral] = useState("");
   const [rateGeneral, setRateGeneral] = useState("16");
   const [withholdingReceiptNumber, setWithholdingReceiptNumber] = useState("");
+  const [withholdingPercentage, setWithholdingPercentage] = useState("0");
   const [withheldAmount, setWithheldAmount] = useState("0");
   const [message, setMessage] = useState("");
 
@@ -56,6 +57,24 @@ export default function PurchaseBookPage() {
     }
     load();
   }, []);
+  useEffect(() => {
+    const base = parseFloat(taxableBaseGeneral) || 0;
+    const rate = parseFloat(rateGeneral) || 16;
+    const pct = parseFloat(withholdingPercentage) || 0;
+    const iva = base * (rate / 100);
+    const calculated = iva * (pct / 100);
+    setWithheldAmount(calculated.toFixed(2));
+  }, [taxableBaseGeneral, rateGeneral, withholdingPercentage]);
+
+  useEffect(() => {
+    const base = parseFloat(taxableBaseGeneral) || 0;
+    const rate = parseFloat(rateGeneral) || 16;
+    const pct = parseFloat(withholdingPercentage) || 0;
+    const iva = base * (rate / 100);
+    const calculated = iva * (pct / 100);
+    setWithheldAmount(calculated.toFixed(2));
+  }, [taxableBaseGeneral, rateGeneral, withholdingPercentage]);
+
   async function createNewAccount(type: string) {
     const name = window.prompt("Nombre de la nueva cuenta de " + (type === "EXPENSE" ? "Gasto" : "Activo") + ":");
     if (!name || !companyId) return;
@@ -182,8 +201,15 @@ export default function PurchaseBookPage() {
         <h3 style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginTop: 16 }}>Retencion de IVA (si aplica)</h3>
         <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
           <input value={withholdingReceiptNumber} onChange={(e) => setWithholdingReceiptNumber(e.target.value)} style={inputStyle} placeholder="Nº Comprobante de Retencion" />
-          <input type="number" value={withheldAmount} onChange={(e) => setWithheldAmount(e.target.value)} style={inputStyle} placeholder="Monto Retenido" />
+          <select value={withholdingPercentage} onChange={(e) => setWithholdingPercentage(e.target.value)} style={inputStyle}>
+            <option value="0">Sin Retencion</option>
+            <option value="75">75% (Estandar)</option>
+            <option value="100">100% (Art. 5 - Casos Especiales)</option>
+          </select>
         </div>
+        {parseFloat(withholdingPercentage) > 0 && (
+          <p style={{ marginTop: 6, fontSize: 15, color: theme.accent }}>Monto Retenido Calculado: {parseFloat(withheldAmount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+        )}
 
         <select value={apAccountId} onChange={(e) => setApAccountId(e.target.value)} style={{ ...inputStyle, marginTop: 12 }}>
           <option value="">Cuenta de Cuentas por Pagar</option>
