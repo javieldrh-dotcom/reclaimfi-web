@@ -21,6 +21,7 @@ function SubscribePageContent() {
   const [selectedMethod, setSelectedMethod] = useState<any>(null);
   const [message, setMessage] = useState("");
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [industrySector, setIndustrySector] = useState("GENERIC");
 
   useEffect(() => {
     async function load() {
@@ -111,7 +112,7 @@ function SubscribePageContent() {
       const { data: newCompanyRows, error: companyError } = await supabase.from("companies").insert([{
         name: "Mi Empresa",
         owner_id: userData.user.id,
-        industry_sector: "GENERIC",
+        industry_sector: industrySector,
         country: "VE",
         functional_currency: "USD",
       }]).select("id");
@@ -121,7 +122,7 @@ function SubscribePageContent() {
 
       const { error: ucError } = await supabase.from("user_companies").insert([{ user_id: userData.user.id, company_id: newCompany.id }]);
 
-      const { data: baseAccounts } = await supabase.from("chart_of_accounts").select("account_code, account_name, account_type").eq("company_id", "32dcf25d-12e4-45f5-9de0-9dfef2c54bef");
+      const { data: baseAccounts } = await supabase.from("chart_of_accounts").select("account_code, account_name, account_type, sector").eq("company_id", "32dcf25d-12e4-45f5-9de0-9dfef2c54bef").in("sector", ["GENERIC", industrySector]);
       if (baseAccounts && baseAccounts.length > 0) {
         const newAccounts = baseAccounts.map((a: any) => ({ ...a, company_id: newCompany.id }));
         await supabase.from("chart_of_accounts").insert(newAccounts);
@@ -319,7 +320,13 @@ function SubscribePageContent() {
         )}
 
         <div style={{ marginTop: 32, maxWidth: 550 }}>
-          <label style={{ fontSize: 15, color: "#8B93A7", fontWeight: 600 }}>COMPROBANTE DE PAGO (opcional, puedes enviarlo despues)</label>
+          <label style={{ fontSize: 15, color: "#8B93A7", fontWeight: 600 }}>SECTOR DE TU EMPRESA (define el plan de cuentas inicial)</label>
+        <select value={industrySector} onChange={(e) => setIndustrySector(e.target.value)} style={{ background: "#0d1117", border: "1px solid #1a3050", borderRadius: 8, padding: 10, color: "white", width: "100%", marginTop: 8, fontSize: 16 }}>
+          <option value="GENERIC">General / Servicios</option>
+          <option value="RETAIL">Comercio / Retail / Supermercado</option>
+        </select>
+
+        <label style={{ fontSize: 15, color: "#8B93A7", fontWeight: 600, marginTop: 20, display: "block" }}>COMPROBANTE DE PAGO (opcional, puedes enviarlo despues)</label>
           <div style={{ marginTop: 10, padding: 20, background: "#12161F", border: "1px dashed #1F2937", borderRadius: 12 }}>
             <input type="file" accept="image/*,.pdf" onChange={(e) => setReceiptFile(e.target.files?.[0] ?? null)} style={{ color: "white", fontSize: 15 }} />
           </div>
