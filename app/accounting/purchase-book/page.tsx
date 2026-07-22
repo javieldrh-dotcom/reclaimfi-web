@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
+import { generatePurchaseBookPdf } from "@/app/core/reports/generatePurchaseBookPdf";
 import VerticalPageLayout from "@/app/components/VerticalPageLayout";
 
 export default function PurchaseBookPage() {
@@ -121,8 +122,19 @@ export default function PurchaseBookPage() {
 
   const inputStyle = { ...theme.inputStyle, fontSize: 18 };
 
+  function downloadPdf() {
+    const doc = generatePurchaseBookPdf(companyName, companyRif, entries);
+    doc.save("libro-compras-iva.pdf");
+  }
+
   return (
-    <VerticalPageLayout vertical="accounting" title="Libro de Compras IVA" subtitle="Conforme al Art. 77 del Reglamento de la Ley de IVA - Formato Oficial SENIAT" fullWidth>
+    <VerticalPageLayout vertical="accounting" title="Libro de Compras IVA" subtitle="Conforme al Art. 77 del Reglamento de la Ley de IVA - Formato Oficial SENIAT" fullWidth
+      actions={entries.length > 0 ? (
+        <button onClick={downloadPdf} style={{ ...theme.buttonStyle, fontSize: 13, padding: "10px 20px" }}>
+          Descargar PDF
+        </button>
+      ) : undefined}
+    >
       <div style={{ maxWidth: 900 }}>
         <div style={{ display: "flex", gap: 10 }}>
           <input type="date" value={entryDate} onChange={(e) => setEntryDate(e.target.value)} style={inputStyle} />
