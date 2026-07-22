@@ -7,6 +7,7 @@ import VerticalPageLayout from "@/app/components/VerticalPageLayout";
 export default function WithholdingSummaryPage() {
   const theme = getVerticalTheme("accounting");
   const [companyId, setCompanyId] = useState<string | null>(null);
+  const [companyName, setCompanyName] = useState("");
   const [taxAgentRif, setTaxAgentRif] = useState("");
   const [periodStart, setPeriodStart] = useState("");
   const [periodEnd, setPeriodEnd] = useState("");
@@ -24,7 +25,8 @@ export default function WithholdingSummaryPage() {
       const cid = uc?.company_id ?? null;
       setCompanyId(cid);
       if (cid) {
-        const { data: companyData } = await supabase.from("companies").select("tax_id").eq("id", cid).single();
+        const { data: companyData } = await supabase.from("companies").select("name, tax_id").eq("id", cid).single();
+        setCompanyName(companyData?.name ?? "");
         setTaxAgentRif(companyData?.tax_id ?? "");
         const { data: hist } = await supabase.from("withholding_summary").select("*").eq("company_id", cid).order("period_end", { ascending: false });
         setHistory(hist ?? []);
@@ -38,31 +40,19 @@ export default function WithholdingSummaryPage() {
     setLoading(true);
 
     const { data: sales } = await supabase.from("sales_book_entries").select("customer_name, entry_date, withheld_by_customer").eq("company_id", companyId).gte("entry_date", periodStart).lte("entry_date", periodEnd).gt("withheld_by_customer", 0);
-    const { data: purchases } = await supabase.from("purchase_book_entries").select("*").eq("company_id", companyId).gte("entry_date", periodStart).lte("entry_date", periodEnd).gt("withheld_amount", 0);
+    const { data: purchases } = await supabase.from("purchase_book_entries").select("vendor_name, entry_date, withheld_amount, withholding_receipt_number").eq("company_id", companyId).gte("entry_date", periodStart).lte("entry_date", periodEnd).gt("withheld_amount", 0);
 
-    const totalWithheldFromUs = (sales ?? []).reduce((s: number, r: any) => s + (r.withheld_by_customer || 0), 0);
-    const totalWithheldByUs = (purchases ?? []).reduce((s: number, r: any) => s + (r.withheld_amount || 0), 0);
-    const netPosition = totalWithheldByUs - totalWithheldFromUs;
+    const casilla34 = (sales ?? []).reduce((s: number, r: any) => s + (r.withheld_by_customer || 0), 0);
+    const casilla66_compras = (purchases ?? []).reduce((s: number, r: any) => s + (r.withheld_amount || 0), 0);
+    const casilla37 = casilla34;
+    const casilla38 = casilla34;
+    const netPosition = casilla66_compras - casilla34;
 
     setSalesWithheld(sales ?? []);
     setPurchaseWithheld(purchases ?? []);
-    setSummary({ totalWithheldFromUs, totalWithheldByUs, netPosition });
+    setSummary({ casilla34, casilla37, casilla38, totalWithheldByUs: casilla66_compras, netPosition });
     setLoading(false);
   }
-  async function saveSummary() {
-    if (!companyId || !summary) return;
-    await supabase.from("withholding_summary").insert([{
-      company_id: companyId,
-      period_start: periodStart,
-      period_end: periodEnd,
-      total_withheld_from_us: summary.totalWithheldFromUs,
-      total_withheld_by_us: summary.totalWithheldByUs,
-      net_withholding_position: summary.netPosition,
-    }]);
-    const { data: hist } = await supabase.from("withholding_summary").select("*").eq("company_id", companyId).order("period_end", { ascending: false });
-    setHistory(hist ?? []);
-  }
-
   function exportTxt() {
     const rows = purchaseWithheld.map((p: any) => {
       const columns = [
@@ -95,12 +85,34 @@ export default function WithholdingSummaryPage() {
     URL.revokeObjectURL(url);
   }
 
+  async function saveSummary() {
+    if (!companyId || !summary) return;
+    await supabase.from("withholding_summary").insert([{
+      company_id: companyId,
+      period_start: periodStart,
+      period_end: periodEnd,
+      total_withheld_from_us: summary.casilla34,
+      total_withheld_by_us: summary.totalWithheldByUs,
+      net_withholding_position: summary.netPosition,
+    }]);
+    const { data: hist } = await supabase.from("withholding_summary").select("*").eq("company_id", companyId).order("period_end", { ascending: false });
+    setHistory(hist ?? []);
+  }
+
   const inputStyle = { ...theme.inputStyle, fontSize: 22 };
 
+  const row = (casilla: string, label: string, value: number) => (
+    <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 4px", borderBottom: "1px solid #1F2937", fontSize: 18 }}>
+      <span><span style={{ color: theme.accent, fontWeight: 700, marginRight: 8 }}>[{casilla}]</span>{label}</span>
+      <span style={theme.numberStyle}>{value.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+    </div>
+  );
+
   return (
-    <VerticalPageLayout vertical="accounting" title="Resumen de Retenciones" subtitle="Consolida retenciones de IVA recibidas y efectuadas en el periodo" fullWidth>
+    <VerticalPageLayout vertical="accounting" title="Resumen de Retenciones" subtitle="Casillas oficiales SENIAT - Consolida retenciones recibidas y efectuadas" fullWidth>
       <div style={{ maxWidth: 700 }}>
-        <div style={{ display: "flex", gap: 10 }}>
+        <p style={{ fontSize: 15, color: "#8B93A7" }}>{companyName} - RIF: {taxAgentRif}</p>
+        <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
           <input type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} style={inputStyle} />
           <input type="date" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} style={inputStyle} />
         </div>
@@ -110,11 +122,17 @@ export default function WithholdingSummaryPage() {
 
         {summary && (
           <div style={{ ...theme.cardStyle, marginTop: 24 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", padding: 8, fontSize: 20 }}><span>Retenido por Clientes (a favor)</span><span style={theme.numberStyle}>{summary.totalWithheldFromUs.toLocaleString()}</span></div>
-            <div style={{ display: "flex", justifyContent: "space-between", padding: 8, fontSize: 20 }}><span>Retenido a Proveedores (por enterar)</span><span style={theme.numberStyle}>{summary.totalWithheldByUs.toLocaleString()}</span></div>
-            <div style={{ marginTop: 16, padding: 16, background: "#0B0E14", borderRadius: 12, display: "flex", justifyContent: "space-between", fontSize: 26, fontWeight: 900, color: summary.netPosition >= 0 ? "#f87171" : "#4ade80" }}>
+            <h3 style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginBottom: 8 }}>RETENCIONES QUE NOS HICIERON (Ventas)</h3>
+            {row("34", "Retenciones del Periodo", summary.casilla34)}
+            {row("37", "Total Retenciones", summary.casilla37)}
+            {row("38", "Retenciones Soportadas y Descontadas", summary.casilla38)}
+
+            <h3 style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginTop: 20, marginBottom: 8 }}>RETENCIONES QUE HICIMOS (Compras)</h3>
+            {row("66", "Retenciones Efectuadas a Proveedores", summary.totalWithheldByUs)}
+
+            <div style={{ marginTop: 16, padding: 16, background: "#0B0E14", borderRadius: 12, display: "flex", justifyContent: "space-between", fontSize: 24, fontWeight: 900, color: summary.netPosition >= 0 ? "#f87171" : "#4ade80" }}>
               <span>{summary.netPosition >= 0 ? "Neto a Enterar al Fisco" : "Neto a Favor"}</span>
-              <span style={theme.numberStyle}>{Math.abs(summary.netPosition).toLocaleString()}</span>
+              <span style={theme.numberStyle}>{Math.abs(summary.netPosition).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
             </div>
             <button onClick={saveSummary} style={{ ...theme.buttonStyle, marginTop: 16, fontSize: 18, width: "100%" }}>
               GUARDAR RESUMEN
@@ -125,9 +143,7 @@ export default function WithholdingSummaryPage() {
 
       {salesWithheld.length > 0 && (
         <div style={{ marginTop: 32 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h2 style={{ fontSize: 24, color: theme.accent, fontWeight: 700 }}>Retenciones Recibidas de Clientes</h2>
-          </div>
+          <h2 style={{ fontSize: 24, color: theme.accent, fontWeight: 700 }}>Retenciones Recibidas de Clientes</h2>
           {salesWithheld.map((s, idx) => (
             <div key={idx} style={{ display: "flex", justifyContent: "space-between", padding: 8, fontSize: 18, borderBottom: "1px solid #1F2937" }}>
               <span>{s.entry_date} - {s.customer_name}</span>
@@ -141,11 +157,9 @@ export default function WithholdingSummaryPage() {
         <div style={{ marginTop: 32 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <h2 style={{ fontSize: 24, color: theme.accent, fontWeight: 700 }}>Retenciones Efectuadas a Proveedores</h2>
-            {purchaseWithheld.length > 0 && (
-              <button onClick={exportTxt} style={{ ...theme.buttonStyle, fontSize: 15, padding: "10px 20px" }}>
-                Exportar TXT (Formato SENIAT)
-              </button>
-            )}
+            <button onClick={exportTxt} style={{ ...theme.buttonStyle, fontSize: 15, padding: "10px 20px" }}>
+              Exportar TXT (Formato SENIAT)
+            </button>
           </div>
           {purchaseWithheld.map((p, idx) => (
             <div key={idx} style={{ display: "flex", justifyContent: "space-between", padding: 8, fontSize: 18, borderBottom: "1px solid #1F2937" }}>
