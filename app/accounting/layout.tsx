@@ -1,34 +1,57 @@
 ﻿"use client";
 import VerticalSidebar from "@/app/components/VerticalSidebar";
 import NeuralBackground from "@/app/components/NeuralBackground";
-
 const navItems = [
   { href: "/accounting", label: "DASHBOARD" },
-  { href: "/accounting/journal", label: "LIBRO DIARIO" },
-  { href: "/accounting/general-ledger", label: "LIBRO MAYOR" },
-  { href: "/accounting/trial-balance", label: "BALANCE COMPROBACION" },
-  { href: "/accounting/balance-sheet", label: "SITUACION FINANCIERA" },
-  { href: "/accounting/income-statement", label: "ESTADO RESULTADOS" },
-  { href: "/accounting/cash-flow", label: "FLUJO DE EFECTIVO" },
-  { href: "/accounting/equity-statement", label: "VARIACION PATRIMONIO" },
-  { href: "/accounting/ar-invoices", label: "CUENTAS POR COBRAR" },
-  { href: "/accounting/ap-bills", label: "CUENTAS POR PAGAR" },
-  { href: "/accounting/fixed-assets", label: "ACTIVOS FIJOS" },
-  { href: "/accounting/inventory", label: "INVENTARIO" },
-  { href: "/accounting/payroll", label: "NOMINA" },
-  { href: "/accounting/sales-book", label: "LIBRO DE VENTAS" },
-  { href: "/accounting/purchase-book", label: "LIBRO DE COMPRAS" },
-  { href: "/accounting/vat-summary", label: "RESUMEN DE IVA" },
-  { href: "/accounting/withholding-summary", label: "RESUMEN RETENCIONES" },
-  { href: "/accounting/special-taxpayer", label: "CONTRIBUYENTE ESPECIAL" },
-  { href: "/accounting/islr", label: "ISLR ANUAL" },
-  { href: "/accounting/deferred-tax", label: "IMPUESTO DIFERIDO" },
-  { href: "/accounting/bank-reconciliation", label: "CONCILIACION" },
-  { href: "/accounting/period-close", label: "CIERRE EJERCICIO" },
-  { href: "/accounting/financial-notes", label: "NOTAS EEFF" },
-  { href: "/accounting/price-indices", label: "INDICES DE PRECIOS" },
+  {
+    groupLabel: "CONTABILIDAD",
+    items: [
+      { href: "/accounting/journal", label: "Libro Diario" },
+      { href: "/accounting/general-ledger", label: "Libro Mayor" },
+      { href: "/accounting/inventory", label: "Inventario de Mercancia" },
+    ],
+  },
+  {
+    groupLabel: "ESTADOS FINANCIEROS",
+    items: [
+      { href: "/accounting/trial-balance", label: "Balance de Comprobacion" },
+      { href: "/accounting/balance-sheet", label: "Situacion Financiera" },
+      { href: "/accounting/income-statement", label: "Estado de Resultados" },
+      { href: "/accounting/cash-flow", label: "Flujo de Efectivo" },
+      { href: "/accounting/equity-statement", label: "Variacion de Patrimonio" },
+    ],
+  },
+  {
+    groupLabel: "CUENTAS Y OPERACIONES",
+    items: [
+      { href: "/accounting/ar-invoices", label: "Cuentas por Cobrar" },
+      { href: "/accounting/ap-bills", label: "Cuentas por Pagar" },
+      { href: "/accounting/fixed-assets", label: "Activos Fijos" },
+      { href: "/accounting/payroll", label: "Nomina" },
+      { href: "/accounting/bank-reconciliation", label: "Conciliacion Bancaria" },
+    ],
+  },
+  {
+    groupLabel: "FISCAL",
+    items: [
+      { href: "/accounting/sales-book", label: "Libro de Ventas" },
+      { href: "/accounting/purchase-book", label: "Libro de Compras" },
+      { href: "/accounting/vat-summary", label: "Resumen de IVA" },
+      { href: "/accounting/withholding-summary", label: "Resumen Retenciones" },
+      { href: "/accounting/special-taxpayer", label: "Contribuyente Especial" },
+      { href: "/accounting/islr", label: "ISLR Anual" },
+      { href: "/accounting/deferred-tax", label: "Impuesto Diferido" },
+    ],
+  },
+  {
+    groupLabel: "CIERRE Y REPORTES",
+    items: [
+      { href: "/accounting/period-close", label: "Cierre de Ejercicio" },
+      { href: "/accounting/financial-notes", label: "Notas a Estados Financieros" },
+      { href: "/accounting/price-indices", label: "Indices de Precios" },
+    ],
+  },
 ];
-
 export default function AccountingLayout({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ display: "flex", position: "relative" }}>
