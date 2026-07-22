@@ -18,6 +18,7 @@ export default function JournalPage() {
   const [lines, setLines] = useState<Line[]>([{ account_id: "", debit: "", credit: "" }, { account_id: "", debit: "", credit: "" }]);
   const [message, setMessage] = useState("");
   const [entries, setEntries] = useState<any[]>([]);
+  const [debugInfo, setDebugInfo] = useState("");
 
   async function loadEntries(cid: string) {
     const { data: entriesData, error: entriesError } = await supabase
@@ -27,8 +28,9 @@ export default function JournalPage() {
       .order("created_at", { ascending: false })
       .limit(15);
 
-    if (entriesError || !entriesData) { console.error("Error cargando asientos:", entriesError); setEntries([]); return; }
-    if (entriesData.length === 0) { setEntries([]); return; }
+    if (entriesError) { setDebugInfo("ERROR: " + JSON.stringify(entriesError)); setEntries([]); return; }
+    setDebugInfo("company_id usado: " + cid + " | Registros encontrados: " + (entriesData?.length ?? 0));
+    if (!entriesData || entriesData.length === 0) { setEntries([]); return; }
 
     const entryIds = entriesData.map((e: any) => e.id);
     const { data: linesData } = await supabase
@@ -126,6 +128,7 @@ export default function JournalPage() {
     <VerticalPageLayout
       vertical="accounting"
       title="Libro Diario"
+      subtitle={debugInfo}
       fullWidth
       actions={entries.length > 0 ? (
         <button onClick={downloadPdf} style={{ ...theme.buttonStyle, fontSize: 13, padding: "10px 20px" }}>
