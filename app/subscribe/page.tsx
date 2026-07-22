@@ -329,6 +329,7 @@ function SubscribePageContent() {
           <option value="MANUFACTURING">Manufactura / Industrial</option>
           <option value="PROFESSIONAL_SERVICES">Servicios Profesionales (Consultoria/Legal)</option>
           <option value="AGRICULTURE">Agricola / Ganadero (NIC 41)</option>
+          <option value="CUSTOMS_TRADE">Aduanas / Comercio Exterior</option>
         </select>
 
         <label style={{ fontSize: 15, color: "#8B93A7", fontWeight: 600, marginTop: 20, display: "block" }}>COMPROBANTE DE PAGO (opcional, puedes enviarlo despues)</label>
