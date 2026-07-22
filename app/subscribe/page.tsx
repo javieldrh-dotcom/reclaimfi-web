@@ -326,6 +326,7 @@ function SubscribePageContent() {
           <option value="RETAIL">Comercio / Retail / Supermercado</option>
           <option value="RESTAURANT">Restaurantes / Hospitalidad</option>
           <option value="CONSTRUCTION">Construccion (NIC 11 / NIIF 15)</option>
+          <option value="MANUFACTURING">Manufactura / Industrial</option>
         </select>
 
         <label style={{ fontSize: 15, color: "#8B93A7", fontWeight: 600, marginTop: 20, display: "block" }}>COMPROBANTE DE PAGO (opcional, puedes enviarlo despues)</label>
