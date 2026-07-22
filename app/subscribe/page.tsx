@@ -324,6 +324,7 @@ function SubscribePageContent() {
         <select value={industrySector} onChange={(e) => setIndustrySector(e.target.value)} style={{ background: "#0d1117", border: "1px solid #1a3050", borderRadius: 8, padding: 10, color: "white", width: "100%", marginTop: 8, fontSize: 16 }}>
           <option value="GENERIC">General / Servicios</option>
           <option value="RETAIL">Comercio / Retail / Supermercado</option>
+          <option value="RESTAURANT">Restaurantes / Hospitalidad</option>
         </select>
 
         <label style={{ fontSize: 15, color: "#8B93A7", fontWeight: 600, marginTop: 20, display: "block" }}>COMPROBANTE DE PAGO (opcional, puedes enviarlo despues)</label>
