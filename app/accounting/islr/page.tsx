@@ -108,7 +108,7 @@ export default function IslrPage() {
     <VerticalPageLayout vertical="accounting" title="ISLR - Declaracion Definitiva Anual" subtitle="Tarifa 2 (Personas Juridicas) - Art. 52 Ley de ISLR - Nucleo simplificado, no incluye fuente extraterritorial ni regimenes especiales" fullWidth>
       <div style={{ maxWidth: 700 }}>
         <input value={fiscalYear} onChange={(e) => setFiscalYear(e.target.value)} style={inputStyle} placeholder="Ejercicio Fiscal (Año)" />
-        <label style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginTop: 14, display: "block" }}>Utilidad Contable del Ejercicio</label>
+        <label style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginTop: 14, display: "block" }}>[137] Enriquecimiento Neto o Perdida Fiscal (Utilidad Contable)</label>
         <input type="number" value={accountingNetIncome} onChange={(e) => setAccountingNetIncome(e.target.value)} style={{ ...inputStyle, marginTop: 6 }} />
         <label style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginTop: 14, display: "block" }}>Ajustes por Partidas No Deducibles</label>
         <input type="number" value={nonDeductibleAdjustments} onChange={(e) => setNonDeductibleAdjustments(e.target.value)} style={{ ...inputStyle, marginTop: 6 }} />
@@ -116,18 +116,18 @@ export default function IslrPage() {
         <input type="number" value={exemptIncome} onChange={(e) => setExemptIncome(e.target.value)} style={{ ...inputStyle, marginTop: 6 }} />
         <label style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginTop: 14, display: "block" }}>Valor de la Unidad Tributaria (Bs)</label>
         <input type="number" value={taxUnitValue} onChange={(e) => setTaxUnitValue(e.target.value)} style={{ ...inputStyle, marginTop: 6 }} />
-        <label style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginTop: 14, display: "block" }}>Anticipos (Retenciones + Estimada)</label>
+        <label style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginTop: 14, display: "block" }}>[221+231] Anticipos (Retenciones + Declaracion Estimada)</label>
         <input type="number" value={advancePayments} onChange={(e) => setAdvancePayments(e.target.value)} style={{ ...inputStyle, marginTop: 6 }} />
 
         <div style={{ ...theme.cardStyle, marginTop: 20 }}>
-          <p style={{ fontSize: 18, color: "#8B93A7" }}>Enriquecimiento Gravable: <span style={theme.numberStyle}>{r.taxableIncome.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span> ({r.taxableIncomeUT.toLocaleString(undefined, { maximumFractionDigits: 2 })} U.T.)</p>
+          <p style={{ fontSize: 18, color: "#8B93A7" }}>[178] Enriquecimiento Gravable: <span style={theme.numberStyle}>{r.taxableIncome.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span> ({r.taxableIncomeUT.toLocaleString(undefined, { maximumFractionDigits: 2 })} U.T.)</p>
           <p style={{ fontSize: 18, color: "#8B93A7", marginTop: 8 }}>Tarifa aplicable: {r.rate}% (Sustraendo: {r.sustraendo} U.T.)</p>
           <div style={{ marginTop: 16, padding: 16, background: "#0B0E14", borderRadius: 12, display: "flex", justifyContent: "space-between", fontSize: 24, fontWeight: 900 }}>
-            <span>ISLR Determinado</span>
+            <span>[185] Impuesto segun Tarifa 2</span>
             <span style={theme.numberStyle}>{r.islrTax.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
           </div>
           <div style={{ marginTop: 12, padding: 16, background: "#0B0E14", borderRadius: 12, display: "flex", justifyContent: "space-between", fontSize: 26, fontWeight: 900, color: r.netPayable >= 0 ? "#f87171" : "#4ade80" }}>
-            <span>{r.netPayable >= 0 ? "Total a Pagar" : "Credito del Ejercicio"}</span>
+            <span>{r.netPayable >= 0 ? "[90] Total a Pagar" : "[87] Credito del Ejercicio"}</span>
             <span style={theme.numberStyle}>{Math.abs(r.netPayable).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
           </div>
           <button onClick={saveDeclaration} style={{ ...theme.buttonStyle, marginTop: 16, fontSize: 18, width: "100%" }}>
