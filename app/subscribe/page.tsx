@@ -328,6 +328,7 @@ function SubscribePageContent() {
           <option value="CONSTRUCTION">Construccion (NIC 11 / NIIF 15)</option>
           <option value="MANUFACTURING">Manufactura / Industrial</option>
           <option value="PROFESSIONAL_SERVICES">Servicios Profesionales (Consultoria/Legal)</option>
+          <option value="AGRICULTURE">Agricola / Ganadero (NIC 41)</option>
         </select>
 
         <label style={{ fontSize: 15, color: "#8B93A7", fontWeight: 600, marginTop: 20, display: "block" }}>COMPROBANTE DE PAGO (opcional, puedes enviarlo despues)</label>
