@@ -4,10 +4,8 @@ import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
 import VerticalPageLayout from "@/app/components/VerticalPageLayout";
 import { generateFinancialStatementPdf } from "@/app/core/reports/generateFinancialStatementPdf";
-
 interface Account { id: string; account_code: string; account_name: string; }
 interface Line { account_id: string; debit: string; credit: string; }
-
 export default function JournalPage() {
   const theme = getVerticalTheme("accounting");
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -22,13 +20,39 @@ export default function JournalPage() {
   const [entries, setEntries] = useState<any[]>([]);
 
   async function loadEntries(cid: string) {
-    const { data } = await supabase
+    const { data: entriesData, error: entriesError } = await supabase
       .from("journal_entries")
-      .select("id, description, entry_date, status, journal_lines(debit, credit, chart_of_accounts!journal_lines_account_id_fkey(account_code, account_name))")
+      .select("id, description, entry_date, status")
       .eq("company_id", cid)
       .order("created_at", { ascending: false })
       .limit(15);
-    setEntries(data ?? []);
+
+    if (entriesError || !entriesData) { console.error("Error cargando asientos:", entriesError); setEntries([]); return; }
+    if (entriesData.length === 0) { setEntries([]); return; }
+
+    const entryIds = entriesData.map((e: any) => e.id);
+    const { data: linesData } = await supabase
+      .from("journal_lines")
+      .select("journal_entry_id, account_id, debit, credit")
+      .in("journal_entry_id", entryIds);
+
+    const accountIds = Array.from(new Set((linesData ?? []).map((l: any) => l.account_id)));
+    const { data: accountsData } = await supabase
+      .from("chart_of_accounts")
+      .select("id, account_code, account_name")
+      .in("id", accountIds);
+
+    const accountsById: Record<string, any> = {};
+    (accountsData ?? []).forEach((a: any) => { accountsById[a.id] = a; });
+
+    const enrichedEntries = entriesData.map((e: any) => ({
+      ...e,
+      journal_lines: (linesData ?? [])
+        .filter((l: any) => l.journal_entry_id === e.id)
+        .map((l: any) => ({ ...l, chart_of_accounts: accountsById[l.account_id] })),
+    }));
+
+    setEntries(enrichedEntries);
   }
 
   useEffect(() => {
@@ -49,7 +73,6 @@ export default function JournalPage() {
     }
     load();
   }, []);
-
   function updateLine(i: number, f: keyof Line, v: string) { const u = [...lines]; u[i][f] = v; setLines(u); }
   function addLine() { setLines([...lines, { account_id: "", debit: "", credit: "" }]); }
   function totalDebit() { return lines.reduce((s, l) => s + (parseFloat(l.debit) || 0), 0); }
@@ -70,14 +93,12 @@ export default function JournalPage() {
     setLines([{ account_id: "", debit: "", credit: "" }, { account_id: "", debit: "", credit: "" }]);
     if (companyId) await loadEntries(companyId);
   }
-
   async function voidEntry(entryId: string) {
     const reason = window.prompt("Motivo de la anulacion:");
     if (!reason) return;
     await supabase.from("journal_entries").update({ status: "VOIDED", voided_at: new Date().toISOString(), void_reason: reason }).eq("id", entryId);
     if (companyId) await loadEntries(companyId);
   }
-
   function downloadPdf() {
     const items = entries.filter((e) => e.status === "ACTIVE").flatMap((e: any) =>
       (e.journal_lines ?? []).map((l: any) => ({
@@ -99,8 +120,8 @@ export default function JournalPage() {
     );
     doc.save("libro-diario.pdf");
   }
-
   const inputStyle = theme.inputStyle;
+
   return (
     <VerticalPageLayout
       vertical="accounting"
@@ -141,7 +162,6 @@ export default function JournalPage() {
           {message && <p style={{ marginTop: 8, color: message.includes("Error") ? "#F87171" : theme.accent }}>{message}</p>}
         </div>
       )}
-
       {entries.length > 0 && (
         <div style={{ marginTop: 32 }}>
           <h2 style={{ fontSize: 26, color: theme.accent, fontFamily: theme.titleStyle.fontFamily, fontWeight: 700 }}>Asientos Recientes</h2>
