@@ -40,6 +40,7 @@ const navItems = [
       { href: "/accounting/withholding-summary", label: "Resumen Retenciones" },
       { href: "/accounting/special-taxpayer", label: "Contribuyente Especial" },
       { href: "/accounting/islr", label: "ISLR Anual" },
+      { href: "/accounting/islr-estimated", label: "ISLR Declaracion Estimada" },
       { href: "/accounting/deferred-tax", label: "Impuesto Diferido" },
     ],
   },
