@@ -42,20 +42,45 @@ export default function InventoryBookPage() {
 
     const { data: inventoryItems } = await supabase.from("inventory_items").select("sku, item_name, unit, current_quantity, current_avg_cost").eq("company_id", companyId);
 
-    const { data: accountsData } = await supabase.from("chart_of_accounts").select("id, account_type").eq("company_id", companyId).in("account_type", ["ASSET", "LIABILITY"]);
-    const accountsMap: Record<string, string> = {};
-    (accountsData ?? []).forEach((a: any) => { accountsMap[a.id] = a.account_type; });
+    const { data: accountsData } = await supabase.from("chart_of_accounts").select("id, account_code, account_name, account_type").eq("company_id", companyId).in("account_type", ["ASSET", "LIABILITY", "REVENUE", "EXPENSE"]);
+    const accountsMap: Record<string, any> = {};
+    (accountsData ?? []).forEach((a: any) => { accountsMap[a.id] = a; });
     const accountIds = (accountsData ?? []).map((a: any) => a.id);
 
     const { data: lines } = await supabase.from("journal_lines").select("debit, credit, account_id").in("account_id", accountIds);
 
-    let totalAssets = 0, totalLiabilities = 0;
+    const balances: Record<string, number> = {};
+    let totalAssets = 0, totalLiabilities = 0, totalRevenue = 0, totalExpense = 0;
     (lines ?? []).forEach((l: any) => {
-      const type = accountsMap[l.account_id];
-      if (type === "ASSET") totalAssets += (l.debit || 0) - (l.credit || 0);
-      if (type === "LIABILITY") totalLiabilities += (l.credit || 0) - (l.debit || 0);
+      const acc = accountsMap[l.account_id];
+      if (!acc) return;
+      const netMovement = (l.debit || 0) - (l.credit || 0);
+      balances[l.account_id] = (balances[l.account_id] || 0) + netMovement;
+      if (acc.account_type === "ASSET") totalAssets += netMovement;
+      if (acc.account_type === "LIABILITY") totalLiabilities += -netMovement;
+      if (acc.account_type === "REVENUE") totalRevenue += -netMovement;
+      if (acc.account_type === "EXPENSE") totalExpense += netMovement;
     });
     const totalEquity = totalAssets - totalLiabilities;
+    const netIncome = totalRevenue - totalExpense;
+
+    const balanceSheetSnapshot = Object.entries(balances)
+      .filter(([accId]) => ["ASSET", "LIABILITY"].includes(accountsMap[accId]?.account_type))
+      .map(([accId, balance]) => ({
+        code: accountsMap[accId].account_code,
+        name: accountsMap[accId].account_name,
+        type: accountsMap[accId].account_type,
+        balance: accountsMap[accId].account_type === "LIABILITY" ? -balance : balance,
+      }));
+
+    const incomeStatementSnapshot = Object.entries(balances)
+      .filter(([accId]) => ["REVENUE", "EXPENSE"].includes(accountsMap[accId]?.account_type))
+      .map(([accId, balance]) => ({
+        code: accountsMap[accId].account_code,
+        name: accountsMap[accId].account_name,
+        type: accountsMap[accId].account_type,
+        balance: accountsMap[accId].account_type === "REVENUE" ? -balance : balance,
+      }));
 
     const inventorySnapshot = (inventoryItems ?? []).map((i: any) => ({
       sku: i.sku, name: i.item_name, unit: i.unit, quantity: i.current_quantity, avgCost: i.current_avg_cost, totalValue: i.current_quantity * i.current_avg_cost,
@@ -71,11 +96,13 @@ export default function InventoryBookPage() {
       total_liabilities: totalLiabilities,
       total_equity: totalEquity,
       inventory_snapshot: inventorySnapshot,
+      balance_sheet_snapshot: balanceSheetSnapshot,
+      income_statement_snapshot: { items: incomeStatementSnapshot, netIncome },
     }]);
 
     if (error) { setMessage("Error: " + error.message); setLoading(false); return; }
 
-    setMessage("Periodo archivado correctamente en el Libro de Inventario (Nº " + nextNumber + ").");
+    setMessage("Periodo archivado correctamente con Balance y Estado de Resultados completos (Nº " + nextNumber + ").");
     setLoading(false);
     await loadEntries(companyId);
   }
@@ -114,7 +141,29 @@ export default function InventoryBookPage() {
 
               {expandedEntry === e.id && (
                 <div style={{ marginTop: 16, borderTop: "1px solid #1F2937", paddingTop: 16 }}>
-                  <h3 style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginBottom: 8 }}>Detalle de Inventario ({(e.inventory_snapshot ?? []).length} items)</h3>
+                  <h3 style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginBottom: 8 }}>Balance de Situacion (Detalle)</h3>
+                  {(e.balance_sheet_snapshot ?? []).map((acc: any, idx: number) => (
+                    <div key={idx} style={{ display: "flex", justifyContent: "space-between", padding: 5, fontSize: 14, borderBottom: "1px solid #1F2937" }}>
+                      <span>{acc.code} - {acc.name}</span>
+                      <span style={theme.numberStyle}>{acc.balance?.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                    </div>
+                  ))}
+
+                  <h3 style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginTop: 16, marginBottom: 8 }}>Estado de Resultados (Detalle)</h3>
+                  {(e.income_statement_snapshot?.items ?? []).map((acc: any, idx: number) => (
+                    <div key={idx} style={{ display: "flex", justifyContent: "space-between", padding: 5, fontSize: 14, borderBottom: "1px solid #1F2937" }}>
+                      <span>{acc.code} - {acc.name}</span>
+                      <span style={theme.numberStyle}>{acc.balance?.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                    </div>
+                  ))}
+                  {e.income_statement_snapshot?.netIncome !== undefined && (
+                    <div style={{ display: "flex", justifyContent: "space-between", padding: 8, marginTop: 8, borderTop: "1px solid " + theme.accent, fontWeight: 700, fontSize: 16 }}>
+                      <span>Resultado Neto del Periodo</span>
+                      <span style={theme.numberStyle}>{e.income_statement_snapshot.netIncome.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                    </div>
+                  )}
+
+                  <h3 style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginTop: 16, marginBottom: 8 }}>Detalle de Inventario ({(e.inventory_snapshot ?? []).length} items)</h3>
                   {(e.inventory_snapshot ?? []).length === 0 && <p style={{ fontSize: 15, color: "#8B93A7" }}>Sin items de inventario registrados en esta fecha.</p>}
                   {(e.inventory_snapshot ?? []).map((item: any, idx: number) => (
                     <div key={idx} style={{ display: "flex", justifyContent: "space-between", padding: 6, fontSize: 15, borderBottom: "1px solid #1F2937" }}>
