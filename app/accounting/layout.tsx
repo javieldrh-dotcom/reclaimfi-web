@@ -9,6 +9,7 @@ const navItems = [
       { href: "/accounting/journal", label: "Libro Diario" },
       { href: "/accounting/general-ledger", label: "Libro Mayor" },
       { href: "/accounting/inventory", label: "Inventario de Mercancia" },
+      { href: "/accounting/inventory-book", label: "Libro de Inventario (Legal)" },
     ],
   },
   {
