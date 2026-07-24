@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { getVerticalTheme } from "@/app/core/design/tokens";
 import VerticalPageLayout from "@/app/components/VerticalPageLayout";
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from "docx";
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType, BorderStyle } from "docx";
 import { saveAs } from "file-saver";
 
 interface ReportField { key: string; label: string; type: "text" | "date" | "textarea"; }
@@ -16,6 +16,10 @@ const TEMPLATES: ReportTemplate[] = [
     fields: [
       { key: "companyName", label: "Nombre de la Empresa", type: "text" },
       { key: "shareholderName", label: "Nombre del Accionista que Aporta", type: "text" },
+      { key: "shareholderCedula", label: "Cedula del Accionista", type: "text" },
+      { key: "currency", label: "Moneda de Expresion (ej. Bolivares, USD)", type: "text" },
+      { key: "terrenosAmount", label: "Monto Total - Terrenos", type: "text" },
+      { key: "edificacionesAmount", label: "Monto Total - Edificaciones", type: "text" },
       { key: "presentationDate", label: "Fecha de Presentacion del Inventario", type: "date" },
       { key: "assemblyDate", label: "Fecha de la Asamblea Extraordinaria", type: "date" },
       { key: "mercantileRegistry", label: "Registro Mercantil (numero/identificacion)", type: "text" },
@@ -117,6 +121,55 @@ export default function ProfessionalReportsPage() {
   function updateField(key: string, value: string) {
     setFormData((prev) => ({ ...prev, [key]: value }));
   }
+  function cell(text: string, bold = false) {
+    return new TableCell({
+      children: [new Paragraph({ children: [new TextRun({ text, bold })] })],
+      width: { size: 33, type: WidthType.PERCENTAGE },
+    });
+  }
+
+  async function generateInventarioAnexo() {
+    const d = formData;
+    const terrenos = parseFloat((d.terrenosAmount || "0").replace(/,/g, "")) || 0;
+    const edificaciones = parseFloat((d.edificacionesAmount || "0").replace(/,/g, "")) || 0;
+    const total = terrenos + edificaciones;
+
+    const doc = new Document({
+      sections: [{
+        children: [
+          new Paragraph({ children: [new TextRun({ text: "INVENTARIO DE BIENES INMUEBLES APORTADO POR LOS ACCIONISTAS COMO PARTE DEL CAPITAL SOCIAL", bold: true, size: 24 })], alignment: AlignmentType.CENTER, spacing: { after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "Al " + (d.presentationDate || "[FECHA]") })], alignment: AlignmentType.CENTER, spacing: { after: 50 } }),
+          new Paragraph({ children: [new TextRun({ text: "(Expresado en " + (d.currency || "Bolivares") + ")" })], alignment: AlignmentType.CENTER, spacing: { after: 300 } }),
+
+          new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            rows: [
+              new TableRow({ children: [cell("Descripcion", true), cell("Notas", true), cell("Monto en " + (d.currency || "Bs"), true)] }),
+              new TableRow({ children: [cell("BIENES INMUEBLES:", true), cell(""), cell("")] }),
+              new TableRow({ children: [cell("Terrenos"), cell("2"), cell(terrenos.toLocaleString(undefined, { minimumFractionDigits: 2 }))] }),
+              new TableRow({ children: [cell("Edificaciones"), cell("3"), cell(edificaciones.toLocaleString(undefined, { minimumFractionDigits: 2 }))] }),
+              new TableRow({ children: [cell("TOTAL BIENES INMUEBLES", true), cell(""), cell(total.toLocaleString(undefined, { minimumFractionDigits: 2 }), true)] }),
+            ],
+          }),
+
+          new Paragraph({ children: [new TextRun({ text: "" })], spacing: { before: 400 } }),
+          new Paragraph({ children: [new TextRun({ text: "_______________________________" })], spacing: { before: 300 } }),
+          new Paragraph({ children: [new TextRun({ text: "Nombre y firma Responsable Informacion (Cliente)" })] }),
+          new Paragraph({ children: [new TextRun({ text: (d.shareholderName || "[NOMBRE]") + " - C.I N° V-" + (d.shareholderCedula || "[CEDULA]") })], spacing: { after: 300 } }),
+
+          new Paragraph({ children: [new TextRun({ text: "Las notas anexas son parte integral del inventario de bienes inmuebles aportado por los accionistas de la empresa " + (d.companyName || "[EMPRESA]") + ", como aporte del aumento del capital social de la empresa.", italics: true, size: 20 })], spacing: { before: 200, after: 300 } }),
+
+          new Paragraph({ children: [new TextRun({ text: "VER INFORME DE ASEGURAMIENTO DEL CONTADOR PUBLICO INDEPENDIENTE", bold: true })], spacing: { before: 200, after: 200 } }),
+          new Paragraph({ children: [new TextRun({ text: "Hago constar que cada uno de los inmuebles detallados en esta relacion, provienen de actividades legitimas y de comprobable licito comercio." })], spacing: { after: 200 } }),
+        ],
+      }],
+    });
+
+    const blob = await Packer.toBlob(doc);
+    saveAs(blob, "anexo-inventario-bienes-" + (d.companyName || "empresa").replace(/\s+/g, "-").toLowerCase() + ".docx");
+    setMessage("Anexo de inventario generado y descargado correctamente.");
+  }
+
   async function generateAumentoCapital() {
     const d = formData;
     const doc = new Document({
@@ -401,6 +454,11 @@ export default function ProfessionalReportsPage() {
           <button onClick={handleGenerate} style={{ ...theme.buttonStyle, marginTop: 24, fontSize: 18 }}>
             GENERAR Y DESCARGAR INFORME
           </button>
+          {selectedTemplate.id === "niea3000-aumento-capital" && (
+            <button onClick={generateInventarioAnexo} style={{ ...theme.buttonStyle, marginTop: 12, marginLeft: 12, fontSize: 18, background: "#818CF8" }}>
+              GENERAR ANEXO - TABLA DE INVENTARIO
+            </button>
+          )}
           {message && <p style={{ marginTop: 12, fontSize: 16, color: theme.accent }}>{message}</p>}
         </div>
       )}
