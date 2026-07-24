@@ -10,6 +10,23 @@ interface ReportTemplate { id: string; name: string; description: string; fields
 
 const TEMPLATES: ReportTemplate[] = [
   {
+    id: "niea3000-aumento-capital",
+    name: "Informe NIEA 3000 - Inventario de Bienes para Aumento de Capital",
+    description: "Informe del Contador Publico Independiente sobre el inventario de bienes inmuebles aportados por un accionista para aumentar el capital social de una empresa ya constituida.",
+    fields: [
+      { key: "companyName", label: "Nombre de la Empresa", type: "text" },
+      { key: "shareholderName", label: "Nombre del Accionista que Aporta", type: "text" },
+      { key: "presentationDate", label: "Fecha de Presentacion del Inventario", type: "date" },
+      { key: "assemblyDate", label: "Fecha de la Asamblea Extraordinaria", type: "date" },
+      { key: "mercantileRegistry", label: "Registro Mercantil (numero/identificacion)", type: "text" },
+      { key: "judicialCircumscription", label: "Circunscripcion Judicial del Estado", type: "text" },
+      { key: "accountantName", label: "Nombre y Apellido del Contador Publico", type: "text" },
+      { key: "cpcNumber", label: "Numero de C.P.C.", type: "text" },
+      { key: "city", label: "Ciudad", type: "text" },
+      { key: "reportDate", label: "Fecha del Informe", type: "date" },
+    ],
+  },
+  {
     id: "certificacion-ingresos-limitada",
     name: "Certificacion de Ingresos (Seguridad Limitada)",
     description: "Informe de aseguramiento con seguridad limitada (expresion negativa) sobre la relacion de ingresos de una persona natural, usualmente para tramites de credito bancario.",
@@ -100,6 +117,48 @@ export default function ProfessionalReportsPage() {
   function updateField(key: string, value: string) {
     setFormData((prev) => ({ ...prev, [key]: value }));
   }
+  async function generateAumentoCapital() {
+    const d = formData;
+    const doc = new Document({
+      sections: [{
+        children: [
+          new Paragraph({ children: [new TextRun({ text: "INFORME DE ASEGURAMIENTO DEL CONTADOR PUBLICO INDEPENDIENTE", bold: true, size: 24 })], alignment: AlignmentType.CENTER, spacing: { after: 300 } }),
+          new Paragraph({ children: [new TextRun({ text: "A los Señores Accionistas y a la Junta Directiva" })], spacing: { after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: (d.companyName || "[NOMBRE DE LA EMPRESA]").toUpperCase(), bold: true })], spacing: { after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: (d.city || "[CIUDAD]") + ". -" })], spacing: { after: 300 } }),
+
+          new Paragraph({ children: [new TextRun({ text: "ALCANCE", bold: true })], spacing: { before: 200, after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "He sido contratado(a) para examinar e informar sobre el Inventario de Bienes Inmuebles que se adjunta, como aporte de los accionistas de la empresa " + (d.companyName || "[NOMBRE DE LA EMPRESA]") + ", al " + (d.presentationDate || "[FECHA]") + ", destinado a aumentar el Capital Social segun convocatoria realizada para una asamblea extraordinaria de accionistas en fecha " + (d.assemblyDate || "[FECHA]") + "." })], spacing: { after: 200 } }),
+
+          new Paragraph({ children: [new TextRun({ text: "RESPONSABILIDAD DE LOS ADMINISTRADORES DE LA EMPRESA", bold: true })], spacing: { before: 200, after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "Los administradores de la empresa " + (d.companyName || "[NOMBRE DE LA EMPRESA]") + ", son los responsables de la preparacion y presentacion del inventario de bienes inmuebles aportado por el accionista " + (d.shareholderName || "[ACCIONISTA]") + " para aumentar el capital social, tomando en consideracion los valores aprobados por los accionistas." })], spacing: { after: 200 } }),
+
+          new Paragraph({ children: [new TextRun({ text: "RESPONSABILIDAD DEL CONTADOR PUBLICO INDEPENDIENTE", bold: true })], spacing: { before: 200, after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "Mi responsabilidad consiste en expresar una conclusion, sobre la propiedad y existencia de los bienes inmuebles incluidos en el inventario preparado y presentado por los administradores de la empresa " + (d.companyName || "[NOMBRE DE LA EMPRESA]") + " con base en mis procedimientos, los cuales fueron realizados de conformidad con la Norma Internacional para Encargos de Aseguramiento, distintos de auditorias y revision de estados financieros, numero 3000 (NIEA 3000)." })], spacing: { after: 200 } }),
+          new Paragraph({ children: [new TextRun({ text: "Un encargo de aseguramiento para informar sobre el inventario de bienes inmuebles aportados por los accionistas de una empresa constituida, como aporte para el aumento del capital social, implica llevar a cabo procedimientos de auditoria para obtener evidencia sobre la propiedad y existencia de los bienes contenidos en el referido inventario. La norma preve que cumpla con los requerimientos eticos, y que planifique y realice mis procedimientos para obtener una seguridad razonable de que los bienes aportados existen y son propiedad de los accionistas de la empresa. Los procedimientos seleccionados dependen del juicio del auditor independiente de la empresa, lo cual incluye la revision de los documentos que demuestran la titularidad de la propiedad de los bienes y la inspeccion fisica para comprobar su existencia." })], spacing: { after: 200 } }),
+
+          new Paragraph({ children: [new TextRun({ text: "CONCLUSION", bold: true })], spacing: { before: 200, after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "Mi opinion se ha formado sobre la base de la evidencia obtenida. Los criterios que utilice para formar mi opinion son los relacionados con la existencia y propiedad de los bienes inmuebles incluidos en el inventario al " + (d.presentationDate || "[FECHA]") + ". En mi opinion, respecto a todo lo importante:" })], spacing: { after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "a) Los bienes inmuebles que se presentan en el Inventario de Bienes Inmuebles, aportado por el accionista Sr./Sra. " + (d.shareholderName || "[ACCIONISTA]") + " para aumentar el capital social al " + (d.presentationDate || "[FECHA]") + " existen, y" })], spacing: { after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "b) Son de propiedad del Sr./Sra. " + (d.shareholderName || "[ACCIONISTA]") + ", accionista de la empresa " + (d.companyName || "[NOMBRE DE LA EMPRESA]") + ", para que sean aprobados en asamblea extraordinaria de accionistas de fecha " + (d.assemblyDate || "[FECHA]") + ", con el fin de que se constituya en su aporte para aumentar la cantidad de sus acciones y en consecuencia el aumento del capital social de la empresa " + (d.companyName || "[NOMBRE DE LA EMPRESA]") + "." })], spacing: { after: 200 } }),
+
+          new Paragraph({ children: [new TextRun({ text: "USUARIOS PREVISTOS Y PROPOSITO", bold: true })], spacing: { before: 200, after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "Este informe esta dirigido unicamente para tramitar ante el Registro Mercantil " + (d.mercantileRegistry || "[IDENTIFICAR]") + ", de la Circunscripcion Judicial del Estado " + (d.judicialCircumscription || "[ESTADO]") + ", el registro del acta de asamblea extraordinaria de accionistas de fecha " + (d.assemblyDate || "[FECHA]") + " de la empresa " + (d.companyName || "[NOMBRE DE LA EMPRESA]") + "." })], spacing: { after: 500 } }),
+
+          new Paragraph({ children: [new TextRun({ text: "_______________________________" })], spacing: { before: 400 } }),
+          new Paragraph({ children: [new TextRun({ text: "Firma del Contador Publico" })] }),
+          new Paragraph({ children: [new TextRun({ text: (d.accountantName || "[NOMBRE Y APELLIDOS]") })] }),
+          new Paragraph({ children: [new TextRun({ text: "C.P.C. " + (d.cpcNumber || "[NUMERO]") })] }),
+          new Paragraph({ children: [new TextRun({ text: (d.city || "[CIUDAD]") + ", " + (d.reportDate || "[FECHA]") })], spacing: { after: 200 } }),
+        ],
+      }],
+    });
+
+    const blob = await Packer.toBlob(doc);
+    saveAs(blob, "informe-aumento-capital-" + (d.companyName || "empresa").replace(/\s+/g, "-").toLowerCase() + ".docx");
+    setMessage("Informe de aumento de capital generado y descargado correctamente.");
+  }
+
   async function generateCertificacionIngresosLimitada() {
     const d = formData;
     const doc = new Document({
@@ -289,6 +348,9 @@ export default function ProfessionalReportsPage() {
     }
     if (selectedTemplate.id === "certificacion-ingresos-limitada") {
       generateCertificacionIngresosLimitada();
+    }
+    if (selectedTemplate.id === "niea3000-aumento-capital") {
+      generateAumentoCapital();
     }
   }
 
