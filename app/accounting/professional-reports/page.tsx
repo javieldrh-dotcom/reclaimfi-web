@@ -37,6 +37,7 @@ const TEMPLATES: ReportTemplate[] = [
       { key: "currentYearEnd", label: "Fecha de Cierre del Ejercicio Actual (ej. 31 de diciembre de 2025)", type: "text" },
       { key: "priorYearEnd", label: "Fecha de Cierre del Ejercicio Comparativo (ej. 31 de diciembre de 2024)", type: "text" },
       { key: "accountingFramework", label: "Marco de Referencia Contable (ej. VEN NIF, VEN NIF PYME)", type: "text" },
+      { key: "regulatoryBody", label: "Organismo Regulador (opcional - si los EF se rigen por normas de un organismo distinto a VEN-NIF, ej. SUDEBAN, SUDEASEG)", type: "text" },
       { key: "emphasisNote", label: "Parrafo de Llamado de Atencion Completo (opcional - escribe el parrafo tal como debe aparecer, dejar vacio si no aplica)", type: "textarea" },
       { key: "firmName", label: "Razon Social de la Firma", type: "text" },
       { key: "accountantName", label: "Nombre del Contador Publico", type: "text" },
@@ -304,7 +305,7 @@ export default function ProfessionalReportsPage() {
 
           new Paragraph({ children: [new TextRun({ text: "La administracion es responsable por estos estados financieros. No hemos auditado ni revisado estos estados financieros y consecuentemente, no expresamos ninguna opinion sobre los mismos." })], spacing: { after: 200 } }),
 
-          new Paragraph({ children: [new TextRun({ text: "El marco conceptual para informes financieros identificado, que sirvieron de base para la preparacion de los estados financieros que se anexan, fueron los principios de contabilidad generalmente aceptados en la Republica Bolivariana de Venezuela (" + (d.accountingFramework || "VEN NIF") + ")." })], spacing: { after: (d.emphasisNote ? 200 : 500) } }),
+          new Paragraph({ children: [new TextRun({ text: d.regulatoryBody ? ("El marco conceptual para informes financieros identificado, que sirvieron de base para la preparacion de los estados financieros que se anexan, fueron las normas establecidas por " + d.regulatoryBody + ", las cuales difieren de los Principios de Contabilidad Generalmente Aceptados en Venezuela (VEN-NIF).") : ("El marco conceptual para informes financieros identificado, que sirvieron de base para la preparacion de los estados financieros que se anexan, fueron los principios de contabilidad generalmente aceptados en la Republica Bolivariana de Venezuela (" + (d.accountingFramework || "VEN NIF") + ").") })], spacing: { after: (d.emphasisNote ? 200 : 500) } }),
 
           ...(d.emphasisNote ? [new Paragraph({ children: [new TextRun({ text: d.emphasisNote })], spacing: { after: 500 } })] : []),
 
