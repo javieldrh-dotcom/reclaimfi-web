@@ -10,6 +10,22 @@ interface ReportTemplate { id: string; name: string; description: string; fields
 
 const TEMPLATES: ReportTemplate[] = [
   {
+    id: "nisr4410-balance-personal",
+    name: "Informe de Compilacion - Balance Personal (NISR 4410)",
+    description: "Informe de compilacion de informacion financiera para una persona natural, grupo o comunidad NO obligada a llevar registros de contabilidad formal - usado para Balance Personal.",
+    fields: [
+      { key: "addressee", label: "Nombre de la Persona o Entidad Destinataria", type: "text" },
+      { key: "subjectName", label: "Nombre de la Persona, Grupo o Comunidad", type: "text" },
+      { key: "infoIdentification", label: "Identificacion de la Informacion Compilada (ej. Balance Personal)", type: "text" },
+      { key: "compilationDate", label: "Fecha de la Informacion Compilada", type: "date" },
+      { key: "firmName", label: "Razon Social de la Firma", type: "text" },
+      { key: "accountantName", label: "Nombre del Contador Publico", type: "text" },
+      { key: "cpcNumber", label: "Numero de C.P.C.", type: "text" },
+      { key: "city", label: "Ciudad", type: "text" },
+      { key: "reportDate", label: "Fecha del Informe", type: "date" },
+    ],
+  },
+  {
     id: "nisr4410-fondo-comercio",
     name: "Informe de Preparacion de EF - Fondo de Comercio (NISR 4410)",
     description: "Informe de compilacion para el fondo de comercio de una persona natural comerciante, obligada a llevar registros de contabilidad segun el Codigo de Comercio de Venezuela.",
@@ -261,6 +277,35 @@ export default function ProfessionalReportsPage() {
     const blob = await Packer.toBlob(doc);
     saveAs(blob, "anexo-inventario-bienes-" + (d.companyName || "empresa").replace(/\s+/g, "-").toLowerCase() + ".docx");
     setMessage("Anexo de inventario generado y descargado correctamente.");
+  }
+
+  async function generateBalancePersonal() {
+    const d = formData;
+    const doc = new Document({
+      sections: [{
+        children: [
+          new Paragraph({ children: [new TextRun({ text: "INFORME DE COMPILACION DE INFORMACION FINANCIERA", bold: true, size: 24 })], alignment: AlignmentType.CENTER, spacing: { after: 300 } }),
+          new Paragraph({ children: [new TextRun({ text: "Señores:" })], spacing: { after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: (d.addressee || "[DESTINATARIO]") })], spacing: { after: 300 } }),
+
+          new Paragraph({ children: [new TextRun({ text: "Sobre la base de la informacion proporcionada por " + (d.subjectName || "[NOMBRE]") + ", hemos compilado, de acuerdo con la Norma Internacional de Servicios Relacionados 4410 (NISR 4410), Trabajos para compilar informacion financiera, " + (d.infoIdentification || "[INFORMACION COMPILADA]") + " de " + (d.subjectName || "[NOMBRE]") + ", al " + (d.compilationDate || "[FECHA]") + "." })], spacing: { after: 200 } }),
+
+          new Paragraph({ children: [new TextRun({ text: (d.subjectName || "[NOMBRE]") + ", es responsable por esta informacion financiera compilada. No hemos auditado ni revisado esta informacion financiera compilada y consecuentemente, no expresamos ninguna opinion sobre la misma." })], spacing: { after: 200 } }),
+
+          new Paragraph({ children: [new TextRun({ text: "Tratandose de personas naturales o persona no obligada, es practica comun que no se lleven registros de contabilidad que aseguren la inclusion de todos los activos y pasivos, asi mismo, las bases de medicion utilizadas, en muchos casos son distintas al costo de adquisicion." })], spacing: { after: 500 } }),
+
+          new Paragraph({ children: [new TextRun({ text: (d.firmName || "[RAZON SOCIAL DE LA FIRMA]"), bold: true })], spacing: { before: 200 } }),
+          new Paragraph({ children: [new TextRun({ text: "Firma Autografa" })] }),
+          new Paragraph({ children: [new TextRun({ text: (d.accountantName || "[NOMBRE DEL CONTADOR PUBLICO]") })] }),
+          new Paragraph({ children: [new TextRun({ text: "Numero del C.P.C. " + (d.cpcNumber || "[NUMERO]") })] }),
+          new Paragraph({ children: [new TextRun({ text: (d.city || "[CIUDAD]") + ", " + (d.reportDate || "[FECHA]") })], spacing: { after: 200 } }),
+        ],
+      }],
+    });
+
+    const blob = await Packer.toBlob(doc);
+    saveAs(blob, "balance-personal-" + (d.subjectName || "persona").replace(/\s+/g, "-").toLowerCase() + ".docx");
+    setMessage("Informe de balance personal generado y descargado correctamente.");
   }
 
   async function generateNisr4410FondoComercio() {
@@ -613,6 +658,9 @@ export default function ProfessionalReportsPage() {
     }
     if (selectedTemplate.id === "nisr4410-fondo-comercio") {
       generateNisr4410FondoComercio();
+    }
+    if (selectedTemplate.id === "nisr4410-balance-personal") {
+      generateBalancePersonal();
     }
   }
 
