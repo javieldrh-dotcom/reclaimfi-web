@@ -193,6 +193,8 @@ export default function ProfessionalReportsPage() {
   const [selectedTemplate, setSelectedTemplate] = useState<ReportTemplate | null>(null);
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [message, setMessage] = useState("");
+  const [professionalDesignation, setProfessionalDesignation] = useState("C.P.C.");
+  const [jurisdictionName, setJurisdictionName] = useState("Republica Bolivariana de Venezuela");
 
   function selectTemplate(t: ReportTemplate) {
     setSelectedTemplate(t);
@@ -332,7 +334,7 @@ export default function ProfessionalReportsPage() {
 
           new Paragraph({ children: [new TextRun({ text: (d.merchantName || "[PERSONA NATURAL COMERCIANTE]") + " es responsable por estos estados financieros. No hemos auditado ni revisado estos estados financieros y consecuentemente, no expresamos ninguna opinion sobre los mismos." })], spacing: { after: 200 } }),
 
-          new Paragraph({ children: [new TextRun({ text: "El marco conceptual para informes financieros identificado, que sirvieron de base para la preparacion de los estados financieros que se anexan, fueron los principios de contabilidad generalmente aceptados en la Republica Bolivariana de Venezuela (" + (d.accountingFramework || "VEN NIF") + ")." })], spacing: { after: 500 } }),
+          new Paragraph({ children: [new TextRun({ text: "El marco conceptual para informes financieros identificado, que sirvieron de base para la preparacion de los estados financieros que se anexan, fueron los principios de contabilidad generalmente aceptados en " + jurisdictionName + " (" + (d.accountingFramework || "VEN NIF") + ")." })], spacing: { after: 500 } }),
 
           new Paragraph({ children: [new TextRun({ text: (d.firmName || "[RAZON SOCIAL DE LA FIRMA]"), bold: true })], spacing: { before: 200 } }),
           new Paragraph({ children: [new TextRun({ text: "Firma Autografa" })] }),
@@ -361,7 +363,7 @@ export default function ProfessionalReportsPage() {
 
           new Paragraph({ children: [new TextRun({ text: "La administracion es responsable por estos estados financieros. No hemos auditado ni revisado estos estados financieros y consecuentemente, no expresamos ninguna opinion sobre los mismos." })], spacing: { after: 200 } }),
 
-          new Paragraph({ children: [new TextRun({ text: d.regulatoryBody ? ("El marco conceptual para informes financieros identificado, que sirvieron de base para la preparacion de los estados financieros que se anexan, fueron las normas establecidas por " + d.regulatoryBody + ", las cuales difieren de los Principios de Contabilidad Generalmente Aceptados en Venezuela (VEN-NIF).") : ("El marco conceptual para informes financieros identificado, que sirvieron de base para la preparacion de los estados financieros que se anexan, fueron los principios de contabilidad generalmente aceptados en la Republica Bolivariana de Venezuela (" + (d.accountingFramework || "VEN NIF") + ").") })], spacing: { after: (d.emphasisNote ? 200 : 500) } }),
+          new Paragraph({ children: [new TextRun({ text: d.regulatoryBody ? ("El marco conceptual para informes financieros identificado, que sirvieron de base para la preparacion de los estados financieros que se anexan, fueron las normas establecidas por " + d.regulatoryBody + ", las cuales difieren de los Principios de Contabilidad Generalmente Aceptados en Venezuela (VEN-NIF).") : ("El marco conceptual para informes financieros identificado, que sirvieron de base para la preparacion de los estados financieros que se anexan, fueron los principios de contabilidad generalmente aceptados en " + jurisdictionName + " (" + (d.accountingFramework || "VEN NIF") + ").") })], spacing: { after: (d.emphasisNote ? 200 : 500) } }),
 
           ...(d.emphasisNote ? [new Paragraph({ children: [new TextRun({ text: d.emphasisNote })], spacing: { after: 500 } })] : []),
 
@@ -415,7 +417,7 @@ export default function ProfessionalReportsPage() {
           new Paragraph({ children: [new TextRun({ text: "_______________________________" })], spacing: { before: 400 } }),
           new Paragraph({ children: [new TextRun({ text: "Firma del Contador Publico" })] }),
           new Paragraph({ children: [new TextRun({ text: (d.accountantName || "[NOMBRE Y APELLIDOS]") })] }),
-          new Paragraph({ children: [new TextRun({ text: "C.P.C. " + (d.cpcNumber || "[NUMERO]") })] }),
+          new Paragraph({ children: [new TextRun({ text: professionalDesignation + " " + (d.cpcNumber || "[NUMERO]") })] }),
           new Paragraph({ children: [new TextRun({ text: (d.city || "[CIUDAD]") + ", " + (d.reportDate || "[FECHA]") })], spacing: { after: 200 } }),
         ],
       }],
@@ -457,7 +459,7 @@ export default function ProfessionalReportsPage() {
           new Paragraph({ children: [new TextRun({ text: "_______________________________" })], spacing: { before: 400 } }),
           new Paragraph({ children: [new TextRun({ text: "Firma del Contador Publico" })] }),
           new Paragraph({ children: [new TextRun({ text: (d.accountantName || "[NOMBRE Y APELLIDOS]") })] }),
-          new Paragraph({ children: [new TextRun({ text: "C.P.C. " + (d.cpcNumber || "[NUMERO]") })] }),
+          new Paragraph({ children: [new TextRun({ text: professionalDesignation + " " + (d.cpcNumber || "[NUMERO]") })] }),
           new Paragraph({ children: [new TextRun({ text: (d.city || "[CIUDAD]") + ", " + (d.reportDate || "[FECHA]") })], spacing: { after: 200 } }),
         ],
       }],
@@ -501,7 +503,7 @@ export default function ProfessionalReportsPage() {
           new Paragraph({ children: [new TextRun({ text: "_______________________________" })], spacing: { before: 400 } }),
           new Paragraph({ children: [new TextRun({ text: "Firma del Contador Publico" })] }),
           new Paragraph({ children: [new TextRun({ text: (d.accountantName || "[NOMBRE Y APELLIDOS]") })] }),
-          new Paragraph({ children: [new TextRun({ text: "C.P.C. " + (d.cpcNumber || "[NUMERO]") })] }),
+          new Paragraph({ children: [new TextRun({ text: professionalDesignation + " " + (d.cpcNumber || "[NUMERO]") })] }),
           new Paragraph({ children: [new TextRun({ text: (d.city || "[CIUDAD]") + ", " + (d.reportDate || "[FECHA]") })], spacing: { after: 200 } }),
         ],
       }],
@@ -548,7 +550,7 @@ export default function ProfessionalReportsPage() {
           new Paragraph({ children: [new TextRun({ text: "_______________________________" })], spacing: { before: 400 } }),
           new Paragraph({ children: [new TextRun({ text: "Firma del Contador Publico" })] }),
           new Paragraph({ children: [new TextRun({ text: (d.accountantName || "[NOMBRE Y APELLIDOS]") })] }),
-          new Paragraph({ children: [new TextRun({ text: "C.P.C. " + (d.cpcNumber || "[NUMERO]") })] }),
+          new Paragraph({ children: [new TextRun({ text: professionalDesignation + " " + (d.cpcNumber || "[NUMERO]") })] }),
           new Paragraph({ children: [new TextRun({ text: (d.city || "[CIUDAD]") + ", " + (d.reportDate || "[FECHA]") })], spacing: { after: 200 } }),
         ],
       }],
@@ -724,7 +726,7 @@ export default function ProfessionalReportsPage() {
           new Paragraph({ children: [new TextRun({ text: "_______________________________" })], spacing: { before: 400 } }),
           new Paragraph({ children: [new TextRun({ text: "Firma del Contador Publico" })] }),
           new Paragraph({ children: [new TextRun({ text: (d.accountantName || "[NOMBRE Y APELLIDOS]") })] }),
-          new Paragraph({ children: [new TextRun({ text: "C.P.C. " + (d.cpcNumber || "[NUMERO]") })] }),
+          new Paragraph({ children: [new TextRun({ text: professionalDesignation + " " + (d.cpcNumber || "[NUMERO]") })] }),
           new Paragraph({ children: [new TextRun({ text: (d.city || "[CIUDAD]") + ", " + (d.reportDate || "[FECHA]") })], spacing: { after: 200 } }),
         ],
       }],
@@ -770,6 +772,20 @@ export default function ProfessionalReportsPage() {
 
   return (
     <VerticalPageLayout vertical="accounting" title="Certificaciones y Constancias" subtitle="Generador de certificaciones rutinarias con formato NIIF/NIEA - Balance Personal, Certificacion de Ingresos, Inventario de Bienes" fullWidth>
+      <div style={{ ...theme.cardStyle, marginBottom: 24, maxWidth: 700 }}>
+        <p style={{ fontSize: 15, color: theme.accent, fontWeight: 700, marginBottom: 10 }}>Configuracion de Jurisdiccion (aplica a todos los informes)</p>
+        <div style={{ display: "flex", gap: 12 }}>
+          <div style={{ flex: 1 }}>
+            <label style={{ fontSize: 13, color: "#8B93A7" }}>Designacion Profesional</label>
+            <input value={professionalDesignation} onChange={(e) => setProfessionalDesignation(e.target.value)} style={{ ...theme.inputStyle, fontSize: 15, width: "100%", marginTop: 4 }} placeholder="ej. C.P.C., CPA, Contador Publico Titulado" />
+          </div>
+          <div style={{ flex: 1 }}>
+            <label style={{ fontSize: 13, color: "#8B93A7" }}>Pais / Jurisdiccion</label>
+            <input value={jurisdictionName} onChange={(e) => setJurisdictionName(e.target.value)} style={{ ...theme.inputStyle, fontSize: 15, width: "100%", marginTop: 4 }} placeholder="ej. Republica Bolivariana de Venezuela" />
+          </div>
+        </div>
+      </div>
+
       {!selectedTemplate && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 20 }}>
           {TEMPLATES.map((t) => (
