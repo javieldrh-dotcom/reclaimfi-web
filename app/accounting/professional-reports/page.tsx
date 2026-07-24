@@ -193,8 +193,48 @@ export default function ProfessionalReportsPage() {
   const [selectedTemplate, setSelectedTemplate] = useState<ReportTemplate | null>(null);
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [message, setMessage] = useState("");
-  const [professionalDesignation, setProfessionalDesignation] = useState("C.P.C.");
+    const COUNTRIES: { continent: string; name: string; designation: string; jurisdiction: string }[] = [
+    { continent: "America", name: "Venezuela", designation: "C.P.C.", jurisdiction: "Republica Bolivariana de Venezuela" },
+    { continent: "America", name: "Colombia", designation: "Contador Publico", jurisdiction: "Republica de Colombia" },
+    { continent: "America", name: "Mexico", designation: "Contador Publico Certificado (CPC)", jurisdiction: "Estados Unidos Mexicanos" },
+    { continent: "America", name: "Peru", designation: "Contador Publico Colegiado (CPC)", jurisdiction: "Republica del Peru" },
+    { continent: "America", name: "Argentina", designation: "Contador Publico Nacional", jurisdiction: "Republica Argentina" },
+    { continent: "America", name: "Chile", designation: "Contador Auditor", jurisdiction: "Republica de Chile" },
+    { continent: "America", name: "Ecuador", designation: "Contador Publico Autorizado (CPA)", jurisdiction: "Republica del Ecuador" },
+    { continent: "America", name: "Estados Unidos", designation: "CPA (Certified Public Accountant)", jurisdiction: "United States of America" },
+    { continent: "America", name: "Canada", designation: "CPA (Chartered Professional Accountant)", jurisdiction: "Canada" },
+    { continent: "America", name: "Brasil", designation: "Contador (CRC)", jurisdiction: "Republica Federativa do Brasil" },
+    { continent: "America", name: "Panama", designation: "Contador Publico Autorizado (CPA)", jurisdiction: "Republica de Panama" },
+    { continent: "America", name: "Republica Dominicana", designation: "Contador Publico Autorizado (CPA)", jurisdiction: "Republica Dominicana" },
+    { continent: "Europa", name: "Espana", designation: "Censor Jurado de Cuentas", jurisdiction: "Reino de Espana" },
+    { continent: "Europa", name: "Reino Unido", designation: "Chartered Accountant (ACA/ACCA)", jurisdiction: "United Kingdom" },
+    { continent: "Europa", name: "Francia", designation: "Expert-Comptable", jurisdiction: "Republique Francaise" },
+    { continent: "Europa", name: "Alemania", designation: "Wirtschaftsprufer", jurisdiction: "Bundesrepublik Deutschland" },
+    { continent: "Europa", name: "Italia", designation: "Dottore Commercialista", jurisdiction: "Repubblica Italiana" },
+    { continent: "Europa", name: "Portugal", designation: "Revisor Oficial de Contas (ROC)", jurisdiction: "Republica Portuguesa" },
+    { continent: "Asia", name: "India", designation: "Chartered Accountant (CA)", jurisdiction: "Republic of India" },
+    { continent: "Asia", name: "China", designation: "Certified Public Accountant (CPA)", jurisdiction: "Peoples Republic of China" },
+    { continent: "Asia", name: "Japon", designation: "Certified Public Accountant (CPA)", jurisdiction: "Japan" },
+    { continent: "Asia", name: "Filipinas", designation: "Certified Public Accountant (CPA)", jurisdiction: "Republic of the Philippines" },
+    { continent: "Asia", name: "Emiratos Arabes Unidos", designation: "Chartered Accountant", jurisdiction: "United Arab Emirates" },
+    { continent: "Africa", name: "Sudafrica", designation: "Chartered Accountant (CA(SA))", jurisdiction: "Republic of South Africa" },
+    { continent: "Africa", name: "Nigeria", designation: "Chartered Accountant (ACA)", jurisdiction: "Federal Republic of Nigeria" },
+    { continent: "Africa", name: "Egipto", designation: "Chartered Accountant", jurisdiction: "Arab Republic of Egypt" },
+    { continent: "Africa", name: "Marruecos", designation: "Expert-Comptable", jurisdiction: "Royaume du Maroc" },
+    { continent: "Oceania", name: "Australia", designation: "Chartered Accountant (CA)", jurisdiction: "Commonwealth of Australia" },
+    { continent: "Oceania", name: "Nueva Zelanda", designation: "Chartered Accountant (CA)", jurisdiction: "New Zealand" },
+  ];
+  const [selectedCountry, setSelectedCountry] = useState("Venezuela");  const [professionalDesignation, setProfessionalDesignation] = useState("C.P.C.");
   const [jurisdictionName, setJurisdictionName] = useState("Republica Bolivariana de Venezuela");
+
+  function handleCountryChange(countryName: string) {
+    setSelectedCountry(countryName);
+    const country = COUNTRIES.find((c) => c.name === countryName);
+    if (country) {
+      setProfessionalDesignation(country.designation);
+      setJurisdictionName(country.jurisdiction);
+    }
+  }
 
   function selectTemplate(t: ReportTemplate) {
     setSelectedTemplate(t);
@@ -774,6 +814,16 @@ export default function ProfessionalReportsPage() {
     <VerticalPageLayout vertical="accounting" title="Certificaciones y Constancias" subtitle="Generador de certificaciones rutinarias con formato NIIF/NIEA - Balance Personal, Certificacion de Ingresos, Inventario de Bienes" fullWidth>
       <div style={{ ...theme.cardStyle, marginBottom: 24, maxWidth: 700 }}>
         <p style={{ fontSize: 15, color: theme.accent, fontWeight: 700, marginBottom: 10 }}>Configuracion de Jurisdiccion (aplica a todos los informes)</p>
+        <label style={{ fontSize: 13, color: "#8B93A7" }}>Pais</label>
+        <select value={selectedCountry} onChange={(e) => handleCountryChange(e.target.value)} style={{ ...theme.inputStyle, fontSize: 15, width: "100%", marginTop: 4, marginBottom: 10 }}>
+          {["America", "Europa", "Asia", "Africa", "Oceania"].map((continent) => (
+            <optgroup key={continent} label={continent}>
+              {COUNTRIES.filter((c) => c.continent === continent).map((c) => (
+                <option key={c.name} value={c.name}>{c.name}</option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
         <div style={{ display: "flex", gap: 12 }}>
           <div style={{ flex: 1 }}>
             <label style={{ fontSize: 13, color: "#8B93A7" }}>Designacion Profesional</label>
