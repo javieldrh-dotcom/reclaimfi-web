@@ -10,6 +10,28 @@ interface ReportTemplate { id: string; name: string; description: string; fields
 
 const TEMPLATES: ReportTemplate[] = [
   {
+    id: "carta-convenio-niea3000",
+    name: "Carta Convenio - Encargo de Aseguramiento NIEA 3000",
+    description: "Carta de compromiso que confirma el entendimiento de terminos y objetivos de un encargo de aseguramiento antes de iniciarlo (Anexo 1, NIEA 3000).",
+    fields: [
+      { key: "letterDate", label: "Fecha de la Carta", type: "date" },
+      { key: "clientCompanyName", label: "Nombre de la Empresa Cliente", type: "text" },
+      { key: "infoName", label: "Nombre de la Informacion a Revisar", type: "text" },
+      { key: "infoDescription", label: "Breve Descripcion de la Informacion a Revisar", type: "textarea" },
+      { key: "cutoffDate", label: "Fecha de Corte (ej. 31 de diciembre de 2025)", type: "text" },
+      { key: "assuranceLevel", label: "Nivel de Seguridad (Razonable o Limitada)", type: "text" },
+      { key: "criteria", label: "Detalle del Criterio a Utilizar", type: "textarea" },
+      { key: "usersIdentified", label: "Usuarios de la Informacion", type: "text" },
+      { key: "purpose", label: "Proposito de la Informacion", type: "textarea" },
+      { key: "procedures", label: "Detalle de los Procedimientos a Realizar", type: "textarea" },
+      { key: "specificRisk", label: "Riesgo Especifico a Mencionar", type: "text" },
+      { key: "assertion", label: "Aseveracion a Nombrar", type: "text" },
+      { key: "firmName", label: "Razon Social de la Firma", type: "text" },
+      { key: "professionalName", label: "Nombre del Profesional", type: "text" },
+      { key: "clientNameCargo", label: "Nombre y Cargo de Quien Acusa Recibo", type: "text" },
+    ],
+  },
+  {
     id: "niea3000-inventario",
     name: "Informe de Aseguramiento NIEA 3000 - Inventario de Bienes",
     description: "Informe del Contador Publico Independiente sobre el inventario de bienes muebles/inmuebles aportados como capital social en la constitucion de una empresa.",
@@ -42,6 +64,50 @@ export default function ProfessionalReportsPage() {
   function updateField(key: string, value: string) {
     setFormData((prev) => ({ ...prev, [key]: value }));
   }
+  async function generateCartaConvenio() {
+    const d = formData;
+    const doc = new Document({
+      sections: [{
+        children: [
+          new Paragraph({ children: [new TextRun({ text: (d.letterDate || "[FECHA]") })], spacing: { after: 200 } }),
+          new Paragraph({ children: [new TextRun({ text: "Al Consejo de Directores u otros representantes apropiados del cliente que contrato al contador publico" })], spacing: { after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "De la empresa " + (d.clientCompanyName || "[EMPRESA]"), bold: true })], spacing: { after: 200 } }),
+
+          new Paragraph({ children: [new TextRun({ text: "Esta carta es para confirmar nuestro entendimiento de los terminos y objetivos de nuestro encargo, asi como la naturaleza y limitaciones de los servicios que proporcionaremos." })], spacing: { after: 200 } }),
+          new Paragraph({ children: [new TextRun({ text: "Llevaremos a cabo los siguientes servicios:" })], spacing: { after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "Revisaremos el reporte de la Compania " + (d.clientCompanyName || "[EMPRESA]") + ", referido a " + (d.infoDescription || "[DESCRIPCION]") + ", al " + (d.cutoffDate || "[FECHA DE CORTE]") + ", expresaremos una conclusion de seguridad " + (d.assuranceLevel || "[razonable/limitada]") + " sobre si la informacion a ser revisada esta preparada y presentada razonablemente de acuerdo con " + (d.criteria || "[CRITERIO]") + "." })], spacing: { after: 200 } }),
+
+          new Paragraph({ children: [new TextRun({ text: "Usuarios de " + (d.infoName || "[INFORMACION]") + " y nuestro reporte relacionado", bold: true })], spacing: { before: 200, after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "La Compania confirma que los usuarios de la informacion a revisar y de nuestro reporte a emitir son " + (d.usersIdentified || "[USUARIOS]") + " para el siguiente proposito: " + (d.purpose || "[PROPOSITO]") + "." })], spacing: { after: 200 } }),
+
+          new Paragraph({ children: [new TextRun({ text: "Responsabilidades del Contador Publico", bold: true })], spacing: { before: 200, after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "Llevaremos a cabo nuestro compromiso de acuerdo con la Norma Internacional sobre ENCARGOS DE ASEGURAMIENTO 3000 (NIEA 3000). Esta norma requiere que cumplamos con los requisitos de las partes A y B del Codigo de Etica para Contadores Profesionales, incluida la independencia, y que planifiquemos y realicemos nuestro compromiso para obtener una seguridad " + (d.assuranceLevel || "[razonable/limitada]") + " sobre si " + (d.infoName || "[INFORMACION]") + " esta preparada de conformidad con los criterios establecidos." })], spacing: { after: 200 } }),
+          new Paragraph({ children: [new TextRun({ text: "Los procedimientos a realizar incluyen: " + (d.procedures || "[PROCEDIMIENTOS]") + "." })], spacing: { after: 200 } }),
+          new Paragraph({ children: [new TextRun({ text: "Nuestro aseguramiento esta planificado para obtener una seguridad " + (d.assuranceLevel || "[razonable/limitada]") + ", pero no absoluta, sobre si " + (d.infoName || "[INFORMACION]") + " esta libre de " + (d.specificRisk || "[RIESGO]") + " debido a error o fraude." })], spacing: { after: 200 } }),
+
+          new Paragraph({ children: [new TextRun({ text: "Responsabilidades de la Gerencia", bold: true })], spacing: { before: 200, after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "Nuestro encargo sera ejecutado sobre la base de que la Compania entiende y acuerda su responsabilidad sobre la preparacion y presentacion razonable de " + (d.assertion || "[ASEVERACION]") + "; diseno, implementacion y eficacia de los controles internos; prevencion y deteccion del fraude; y acceso ilimitado a la informacion y personal necesarios para nuestros procedimientos." })], spacing: { after: 200 } }),
+
+          new Paragraph({ children: [new TextRun({ text: "Honorarios Profesionales", bold: true })], spacing: { before: 200, after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "Nuestros honorarios, que seran facturados conforme el encargo progrese, se basan en el tiempo requerido por las personas asignadas al encargo, mas gastos directos." })], spacing: { after: 300 } }),
+
+          new Paragraph({ children: [new TextRun({ text: "Favor de firmar y regresar la copia anexa a esta carta, para confirmar su conformidad con el entendimiento de los terminos del encargo." })], spacing: { after: 400 } }),
+
+          new Paragraph({ children: [new TextRun({ text: (d.firmName || "[RAZON SOCIAL DE LA FIRMA]"), bold: true })], spacing: { before: 200 } }),
+          new Paragraph({ children: [new TextRun({ text: "Firma autografa" })] }),
+          new Paragraph({ children: [new TextRun({ text: (d.professionalName || "[NOMBRE DEL PROFESIONAL]") })], spacing: { after: 300 } }),
+
+          new Paragraph({ children: [new TextRun({ text: "Acuse de recibo a nombre del cliente:", bold: true })], spacing: { before: 200 } }),
+          new Paragraph({ children: [new TextRun({ text: "(Firma) " + (d.clientNameCargo || "[NOMBRE Y CARGO]") })] }),
+        ],
+      }],
+    });
+
+    const blob = await Packer.toBlob(doc);
+    saveAs(blob, "carta-convenio-" + (d.clientCompanyName || "cliente").replace(/\s+/g, "-").toLowerCase() + ".docx");
+    setMessage("Carta convenio generada y descargada correctamente.");
+  }
+
   async function generateNiea3000() {
     const d = formData;
     const doc = new Document({
@@ -87,6 +153,9 @@ export default function ProfessionalReportsPage() {
     if (!selectedTemplate) return;
     if (selectedTemplate.id === "niea3000-inventario") {
       generateNiea3000();
+    }
+    if (selectedTemplate.id === "carta-convenio-niea3000") {
+      generateCartaConvenio();
     }
   }
 
