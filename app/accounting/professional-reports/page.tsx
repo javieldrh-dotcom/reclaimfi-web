@@ -37,7 +37,7 @@ const TEMPLATES: ReportTemplate[] = [
       { key: "currentYearEnd", label: "Fecha de Cierre del Ejercicio Actual (ej. 31 de diciembre de 2025)", type: "text" },
       { key: "priorYearEnd", label: "Fecha de Cierre del Ejercicio Comparativo (ej. 31 de diciembre de 2024)", type: "text" },
       { key: "accountingFramework", label: "Marco de Referencia Contable (ej. VEN NIF, VEN NIF PYME)", type: "text" },
-      { key: "emphasisNote", label: "Llamado de Atencion (opcional - desviacion de VEN-NIF a destacar, dejar vacio si no aplica)", type: "textarea" },
+      { key: "emphasisNote", label: "Parrafo de Llamado de Atencion Completo (opcional - escribe el parrafo tal como debe aparecer, dejar vacio si no aplica)", type: "textarea" },
       { key: "firmName", label: "Razon Social de la Firma", type: "text" },
       { key: "accountantName", label: "Nombre del Contador Publico", type: "text" },
       { key: "cpcNumber", label: "Numero de C.P.C.", type: "text" },
@@ -306,7 +306,7 @@ export default function ProfessionalReportsPage() {
 
           new Paragraph({ children: [new TextRun({ text: "El marco conceptual para informes financieros identificado, que sirvieron de base para la preparacion de los estados financieros que se anexan, fueron los principios de contabilidad generalmente aceptados en la Republica Bolivariana de Venezuela (" + (d.accountingFramework || "VEN NIF") + ")." })], spacing: { after: (d.emphasisNote ? 200 : 500) } }),
 
-          ...(d.emphasisNote ? [new Paragraph({ children: [new TextRun({ text: "Llamamos la atencion a la nota correspondiente de los estados financieros porque " + d.emphasisNote + ", lo cual constituye una desviacion respecto a los Principios de Contabilidad Generalmente Aceptados en la Republica Bolivariana de Venezuela (VEN-NIF)." })], spacing: { after: 500 } })] : []),
+          ...(d.emphasisNote ? [new Paragraph({ children: [new TextRun({ text: d.emphasisNote })], spacing: { after: 500 } })] : []),
 
           new Paragraph({ children: [new TextRun({ text: (d.firmName || "[RAZON SOCIAL DE LA FIRMA]"), bold: true })], spacing: { before: 200 } }),
           new Paragraph({ children: [new TextRun({ text: "Firma Autografa" })] }),
