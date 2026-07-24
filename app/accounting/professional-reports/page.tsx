@@ -844,14 +844,6 @@ export default function ProfessionalReportsPage() {
               <p style={{ marginTop: 10, fontSize: 15, color: "#8B93A7", lineHeight: 1.6 }}>{t.description}</p>
             </div>
           ))}
-          <div style={{ ...theme.cardStyle, opacity: 0.5, border: "1px dashed #1F2937" }}>
-            <p style={{ fontWeight: 700, fontSize: 20, color: "#8B93A7" }}>Balance Personal</p>
-            <p style={{ marginTop: 10, fontSize: 15, color: "#8B93A7" }}>Proximamente - pendiente de plantilla</p>
-          </div>
-          <div style={{ ...theme.cardStyle, opacity: 0.5, border: "1px dashed #1F2937" }}>
-            <p style={{ fontWeight: 700, fontSize: 20, color: "#8B93A7" }}>Certificacion de Ingresos</p>
-            <p style={{ marginTop: 10, fontSize: 15, color: "#8B93A7" }}>Proximamente - pendiente de plantilla</p>
-          </div>
         </div>
       )}
 
