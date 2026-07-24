@@ -10,6 +10,20 @@ interface ReportTemplate { id: string; name: string; description: string; fields
 
 const TEMPLATES: ReportTemplate[] = [
   {
+    id: "estructura-costos-sundde",
+    name: "Informe NIEA 3000 - Estructura de Costos (Ley Organica de Precios Justos)",
+    description: "Informe del Contador Publico Independiente sobre la Estructura de Costos de un producto, para consignar ante SUNDDE conforme a la Ley Organica de Precios Justos.",
+    fields: [
+      { key: "companyName", label: "Nombre de la Empresa", type: "text" },
+      { key: "productName", label: "Nombre del Producto", type: "text" },
+      { key: "period", label: "Periodo/Mes de la Estructura de Costos (ej. diciembre 2017)", type: "text" },
+      { key: "accountantName", label: "Nombre y Apellido del Contador Publico", type: "text" },
+      { key: "cpcNumber", label: "Numero de C.P.C.", type: "text" },
+      { key: "city", label: "Ciudad", type: "text" },
+      { key: "reportDate", label: "Fecha del Informe", type: "date" },
+    ],
+  },
+  {
     id: "niea3000-aumento-capital",
     name: "Informe NIEA 3000 - Inventario de Bienes para Aumento de Capital",
     description: "Informe del Contador Publico Independiente sobre el inventario de bienes inmuebles aportados por un accionista para aumentar el capital social de una empresa ya constituida.",
@@ -210,6 +224,53 @@ export default function ProfessionalReportsPage() {
     const blob = await Packer.toBlob(doc);
     saveAs(blob, "anexo-inventario-bienes-" + (d.companyName || "empresa").replace(/\s+/g, "-").toLowerCase() + ".docx");
     setMessage("Anexo de inventario generado y descargado correctamente.");
+  }
+
+  async function generateEstructuraCostos() {
+    const d = formData;
+    const doc = new Document({
+      sections: [{
+        children: [
+          new Paragraph({ children: [new TextRun({ text: "INFORME DE ASEGURAMIENTO DEL CONTADOR PUBLICO INDEPENDIENTE", bold: true, size: 24 })], alignment: AlignmentType.CENTER, spacing: { after: 300 } }),
+          new Paragraph({ children: [new TextRun({ text: "Destinatario apropiado" })], spacing: { after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: (d.companyName || "[NOMBRE DE LA EMPRESA]").toUpperCase(), bold: true })], spacing: { after: 300 } }),
+
+          new Paragraph({ children: [new TextRun({ text: "ALCANCE", bold: true })], spacing: { before: 200, after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "He (Hemos) sido contratado(s) para asegurar sobre la Estructura de Costos del Producto \"" + (d.productName || "[PRODUCTO]") + "\" de la compania " + (d.companyName || "[NOMBRE DE LA EMPRESA]") + " elaborada por la entidad para el " + (d.period || "[PERIODO]") + ", con el objeto de cumplir con las disposiciones de la Ley Organica de Precios Justos (2015) y sus respectivas providencias administrativas." })], spacing: { after: 200 } }),
+          new Paragraph({ children: [new TextRun({ text: "De acuerdo con el articulo 31 de la Ley Organica de Precios Justos (2015), toda empresa que produzca bienes o preste servicios en el pais podra imputar sobre su estructura de costos un 30% de ganancia. Por tal motivo, la compania " + (d.companyName || "[NOMBRE DE LA EMPRESA]") + " ha preparado la estructura de costos de su producto \"" + (d.productName || "[PRODUCTO]") + "\" que se adjunta en el informe." })], spacing: { after: 200 } }),
+          new Paragraph({ children: [new TextRun({ text: "Mi (nuestro) informe esta dirigido a opinar sobre los siguientes:" })], spacing: { after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "- Si el diseño de la estructura de costo del producto esta acorde al proceso productivo de la entidad." })], spacing: { after: 50 } }),
+          new Paragraph({ children: [new TextRun({ text: "- Si los calculos mostrados en la estructura de costos del producto fueron realizados de acuerdo a la Ley Organica de Precios Justos (2015) y sus respectivas providencias administrativas." })], spacing: { after: 200 } }),
+
+          new Paragraph({ children: [new TextRun({ text: "RESPONSABILIDAD DE LOS ADMINISTRADORES DE LA EMPRESA " + (d.companyName || "[NOMBRE]").toUpperCase(), bold: true })], spacing: { before: 200, after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "Los administradores de la compania " + (d.companyName || "[NOMBRE DE LA EMPRESA]") + ", son los responsables de la preparacion y presentacion de la estructura de costos de su producto \"" + (d.productName || "[PRODUCTO]") + "\", y que dicha informacion no contenga errores materiales. Su responsabilidad incluye el diseño, implementacion y eficacia de los controles internos relevantes, y asegurar que la compania cumpla con los lineamientos de la Ley Organica de Precios Justos (2015) y sus respectivas providencias administrativas." })], spacing: { after: 200 } }),
+
+          new Paragraph({ children: [new TextRun({ text: "RESPONSABILIDAD DEL CONTADOR PUBLICO INDEPENDIENTE", bold: true })], spacing: { before: 200, after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "Mi (Nuestra) responsabilidad consiste en examinar la estructura de costos de su producto \"" + (d.productName || "[PRODUCTO]") + "\" y reportar una conclusion basado en la evidencia obtenida. Realice mi revision de conformidad con la Norma Internacional para ENCARGOS DE ASEGURAMIENTO, distintos de auditorias y revision de estados financieros, numero 3000 (NIEA 3000), emitida por la Federacion Internacional de Contadores Publicos (IFAC). La norma preve que cumpla (cumplamos) con los requerimientos eticos e independencia pertinentes, y que planifiquemos y realicemos nuestros procedimientos para obtener una seguridad razonable de que la estructura de costos del producto \"" + (d.productName || "[PRODUCTO]") + "\" de la compania " + (d.companyName || "[NOMBRE DE LA EMPRESA]") + " ha sido preparada de acuerdo con los lineamientos de la Ley Organica de Precios Justos (2015) y sus respectivas providencias administrativas, en todos los aspectos materiales." })], spacing: { after: 200 } }),
+
+          new Paragraph({ children: [new TextRun({ text: "PROCEDIMIENTOS REALIZADOS", bold: true })], spacing: { before: 200, after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "Los procedimientos seleccionados dependen del juicio del contador, incluyendo la evaluacion de los riesgos de errores significativos en la estructura de costos del producto debido a fraude o error. El encargo tambien incluye evaluar lo apropiado en cuanto a la factibilidad del criterio usado por la compania " + (d.companyName || "[NOMBRE DE LA EMPRESA]") + " para la preparacion y presentacion de la estructura de costos, obteniendo un entendimiento de la informacion financiera y no financiera utilizada en el reporte, indagando con la gerencia los metodos de determinacion de los costos de produccion, gastos ajenos a la produccion y margen de ganancia del producto." })], spacing: { after: 200 } }),
+
+          new Paragraph({ children: [new TextRun({ text: "CONCLUSION", bold: true })], spacing: { before: 200, after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "Mi (nuestra) opinion se ha formado sobre la base de la evidencia obtenida. En mi opinion, respecto a todo lo importante:" })], spacing: { after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "a) El diseño de la estructura de costo del producto esta acorde al proceso productivo de la entidad, y" })], spacing: { after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "b) Los calculos mostrados en la estructura de costos del producto son razonables y fueron realizados de acuerdo a la Ley Organica de Precios Justos (2015) y sus respectivas providencias administrativas." })], spacing: { after: 200 } }),
+
+          new Paragraph({ children: [new TextRun({ text: "USUARIOS PREVISTOS Y PROPOSITO", bold: true })], spacing: { before: 200, after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "Este informe esta dirigido unicamente para consignar ante la Superintendencia Nacional para la Defensa de los Derechos Socioeconomicos (SUNDDE), la Estructura de Costos del Producto \"" + (d.productName || "[PRODUCTO]") + "\" como deber formal establecido en la Ley Organica de Precios Justos (2015) y sus respectivas providencias administrativas." })], spacing: { after: 500 } }),
+
+          new Paragraph({ children: [new TextRun({ text: "_______________________________" })], spacing: { before: 400 } }),
+          new Paragraph({ children: [new TextRun({ text: "Firma del Contador Publico" })] }),
+          new Paragraph({ children: [new TextRun({ text: (d.accountantName || "[NOMBRE Y APELLIDOS]") })] }),
+          new Paragraph({ children: [new TextRun({ text: "C.P.C. " + (d.cpcNumber || "[NUMERO]") })] }),
+          new Paragraph({ children: [new TextRun({ text: (d.city || "[CIUDAD]") + ", " + (d.reportDate || "[FECHA]") })], spacing: { after: 200 } }),
+        ],
+      }],
+    });
+
+    const blob = await Packer.toBlob(doc);
+    saveAs(blob, "estructura-costos-" + (d.companyName || "empresa").replace(/\s+/g, "-").toLowerCase() + ".docx");
+    setMessage("Informe de estructura de costos generado y descargado correctamente.");
   }
 
   async function generateAumentoCapital() {
@@ -446,6 +507,9 @@ export default function ProfessionalReportsPage() {
     }
     if (selectedTemplate.id === "niea3000-aumento-capital") {
       generateAumentoCapital();
+    }
+    if (selectedTemplate.id === "estructura-costos-sundde") {
+      generateEstructuraCostos();
     }
   }
 
