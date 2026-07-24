@@ -93,6 +93,17 @@ const TEMPLATES: ReportTemplate[] = [
       { key: "shareNominalValue", label: "Valor Nominal por Accion", type: "text" },
       { key: "presentationDate", label: "Fecha de Presentacion del Inventario", type: "date" },
       { key: "assemblyDate", label: "Fecha de la Asamblea Extraordinaria", type: "date" },
+        { key: "terrenosItems", label: "Nota 2 - Terrenos (descripcion de cada item, uno por linea)", type: "textarea" },
+        { key: "terrenosTotal", label: "Total Terrenos", type: "text" },
+        { key: "edificiosItems", label: "Nota 3 - Edificios (descripcion de cada item, uno por linea)", type: "textarea" },
+        { key: "edificiosTotal", label: "Total Edificios", type: "text" },
+        { key: "maquinariaItems", label: "Nota 4 - Maquinaria y Equipos Industriales (descripcion de cada item)", type: "textarea" },
+        { key: "maquinariaTotal", label: "Total Maquinaria y Equipos Industriales", type: "text" },
+        { key: "transporteItems", label: "Nota 5 - Equipos de Transporte (descripcion de cada item)", type: "textarea" },
+        { key: "transporteTotal", label: "Total Equipos de Transporte", type: "text" },
+        { key: "mobiliarioItems", label: "Nota 6 - Mobiliario y Equipo de Oficina (descripcion de cada item)", type: "textarea" },
+        { key: "mobiliarioTotal", label: "Total Mobiliario y Equipo de Oficina", type: "text" },
+        { key: "sociosDistribution", label: "Distribucion del Aporte entre los Socios", type: "textarea" },
       { key: "mercantileRegistry", label: "Registro Mercantil (numero/identificacion)", type: "text" },
       { key: "judicialCircumscription", label: "Circunscripcion Judicial del Estado", type: "text" },
       { key: "accountantName", label: "Nombre y Apellido del Contador Publico", type: "text" },
@@ -592,6 +603,97 @@ export default function ProfessionalReportsPage() {
     setMessage("Carta convenio generada y descargada correctamente.");
   }
 
+  async function generateAnexoConstitucion() {
+    const d = formData;
+    const terrenos = parseFloat((d.terrenosTotal || "0").replace(/,/g, "")) || 0;
+    const edificios = parseFloat((d.edificiosTotal || "0").replace(/,/g, "")) || 0;
+    const maquinaria = parseFloat((d.maquinariaTotal || "0").replace(/,/g, "")) || 0;
+    const transporte = parseFloat((d.transporteTotal || "0").replace(/,/g, "")) || 0;
+    const mobiliario = parseFloat((d.mobiliarioTotal || "0").replace(/,/g, "")) || 0;
+    const totalInmuebles = terrenos + edificios;
+    const totalMuebles = maquinaria + transporte + mobiliario;
+    const totalGeneral = totalInmuebles + totalMuebles;
+
+    const doc = new Document({
+      sections: [{
+        children: [
+          new Paragraph({ children: [new TextRun({ text: "Empresa en Formacion " + (d.companyName || "[EMPRESA]").toUpperCase(), bold: true })], spacing: { after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "INVENTARIO DE BIENES MUEBLES E INMUEBLES APORTADO POR LOS ACCIONISTAS COMO PARTE DEL CAPITAL SOCIAL", bold: true, size: 22 })], spacing: { after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "Al " + (d.presentationDate || "[FECHA]") })], spacing: { after: 50 } }),
+          new Paragraph({ children: [new TextRun({ text: "(Expresado en Bolivares)" })], spacing: { after: 300 } }),
+
+          new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            rows: [
+              new TableRow({ children: [cell("Descripcion", true), cell("Notas", true), cell("Monto en Bs", true)] }),
+              new TableRow({ children: [cell("BIENES INMUEBLES:", true), cell(""), cell("")] }),
+              new TableRow({ children: [cell("Terrenos"), cell("2"), cell(terrenos.toLocaleString(undefined, { minimumFractionDigits: 2 }))] }),
+              new TableRow({ children: [cell("Edificios"), cell("3"), cell(edificios.toLocaleString(undefined, { minimumFractionDigits: 2 }))] }),
+              new TableRow({ children: [cell("Total Bienes Inmuebles", true), cell(""), cell(totalInmuebles.toLocaleString(undefined, { minimumFractionDigits: 2 }), true)] }),
+              new TableRow({ children: [cell("BIENES MUEBLES:", true), cell(""), cell("")] }),
+              new TableRow({ children: [cell("Maquinaria y Equipos Industriales"), cell("4"), cell(maquinaria.toLocaleString(undefined, { minimumFractionDigits: 2 }))] }),
+              new TableRow({ children: [cell("Equipos de Transporte"), cell("5"), cell(transporte.toLocaleString(undefined, { minimumFractionDigits: 2 }))] }),
+              new TableRow({ children: [cell("Mobiliario y Equipos de Oficina"), cell("6"), cell(mobiliario.toLocaleString(undefined, { minimumFractionDigits: 2 }))] }),
+              new TableRow({ children: [cell("Total Bienes Muebles", true), cell(""), cell(totalMuebles.toLocaleString(undefined, { minimumFractionDigits: 2 }), true)] }),
+              new TableRow({ children: [cell("TOTAL BIENES MUEBLES E INMUEBLES", true), cell(""), cell(totalGeneral.toLocaleString(undefined, { minimumFractionDigits: 2 }), true)] }),
+            ],
+          }),
+
+          new Paragraph({ children: [new TextRun({ text: "(Las notas anexas son parte integral del inventario de bienes muebles e inmuebles aportado por los accionistas de la empresa en formacion " + (d.companyName || "[EMPRESA]") + ", como parte del capital social)", italics: true, size: 20 })], spacing: { before: 300 } }),
+        ],
+      }],
+    });
+
+    const blob = await Packer.toBlob(doc);
+    saveAs(blob, "anexo-inventario-muebles-inmuebles-" + (d.companyName || "empresa").replace(/\s+/g, "-").toLowerCase() + ".docx");
+    setMessage("Anexo generado y descargado correctamente.");
+  }
+
+  async function generateNotasConstitucion() {
+    const d = formData;
+    const doc = new Document({
+      sections: [{
+        children: [
+          new Paragraph({ children: [new TextRun({ text: "Empresa en Formacion " + (d.companyName || "[EMPRESA]").toUpperCase(), bold: true })], spacing: { after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "NOTAS AL INVENTARIO DE BIENES MUEBLES E INMUEBLES APORTADO POR LOS ACCIONISTAS COMO PARTE DEL CAPITAL SOCIAL", bold: true, size: 22 })], spacing: { after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "Al " + (d.presentationDate || "[FECHA]") })], spacing: { after: 300 } }),
+
+          new Paragraph({ children: [new TextRun({ text: "Los accionistas de la empresa en formacion " + (d.companyName || "[EMPRESA]") + " han pagado parte del capital social suscrito para la constitucion de la misma, mediante el aporte de los bienes incluidos en el Inventario de bienes muebles e inmuebles presentado." })], spacing: { after: 300 } }),
+
+          new Paragraph({ children: [new TextRun({ text: "NOTA 1: BASES DE MEDICION, PREPARACION Y PRESENTACION", bold: true })], spacing: { before: 200, after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "Los valores de los bienes incluidos en el inventario fueron aprobados por los accionistas en la asamblea general para la constitucion de la empresa " + (d.companyName || "[EMPRESA]") + " y para la preparacion y presentacion de estos valores se tomaron en cuenta los criterios de reconocimiento descritos en los principios de contabilidad generalmente aceptados en Venezuela (VEN NIF)." })], spacing: { after: 300 } }),
+
+          new Paragraph({ children: [new TextRun({ text: "NOTA 2: TERRENOS", bold: true })], spacing: { before: 200, after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: d.terrenosItems || "[DESCRIPCION DE TERRENOS]" })], spacing: { after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "TOTAL TERRENOS: " + (d.terrenosTotal || "0"), bold: true })], spacing: { after: 300 } }),
+
+          new Paragraph({ children: [new TextRun({ text: "NOTA 3: EDIFICIOS", bold: true })], spacing: { before: 200, after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: d.edificiosItems || "[DESCRIPCION DE EDIFICIOS]" })], spacing: { after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "TOTAL EDIFICIOS: " + (d.edificiosTotal || "0"), bold: true })], spacing: { after: 300 } }),
+
+          new Paragraph({ children: [new TextRun({ text: "NOTA 4: MAQUINARIAS Y EQUIPOS INDUSTRIALES", bold: true })], spacing: { before: 200, after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: d.maquinariaItems || "[DESCRIPCION DE MAQUINARIA]" })], spacing: { after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "TOTAL MAQUINARIAS Y EQUIPOS INDUSTRIALES: " + (d.maquinariaTotal || "0"), bold: true })], spacing: { after: 300 } }),
+
+          new Paragraph({ children: [new TextRun({ text: "NOTA 5: EQUIPOS DE TRANSPORTE", bold: true })], spacing: { before: 200, after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: d.transporteItems || "[DESCRIPCION DE TRANSPORTE]" })], spacing: { after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "TOTAL EQUIPOS DE TRANSPORTE: " + (d.transporteTotal || "0"), bold: true })], spacing: { after: 300 } }),
+
+          new Paragraph({ children: [new TextRun({ text: "NOTA 6: MOBILIARIO Y EQUIPO DE OFICINA", bold: true })], spacing: { before: 200, after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: d.mobiliarioItems || "[DESCRIPCION DE MOBILIARIO]" })], spacing: { after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "TOTAL MOBILIARIO Y EQUIPOS: " + (d.mobiliarioTotal || "0"), bold: true })], spacing: { after: 300 } }),
+
+          new Paragraph({ children: [new TextRun({ text: "El inventario arriba mencionado constituye el aporte de los socios de la empresa en formacion " + (d.companyName || "[EMPRESA]") + ", distribuidos de la siguiente forma:" })], spacing: { after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: d.sociosDistribution || "[DISTRIBUCION ENTRE SOCIOS]" })], spacing: { after: 300 } }),
+        ],
+      }],
+    });
+
+    const blob = await Packer.toBlob(doc);
+    saveAs(blob, "notas-inventario-muebles-inmuebles-" + (d.companyName || "empresa").replace(/\s+/g, "-").toLowerCase() + ".docx");
+    setMessage("Notas al inventario generadas y descargadas correctamente.");
+  }
+
   async function generateNiea3000() {
     const d = formData;
     const doc = new Document({
@@ -711,6 +813,16 @@ export default function ProfessionalReportsPage() {
           <button onClick={handleGenerate} style={{ ...theme.buttonStyle, marginTop: 24, fontSize: 18 }}>
             GENERAR Y DESCARGAR INFORME
           </button>
+          {selectedTemplate.id === "niea3000-inventario" && (
+            <>
+              <button onClick={generateAnexoConstitucion} style={{ ...theme.buttonStyle, marginTop: 12, marginLeft: 12, fontSize: 18, background: "#818CF8" }}>
+                GENERAR ANEXO - TABLA DE INVENTARIO
+              </button>
+              <button onClick={generateNotasConstitucion} style={{ ...theme.buttonStyle, marginTop: 12, marginLeft: 12, fontSize: 18, background: "#FB923C" }}>
+                GENERAR NOTAS AL INVENTARIO
+              </button>
+            </>
+          )}
           {selectedTemplate.id === "niea3000-aumento-capital" && (
             <>
               <button onClick={generateInventarioAnexo} style={{ ...theme.buttonStyle, marginTop: 12, marginLeft: 12, fontSize: 18, background: "#818CF8" }}>
