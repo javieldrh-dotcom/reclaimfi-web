@@ -10,6 +10,24 @@ interface ReportTemplate { id: string; name: string; description: string; fields
 
 const TEMPLATES: ReportTemplate[] = [
   {
+    id: "nisr4410-fondo-comercio",
+    name: "Informe de Preparacion de EF - Fondo de Comercio (NISR 4410)",
+    description: "Informe de compilacion para el fondo de comercio de una persona natural comerciante, obligada a llevar registros de contabilidad segun el Codigo de Comercio de Venezuela.",
+    fields: [
+      { key: "addressee", label: "Nombre de la Persona o Entidad Destinataria", type: "text" },
+      { key: "businessName", label: "Denominacion del Fondo de Comercio", type: "text" },
+      { key: "merchantName", label: "Nombre de la Persona Natural Comerciante", type: "text" },
+      { key: "currentYearEnd", label: "Fecha de Cierre del Ejercicio Actual", type: "text" },
+      { key: "priorYearEnd", label: "Fecha de Cierre del Ejercicio Comparativo", type: "text" },
+      { key: "accountingFramework", label: "Marco de Referencia Contable (ej. VEN NIF, VEN NIF PYME)", type: "text" },
+      { key: "firmName", label: "Razon Social de la Firma", type: "text" },
+      { key: "accountantName", label: "Nombre del Contador Publico", type: "text" },
+      { key: "cpcNumber", label: "Numero de C.P.C.", type: "text" },
+      { key: "city", label: "Ciudad", type: "text" },
+      { key: "reportDate", label: "Fecha del Informe", type: "date" },
+    ],
+  },
+  {
     id: "nisr4410-compilacion",
     name: "Informe de Preparacion de Estados Financieros (NISR 4410)",
     description: "Informe de compilacion conforme a la Norma Internacional de Servicios Relacionados 4410 - el contador prepara los estados financieros sin auditarlos ni expresar opinion sobre ellos.",
@@ -242,6 +260,35 @@ export default function ProfessionalReportsPage() {
     const blob = await Packer.toBlob(doc);
     saveAs(blob, "anexo-inventario-bienes-" + (d.companyName || "empresa").replace(/\s+/g, "-").toLowerCase() + ".docx");
     setMessage("Anexo de inventario generado y descargado correctamente.");
+  }
+
+  async function generateNisr4410FondoComercio() {
+    const d = formData;
+    const doc = new Document({
+      sections: [{
+        children: [
+          new Paragraph({ children: [new TextRun({ text: "INFORME DE PREPARACION DE ESTADOS FINANCIEROS", bold: true, size: 24 })], alignment: AlignmentType.CENTER, spacing: { after: 300 } }),
+          new Paragraph({ children: [new TextRun({ text: "Señores:" })], spacing: { after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: (d.addressee || "[DESTINATARIO]") })], spacing: { after: 300 } }),
+
+          new Paragraph({ children: [new TextRun({ text: "Sobre la base de la informacion proporcionada por la administracion hemos preparado, de acuerdo con la Norma Internacional de Servicios Relacionados 4410 (NISR 4410), Trabajos para compilar informacion financiera, los estados de situacion financiera del fondo de comercio denominado " + (d.businessName || "[DENOMINACION]") + " al " + (d.currentYearEnd || "[FECHA ACTUAL]") + " y " + (d.priorYearEnd || "[FECHA COMPARATIVA]") + ", y los estados de resultados, cambios en el patrimonio y flujos de efectivo por los años entonces terminados." })], spacing: { after: 200 } }),
+
+          new Paragraph({ children: [new TextRun({ text: (d.merchantName || "[PERSONA NATURAL COMERCIANTE]") + " es responsable por estos estados financieros. No hemos auditado ni revisado estos estados financieros y consecuentemente, no expresamos ninguna opinion sobre los mismos." })], spacing: { after: 200 } }),
+
+          new Paragraph({ children: [new TextRun({ text: "El marco conceptual para informes financieros identificado, que sirvieron de base para la preparacion de los estados financieros que se anexan, fueron los principios de contabilidad generalmente aceptados en la Republica Bolivariana de Venezuela (" + (d.accountingFramework || "VEN NIF") + ")." })], spacing: { after: 500 } }),
+
+          new Paragraph({ children: [new TextRun({ text: (d.firmName || "[RAZON SOCIAL DE LA FIRMA]"), bold: true })], spacing: { before: 200 } }),
+          new Paragraph({ children: [new TextRun({ text: "Firma Autografa" })] }),
+          new Paragraph({ children: [new TextRun({ text: (d.accountantName || "[NOMBRE DEL CONTADOR PUBLICO]") })] }),
+          new Paragraph({ children: [new TextRun({ text: "Numero del C.P.C. " + (d.cpcNumber || "[NUMERO]") })] }),
+          new Paragraph({ children: [new TextRun({ text: (d.city || "[CIUDAD]") + ", " + (d.reportDate || "[FECHA]") })], spacing: { after: 200 } }),
+        ],
+      }],
+    });
+
+    const blob = await Packer.toBlob(doc);
+    saveAs(blob, "informe-preparacion-ef-fondo-comercio-" + (d.businessName || "negocio").replace(/\s+/g, "-").toLowerCase() + ".docx");
+    setMessage("Informe de preparacion de EF (Fondo de Comercio) generado y descargado correctamente.");
   }
 
   async function generateNisr4410() {
@@ -562,6 +609,9 @@ export default function ProfessionalReportsPage() {
     }
     if (selectedTemplate.id === "nisr4410-compilacion") {
       generateNisr4410();
+    }
+    if (selectedTemplate.id === "nisr4410-fondo-comercio") {
+      generateNisr4410FondoComercio();
     }
   }
 
