@@ -6,11 +6,12 @@ import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Tabl
 import { saveAs } from "file-saver";
 
 interface ReportField { key: string; label: string; type: "text" | "date" | "textarea"; }
-interface ReportTemplate { id: string; name: string; description: string; fields: ReportField[]; }
+interface ReportTemplate { id: string; name: string; description: string; category: string; fields: ReportField[]; }
 
 const TEMPLATES: ReportTemplate[] = [
   {
     id: "nisr4410-balance-personal",
+    category: "Certificaciones Rutinarias",
     name: "Informe de Compilacion - Balance Personal (NISR 4410)",
     description: "Informe de compilacion de informacion financiera para una persona natural, grupo o comunidad NO obligada a llevar registros de contabilidad formal - usado para Balance Personal.",
     fields: [
@@ -27,6 +28,7 @@ const TEMPLATES: ReportTemplate[] = [
   },
   {
     id: "nisr4410-fondo-comercio",
+    category: "Compilacion NISR 4410",
     name: "Informe de Preparacion de EF - Fondo de Comercio (NISR 4410)",
     description: "Informe de compilacion para el fondo de comercio de una persona natural comerciante, obligada a llevar registros de contabilidad segun el Codigo de Comercio de Venezuela.",
     fields: [
@@ -45,6 +47,7 @@ const TEMPLATES: ReportTemplate[] = [
   },
   {
     id: "nisr4410-compilacion",
+    category: "Compilacion NISR 4410",
     name: "Informe de Preparacion de Estados Financieros (NISR 4410)",
     description: "Informe de compilacion conforme a la Norma Internacional de Servicios Relacionados 4410 - el contador prepara los estados financieros sin auditarlos ni expresar opinion sobre ellos.",
     fields: [
@@ -64,6 +67,7 @@ const TEMPLATES: ReportTemplate[] = [
   },
   {
     id: "estructura-costos-sundde",
+    category: "Aseguramiento NIEA 3000",
     name: "Informe NIEA 3000 - Estructura de Costos (Ley Organica de Precios Justos)",
     description: "Informe del Contador Publico Independiente sobre la Estructura de Costos de un producto, para consignar ante SUNDDE conforme a la Ley Organica de Precios Justos.",
     fields: [
@@ -78,6 +82,7 @@ const TEMPLATES: ReportTemplate[] = [
   },
   {
     id: "niea3000-aumento-capital",
+    category: "Aseguramiento NIEA 3000",
     name: "Informe NIEA 3000 - Inventario de Bienes para Aumento de Capital",
     description: "Informe del Contador Publico Independiente sobre el inventario de bienes inmuebles aportados por un accionista para aumentar el capital social de una empresa ya constituida.",
     fields: [
@@ -114,6 +119,7 @@ const TEMPLATES: ReportTemplate[] = [
   },
   {
     id: "certificacion-ingresos-limitada",
+    category: "Certificaciones Rutinarias",
     name: "Certificacion de Ingresos (Seguridad Limitada)",
     description: "Informe de aseguramiento con seguridad limitada (expresion negativa) sobre la relacion de ingresos de una persona natural, usualmente para tramites de credito bancario.",
     fields: [
@@ -132,6 +138,7 @@ const TEMPLATES: ReportTemplate[] = [
   },
   {
     id: "certificacion-ingresos",
+    category: "Certificaciones Rutinarias",
     name: "Certificacion de Ingresos (Seguridad Razonable)",
     description: "Informe de aseguramiento con seguridad razonable sobre la relacion de ingresos de una persona natural en el libre ejercicio de su profesion, usualmente para tramites de credito bancario.",
     fields: [
@@ -150,6 +157,7 @@ const TEMPLATES: ReportTemplate[] = [
   },
   {
     id: "carta-convenio-niea3000",
+    category: "Aseguramiento NIEA 3000",
     name: "Carta Convenio - Encargo de Aseguramiento NIEA 3000",
     description: "Carta de compromiso que confirma el entendimiento de terminos y objetivos de un encargo de aseguramiento antes de iniciarlo (Anexo 1, NIEA 3000).",
     fields: [
@@ -172,6 +180,7 @@ const TEMPLATES: ReportTemplate[] = [
   },
   {
     id: "niea3000-inventario",
+    category: "Aseguramiento NIEA 3000",
     name: "Informe de Aseguramiento NIEA 3000 - Inventario de Bienes",
     description: "Informe del Contador Publico Independiente sobre el inventario de bienes muebles/inmuebles aportados como capital social en la constitucion de una empresa.",
     fields: [
