@@ -50,6 +50,7 @@ const navItems = [
     items: [
       { href: "/accounting/period-close", label: "Cierre de Ejercicio" },
       { href: "/accounting/financial-notes", label: "Notas a Estados Financieros" },
+      { href: "/accounting/professional-reports", label: "Certificaciones y Constancias" },
       { href: "/accounting/price-indices", label: "Indices de Precios" },
     ],
   },
