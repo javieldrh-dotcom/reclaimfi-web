@@ -10,6 +10,24 @@ interface ReportTemplate { id: string; name: string; description: string; fields
 
 const TEMPLATES: ReportTemplate[] = [
   {
+    id: "certificacion-ingresos",
+    name: "Certificacion de Ingresos (Seguridad Razonable)",
+    description: "Informe de aseguramiento con seguridad razonable sobre la relacion de ingresos de una persona natural en el libre ejercicio de su profesion, usualmente para tramites de credito bancario.",
+    fields: [
+      { key: "personName", label: "Nombre Completo de la Persona", type: "text" },
+      { key: "cedula", label: "Cedula de Identidad", type: "text" },
+      { key: "periodStart", label: "Fecha de Inicio del Periodo", type: "date" },
+      { key: "periodEnd", label: "Fecha de Fin del Periodo", type: "date" },
+      { key: "profession", label: "Profesion / Actividad Ejercida", type: "text" },
+      { key: "addressee", label: "A quien se dirige el informe (ej. Banco XYZ)", type: "text" },
+      { key: "purpose", label: "Proposito del Informe (ej. tramitar credito bancario)", type: "textarea" },
+      { key: "accountantName", label: "Nombre y Apellidos del Contador Publico", type: "text" },
+      { key: "cpcNumber", label: "Numero de C.P.C.", type: "text" },
+      { key: "city", label: "Ciudad", type: "text" },
+      { key: "reportDate", label: "Fecha del Informe", type: "date" },
+    ],
+  },
+  {
     id: "carta-convenio-niea3000",
     name: "Carta Convenio - Encargo de Aseguramiento NIEA 3000",
     description: "Carta de compromiso que confirma el entendimiento de terminos y objetivos de un encargo de aseguramiento antes de iniciarlo (Anexo 1, NIEA 3000).",
@@ -64,6 +82,53 @@ export default function ProfessionalReportsPage() {
   function updateField(key: string, value: string) {
     setFormData((prev) => ({ ...prev, [key]: value }));
   }
+  async function generateCertificacionIngresos() {
+    const d = formData;
+    const doc = new Document({
+      sections: [{
+        children: [
+          new Paragraph({ children: [new TextRun({ text: "INFORME DE ASEGURAMIENTO DEL CONTADOR PUBLICO INDEPENDIENTE", bold: true, size: 24 })], alignment: AlignmentType.CENTER, spacing: { after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "SOBRE LA RELACION DE INGRESOS DE " + (d.personName || "[NOMBRE]").toUpperCase(), bold: true, size: 22 })], alignment: AlignmentType.CENTER, spacing: { after: 300 } }),
+
+          new Paragraph({ children: [new TextRun({ text: "Señores:" })], spacing: { after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: (d.addressee || "[DESTINATARIO]") })], spacing: { after: 300 } }),
+
+          new Paragraph({ children: [new TextRun({ text: "Alcance", bold: true })], spacing: { before: 100, after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "He examinado la evidencia inherente a los ingresos percibidos por el Sr./Sra. " + (d.personName || "[NOMBRE]") + ", identificado(a) con la cedula de identidad nº " + (d.cedula || "[CEDULA]") + ", durante el periodo comprendido desde el " + (d.periodStart || "[FECHA INICIO]") + " hasta el " + (d.periodEnd || "[FECHA FIN]") + ", presentado en la relacion de ingresos adjunta, correspondiente a su actividad como " + (d.profession || "[PROFESION]") + " en el libre ejercicio de la profesion." })], spacing: { after: 200 } }),
+
+          new Paragraph({ children: [new TextRun({ text: "Responsabilidad de la persona que percibe los ingresos", bold: true })], spacing: { before: 200, after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "El Sr./Sra. " + (d.personName || "[NOMBRE]") + ", es responsable de la preparacion y presentacion del importe de sus ingresos que se adjunta a este informe, incluyendo la integridad, legalidad y veracidad de los documentos suministrados. Esta responsabilidad incluye la aseveracion de que todos y cada uno de los ingresos detallados en la relacion, provienen de actividades legitimas y de comprobable licito ejercicio." })], spacing: { after: 200 } }),
+
+          new Paragraph({ children: [new TextRun({ text: "Responsabilidad del contador publico independiente", bold: true })], spacing: { before: 200, after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "Mi responsabilidad es expresar una opinion sobre la relacion de ingresos obtenida por el Sr./Sra. " + (d.personName || "[NOMBRE]") + ", durante el periodo señalado de acuerdo con mis procedimientos, los cuales he realizado de conformidad con la Norma Internacional para Encargos de Aseguramiento, distintos de auditorias y revision de estados financieros de informacion financiera historica, numero 3000 (NIEA 3000), la cual preve que cumpla con los requerimientos eticos, y que planifique y realice mis procedimientos para obtener una seguridad razonable de que, en todos los aspectos materiales, la relacion esta presentada razonablemente." })], spacing: { after: 200 } }),
+          new Paragraph({ children: [new TextRun({ text: "Un encargo de aseguramiento implica llevar a cabo procedimientos para obtener evidencia acerca de la razonabilidad de las aseveraciones emitidas por el responsable. Los procedimientos seleccionados dependen del juicio profesional del contador publico, que incluye evaluar los riesgos acerca de que los ingresos no esten presentados razonablemente." })], spacing: { after: 200 } }),
+
+          new Paragraph({ children: [new TextRun({ text: "Identificacion del criterio de evaluacion", bold: true })], spacing: { before: 200, after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "Mi encargo consistio en examinar los estados de cuenta de bancos, declaraciones de impuestos, contratos, entre otros documentos inherentes, comprobar y confirmar los ingresos relacionados por el Sr./Sra. " + (d.personName || "[NOMBRE]") + ", para el periodo señalado. Mi opinion se formo sobre la base de la evidencia obtenida suficiente y adecuada. El criterio utilizado para emitirla fue la definicion de ingresos contenida en la seccion 2, conceptos y principios generales, de las normas internacionales de informacion financiera para las pequeñas y medianas entidades, aun cuando no le son aplicables a las personas naturales no comerciantes." })], spacing: { after: 200 } }),
+
+          new Paragraph({ children: [new TextRun({ text: "Conclusion", bold: true })], spacing: { before: 200, after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "Mi opinion se ha formado sobre la base de los asuntos esbozados en este informe. En mi opinion, respecto de todo lo importante:" })], spacing: { after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "1. La relacion adjunta presenta razonablemente los ingresos obtenidos por el Sr./Sra. " + (d.personName || "[NOMBRE]") + ", desde el " + (d.periodStart || "[FECHA INICIO]") + " hasta el " + (d.periodEnd || "[FECHA FIN]") + "." })], spacing: { after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "2. Los ingresos estan respaldados por los documentos presentados por el Sr./Sra. " + (d.personName || "[NOMBRE]") + ", durante el periodo presentado." })], spacing: { after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "3. Los ingresos detallados en la relacion, provienen de actividades legitimas y de comprobable licito ejercicio." })], spacing: { after: 200 } }),
+
+          new Paragraph({ children: [new TextRun({ text: "Usuarios previstos y proposito", bold: true })], spacing: { before: 200, after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "Este informe y la relacion que se adjunta estan dirigidos unicamente para " + (d.purpose || "[PROPOSITO]") + "." })], spacing: { after: 500 } }),
+
+          new Paragraph({ children: [new TextRun({ text: "_______________________________" })], spacing: { before: 400 } }),
+          new Paragraph({ children: [new TextRun({ text: "Firma del Contador Publico" })] }),
+          new Paragraph({ children: [new TextRun({ text: (d.accountantName || "[NOMBRE Y APELLIDOS]") })] }),
+          new Paragraph({ children: [new TextRun({ text: "C.P.C. " + (d.cpcNumber || "[NUMERO]") })] }),
+          new Paragraph({ children: [new TextRun({ text: (d.city || "[CIUDAD]") + ", " + (d.reportDate || "[FECHA]") })], spacing: { after: 200 } }),
+        ],
+      }],
+    });
+
+    const blob = await Packer.toBlob(doc);
+    saveAs(blob, "certificacion-ingresos-" + (d.personName || "persona").replace(/\s+/g, "-").toLowerCase() + ".docx");
+    setMessage("Certificacion de ingresos generada y descargada correctamente.");
+  }
+
   async function generateCartaConvenio() {
     const d = formData;
     const doc = new Document({
@@ -156,6 +221,9 @@ export default function ProfessionalReportsPage() {
     }
     if (selectedTemplate.id === "carta-convenio-niea3000") {
       generateCartaConvenio();
+    }
+    if (selectedTemplate.id === "certificacion-ingresos") {
+      generateCertificacionIngresos();
     }
   }
 
