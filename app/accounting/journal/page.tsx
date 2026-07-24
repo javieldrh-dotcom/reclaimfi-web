@@ -18,42 +18,41 @@ export default function JournalPage() {
   const [lines, setLines] = useState<Line[]>([{ account_id: "", debit: "", credit: "" }, { account_id: "", debit: "", credit: "" }]);
   const [message, setMessage] = useState("");
   const [entries, setEntries] = useState<any[]>([]);
-  const [debugInfo, setDebugInfo] = useState("");
+  const [showAllHistory, setShowAllHistory] = useState(false);
+  const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
+  const [lastEntryNumber, setLastEntryNumber] = useState(0);
 
-  async function loadEntries(cid: string) {
-    const { data: entriesData, error: entriesError } = await supabase
+  async function loadEntries(cid: string, all: boolean) {
+    let query = supabase
       .from("journal_entries")
-      .select("id, description, entry_date, status")
+      .select("id, description, entry_date, status, entry_number")
       .eq("company_id", cid)
-      .order("created_at", { ascending: false })
-      .limit(15);
-
-    if (entriesError) { setDebugInfo("ERROR: " + JSON.stringify(entriesError)); setEntries([]); return; }
-    setDebugInfo("company_id usado: " + cid + " | Registros encontrados: " + (entriesData?.length ?? 0));
+      .order("entry_number", { ascending: false });
+    if (!all) query = query.limit(15);
+    const { data: entriesData } = await query;
     if (!entriesData || entriesData.length === 0) { setEntries([]); return; }
+
+    const maxNum = Math.max(...entriesData.map((e: any) => e.entry_number || 0));
+    setLastEntryNumber(maxNum);
 
     const entryIds = entriesData.map((e: any) => e.id);
     const { data: linesData } = await supabase
       .from("journal_lines")
-      .select("journal_entry_id, account_id, debit, credit")
+      .select("id, journal_entry_id, account_id, debit, credit")
       .in("journal_entry_id", entryIds);
-
     const accountIds = Array.from(new Set((linesData ?? []).map((l: any) => l.account_id)));
     const { data: accountsData } = await supabase
       .from("chart_of_accounts")
       .select("id, account_code, account_name")
       .in("id", accountIds);
-
     const accountsById: Record<string, any> = {};
     (accountsData ?? []).forEach((a: any) => { accountsById[a.id] = a; });
-
     const enrichedEntries = entriesData.map((e: any) => ({
       ...e,
       journal_lines: (linesData ?? [])
         .filter((l: any) => l.journal_entry_id === e.id)
         .map((l: any) => ({ ...l, chart_of_accounts: accountsById[l.account_id] })),
     }));
-
     setEntries(enrichedEntries);
   }
 
@@ -70,41 +69,79 @@ export default function JournalPage() {
         setCurrencyDoc(companyData?.functional_currency ?? "USD");
         const { data: acc } = await supabase.from("chart_of_accounts").select("id, account_code, account_name").eq("company_id", cid).order("account_code");
         setAccounts(acc ?? []);
-        await loadEntries(cid);
+        await loadEntries(cid, false);
       }
     }
     load();
   }, []);
+
   function updateLine(i: number, f: keyof Line, v: string) { const u = [...lines]; u[i][f] = v; setLines(u); }
   function addLine() { setLines([...lines, { account_id: "", debit: "", credit: "" }]); }
   function totalDebit() { return lines.reduce((s, l) => s + (parseFloat(l.debit) || 0), 0); }
   function totalCredit() { return lines.reduce((s, l) => s + (parseFloat(l.credit) || 0), 0); }
+
+  function startEdit(entry: any) {
+    setEditingEntryId(entry.id);
+    setDescription(entry.description);
+    setCurrency(currencyDoc);
+    setExchangeRate("1");
+    setLines((entry.journal_lines ?? []).map((l: any) => ({
+      account_id: l.account_id,
+      debit: l.debit > 0 ? String(l.debit) : "",
+      credit: l.credit > 0 ? String(l.credit) : "",
+    })));
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function cancelEdit() {
+    setEditingEntryId(null);
+    setDescription("");
+    setLines([{ account_id: "", debit: "", credit: "" }, { account_id: "", debit: "", credit: "" }]);
+  }
+
   async function saveEntry() {
     setMessage("");
     if (!companyId) { setMessage("Sin empresa asociada."); return; }
     const d = totalDebit(); const c = totalCredit();
     if (d !== c || d === 0) { setMessage("El asiento no cuadra."); return; }
-    const { data: entry, error: e1 } = await supabase.from("journal_entries").insert([{ company_id: companyId, description, entry_date: new Date().toISOString().slice(0,10), currency, exchange_rate: parseFloat(exchangeRate) || 1 }]).select("id").single();
-    if (e1 || !entry) { setMessage("Error: " + e1?.message); return; }
     const rate = parseFloat(exchangeRate) || 1;
+
+    if (editingEntryId) {
+      const { error: eUpd } = await supabase.from("journal_entries").update({ description }).eq("id", editingEntryId);
+      if (eUpd) { setMessage("Error: " + eUpd.message); return; }
+      await supabase.from("journal_lines").delete().eq("journal_entry_id", editingEntryId);
+      const rows = lines.filter(l => l.account_id).map(l => ({ journal_entry_id: editingEntryId, account_id: l.account_id, debit: (parseFloat(l.debit) || 0) * rate, credit: (parseFloat(l.credit) || 0) * rate }));
+      const { error: e2 } = await supabase.from("journal_lines").insert(rows);
+      if (e2) { setMessage("Error: " + e2.message); return; }
+      setMessage("Asiento editado correctamente.");
+      cancelEdit();
+      if (companyId) await loadEntries(companyId, showAllHistory);
+      return;
+    }
+
+    const nextNumber = lastEntryNumber + 1;
+    const { data: entry, error: e1 } = await supabase.from("journal_entries").insert([{ company_id: companyId, description, entry_date: new Date().toISOString().slice(0,10), currency, exchange_rate: rate, entry_number: nextNumber }]).select("id").single();
+    if (e1 || !entry) { setMessage("Error: " + e1?.message); return; }
     const rows = lines.filter(l => l.account_id).map(l => ({ journal_entry_id: entry.id, account_id: l.account_id, debit: (parseFloat(l.debit) || 0) * rate, credit: (parseFloat(l.credit) || 0) * rate }));
     const { error: e2 } = await supabase.from("journal_lines").insert(rows);
     if (e2) { setMessage("Error: " + e2.message); return; }
-    setMessage("Guardado correctamente.");
+    setMessage("Asiento Nº " + nextNumber + " guardado correctamente.");
     setDescription("");
     setLines([{ account_id: "", debit: "", credit: "" }, { account_id: "", debit: "", credit: "" }]);
-    if (companyId) await loadEntries(companyId);
+    if (companyId) await loadEntries(companyId, showAllHistory);
   }
+
   async function voidEntry(entryId: string) {
     const reason = window.prompt("Motivo de la anulacion:");
     if (!reason) return;
     await supabase.from("journal_entries").update({ status: "VOIDED", voided_at: new Date().toISOString(), void_reason: reason }).eq("id", entryId);
-    if (companyId) await loadEntries(companyId);
+    if (companyId) await loadEntries(companyId, showAllHistory);
   }
+
   function downloadPdf() {
     const items = entries.filter((e) => e.status === "ACTIVE").flatMap((e: any) =>
       (e.journal_lines ?? []).map((l: any) => ({
-        name: e.entry_date + " - " + e.description + " (" + (l.chart_of_accounts?.account_code ?? "") + " " + (l.chart_of_accounts?.account_name ?? "") + ")",
+        name: "Nº" + e.entry_number + " " + e.entry_date + " - " + e.description + " (" + (l.chart_of_accounts?.account_code ?? "") + " " + (l.chart_of_accounts?.account_name ?? "") + ")",
         amount: l.debit > 0 ? l.debit : l.credit,
         debitAmount: l.debit,
         creditAmount: l.credit,
@@ -122,13 +159,19 @@ export default function JournalPage() {
     );
     doc.save("libro-diario.pdf");
   }
-  const inputStyle = theme.inputStyle;
 
+  async function toggleHistory() {
+    const newVal = !showAllHistory;
+    setShowAllHistory(newVal);
+    if (companyId) await loadEntries(companyId, newVal);
+  }
+
+  const inputStyle = theme.inputStyle;
   return (
     <VerticalPageLayout
       vertical="accounting"
       title="Libro Diario"
-      subtitle={debugInfo}
+      subtitle={lastEntryNumber > 0 ? "Ultimo asiento registrado: Nº " + lastEntryNumber : undefined}
       fullWidth
       actions={entries.length > 0 ? (
         <button onClick={downloadPdf} style={{ ...theme.buttonStyle, fontSize: 13, padding: "10px 20px" }}>
@@ -138,6 +181,12 @@ export default function JournalPage() {
     >
       {accounts.length > 0 && (
         <div style={theme.cardStyle}>
+          {editingEntryId && (
+            <div style={{ marginBottom: 12, padding: 10, background: "#FB923C20", border: "1px solid #FB923C", borderRadius: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontSize: 16, color: "#FB923C", fontWeight: 700 }}>Editando asiento existente</span>
+              <button onClick={cancelEdit} style={{ background: "none", border: "1px solid #FB923C", color: "#FB923C", padding: "4px 12px", borderRadius: 8, fontSize: 13, cursor: "pointer" }}>Cancelar Edicion</button>
+            </div>
+          )}
           <div style={{ display: "flex", gap: 8 }}>
             <select value={currency} onChange={(e) => setCurrency(e.target.value)} style={inputStyle}>
               <option value="USD">USD</option>
@@ -161,24 +210,34 @@ export default function JournalPage() {
           ))}
           <button onClick={addLine} style={{ marginTop: 12, color: theme.accent, background: "none", border: "none", cursor: "pointer" }}>+ Linea</button>
           <p style={{ ...theme.numberStyle, marginTop: 12 }}>Debe: {totalDebit().toLocaleString()} | Haber: {totalCredit().toLocaleString()}</p>
-          <button onClick={saveEntry} style={{ ...theme.buttonStyle, marginTop: 12 }}>GUARDAR</button>
+          <button onClick={saveEntry} style={{ ...theme.buttonStyle, marginTop: 12 }}>{editingEntryId ? "GUARDAR EDICION" : "GUARDAR"}</button>
           {message && <p style={{ marginTop: 8, color: message.includes("Error") ? "#F87171" : theme.accent }}>{message}</p>}
         </div>
       )}
       {entries.length > 0 && (
         <div style={{ marginTop: 32 }}>
-          <h2 style={{ fontSize: 26, color: theme.accent, fontFamily: theme.titleStyle.fontFamily, fontWeight: 700 }}>Asientos Recientes</h2>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <h2 style={{ fontSize: 26, color: theme.accent, fontFamily: theme.titleStyle.fontFamily, fontWeight: 700 }}>{showAllHistory ? "Historial Completo" : "Asientos Recientes"}</h2>
+            <button onClick={toggleHistory} style={{ background: "none", border: "1px solid " + theme.accent, color: theme.accent, padding: "6px 16px", borderRadius: 8, fontSize: 14, cursor: "pointer" }}>
+              {showAllHistory ? "Ver solo recientes" : "Ver Historial Completo"}
+            </button>
+          </div>
           {entries.map((e) => (
             <div key={e.id} style={{ ...theme.cardStyle, marginTop: 12, opacity: e.status === "VOIDED" ? 0.5 : 1 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontWeight: 700, fontSize: 22 }}>
-                  {e.entry_date} - {e.description}
+                  Nº{e.entry_number} - {e.entry_date} - {e.description}
                   {e.status === "VOIDED" && <span style={{ color: "#F87171", marginLeft: 8, fontSize: 16 }}>[ANULADO]</span>}
                 </span>
                 {e.status === "ACTIVE" && (
-                  <button onClick={() => voidEntry(e.id)} style={{ background: "none", border: "1px solid #F87171", color: "#F87171", padding: "4px 12px", borderRadius: 8, fontSize: 13, cursor: "pointer" }}>
-                    Anular
-                  </button>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button onClick={() => startEdit(e)} style={{ background: "none", border: "1px solid " + theme.accent, color: theme.accent, padding: "4px 12px", borderRadius: 8, fontSize: 13, cursor: "pointer" }}>
+                      Editar
+                    </button>
+                    <button onClick={() => voidEntry(e.id)} style={{ background: "none", border: "1px solid #F87171", color: "#F87171", padding: "4px 12px", borderRadius: 8, fontSize: 13, cursor: "pointer" }}>
+                      Anular
+                    </button>
+                  </div>
                 )}
               </div>
               {(e.journal_lines ?? []).map((l: any, idx: number) => (
