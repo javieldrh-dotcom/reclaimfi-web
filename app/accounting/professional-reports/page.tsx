@@ -846,11 +846,18 @@ export default function ProfessionalReportsPage() {
       </div>
 
       {!selectedTemplate && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 20 }}>
-          {TEMPLATES.map((t) => (
-            <div key={t.id} onClick={() => selectTemplate(t)} style={{ ...theme.cardStyle, cursor: "pointer", border: "2px solid " + theme.accent + "40" }}>
-              <p style={{ fontWeight: 700, fontSize: 20, color: theme.accent }}>{t.name}</p>
-              <p style={{ marginTop: 10, fontSize: 15, color: "#8B93A7", lineHeight: 1.6 }}>{t.description}</p>
+        <div>
+          {["Certificaciones Rutinarias", "Aseguramiento NIEA 3000", "Compilacion NISR 4410"].map((category) => (
+            <div key={category} style={{ marginBottom: 40 }}>
+              <h2 style={{ fontSize: 26, color: theme.accent, fontWeight: 700, marginBottom: 16 }}>{category}</h2>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 20 }}>
+                {TEMPLATES.filter((t) => t.category === category).map((t) => (
+                  <div key={t.id} onClick={() => selectTemplate(t)} style={{ ...theme.cardStyle, cursor: "pointer", border: "2px solid " + theme.accent + "40" }}>
+                    <p style={{ fontWeight: 700, fontSize: 20, color: theme.accent }}>{t.name}</p>
+                    <p style={{ marginTop: 10, fontSize: 15, color: "#8B93A7", lineHeight: 1.6 }}>{t.description}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           ))}
         </div>
