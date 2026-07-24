@@ -20,6 +20,10 @@ const TEMPLATES: ReportTemplate[] = [
       { key: "currency", label: "Moneda de Expresion (ej. Bolivares, USD)", type: "text" },
       { key: "terrenosAmount", label: "Monto Total - Terrenos", type: "text" },
       { key: "edificacionesAmount", label: "Monto Total - Edificaciones", type: "text" },
+      { key: "terrenoDescription", label: "Nota 2 - Descripcion Completa del Terreno (ubicacion, registro, tomo, folio)", type: "textarea" },
+      { key: "edificacionDescription", label: "Nota 3 - Descripcion Completa de la Edificacion (ubicacion, registro, tomo, folio)", type: "textarea" },
+      { key: "sharesAcquired", label: "Numero de Acciones Adquiridas", type: "text" },
+      { key: "shareNominalValue", label: "Valor Nominal por Accion", type: "text" },
       { key: "presentationDate", label: "Fecha de Presentacion del Inventario", type: "date" },
       { key: "assemblyDate", label: "Fecha de la Asamblea Extraordinaria", type: "date" },
       { key: "mercantileRegistry", label: "Registro Mercantil (numero/identificacion)", type: "text" },
@@ -126,6 +130,44 @@ export default function ProfessionalReportsPage() {
       children: [new Paragraph({ children: [new TextRun({ text, bold })] })],
       width: { size: 33, type: WidthType.PERCENTAGE },
     });
+  }
+
+  async function generateNotasInventario() {
+    const d = formData;
+    const terrenos = parseFloat((d.terrenosAmount || "0").replace(/,/g, "")) || 0;
+    const edificaciones = parseFloat((d.edificacionesAmount || "0").replace(/,/g, "")) || 0;
+    const total = terrenos + edificaciones;
+
+    const doc = new Document({
+      sections: [{
+        children: [
+          new Paragraph({ children: [new TextRun({ text: (d.companyName || "[EMPRESA]").toUpperCase(), bold: true, size: 24 })], alignment: AlignmentType.CENTER, spacing: { after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "NOTAS AL INVENTARIO DE BIENES INMUEBLES APORTADO POR LOS ACCIONISTAS COMO PARTE DEL CAPITAL SOCIAL", bold: true, size: 22 })], alignment: AlignmentType.CENTER, spacing: { after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "Al " + (d.presentationDate || "[FECHA]") })], alignment: AlignmentType.CENTER, spacing: { after: 50 } }),
+          new Paragraph({ children: [new TextRun({ text: "(Expresado en " + (d.currency || "Bolivares") + ")" })], alignment: AlignmentType.CENTER, spacing: { after: 300 } }),
+
+          new Paragraph({ children: [new TextRun({ text: "Los principios y practicas contables mas significativas para la preparacion del INVENTARIO DE BIENES INMUEBLES APORTADO POR LOS ACCIONISTAS PARA AUMENTAR EL CAPITAL SOCIAL al " + (d.presentationDate || "[FECHA]") + ", se describen a continuacion:" })], spacing: { after: 300 } }),
+
+          new Paragraph({ children: [new TextRun({ text: "NOTA 1 - BASES DE PREPARACION Y POLITICAS CONTABLES", bold: true })], spacing: { before: 200, after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "Los accionistas de la empresa " + (d.companyName || "[EMPRESA]") + " han decidido aumentar su capital social, mediante el aporte de los bienes incluidos en el Inventario de bienes inmuebles presentado. Los valores de los bienes incluidos en el inventario de bienes inmuebles seran aprobados por los accionistas en la asamblea general extraordinaria de la empresa " + (d.companyName || "[EMPRESA]") + " y para la preparacion y presentacion de estos valores se tomaron en cuenta los principios de contabilidad generalmente aceptados en Venezuela, VEN NIF PYME." })], spacing: { after: 300 } }),
+
+          new Paragraph({ children: [new TextRun({ text: "NOTA 2: TERRENOS", bold: true })], spacing: { before: 200, after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: d.terrenoDescription || "[DESCRIPCION DEL TERRENO]" })], spacing: { after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "TOTAL TERRENOS: Bs. " + terrenos.toLocaleString(undefined, { minimumFractionDigits: 2 }), bold: true })], spacing: { after: 300 } }),
+
+          new Paragraph({ children: [new TextRun({ text: "NOTA 3: EDIFICACIONES", bold: true })], spacing: { before: 200, after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: d.edificacionDescription || "[DESCRIPCION DE LA EDIFICACION]" })], spacing: { after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "TOTAL EDIFICACIONES: Bs. " + edificaciones.toLocaleString(undefined, { minimumFractionDigits: 2 }), bold: true })], spacing: { after: 100 } }),
+          new Paragraph({ children: [new TextRun({ text: "TOTAL INVENTARIO INMUEBLES PARA AUMENTO: Bs. " + total.toLocaleString(undefined, { minimumFractionDigits: 2 }), bold: true })], spacing: { after: 300 } }),
+
+          new Paragraph({ children: [new TextRun({ text: "Los inmuebles anteriormente señalados constituyen el aporte del socio " + (d.shareholderName || "[ACCIONISTA]") + " de la empresa " + (d.companyName || "[EMPRESA]") + " de la siguiente forma: Adquisicion de " + (d.sharesAcquired || "[NUMERO]") + " nuevas acciones por un valor nominal de Bs. " + (d.shareNominalValue || "[VALOR]") + " cada una, las cuales quedan totalmente suscritas y pagadas tal como se indica, con el aporte relacionado en el \"INVENTARIO DE BIENES INMUEBLES APORTADO POR LOS ACCIONISTAS PARA AUMENTAR EL CAPITAL SOCIAL\" al " + (d.presentationDate || "[FECHA]") + " por Bs. " + total.toLocaleString(undefined, { minimumFractionDigits: 2 }) + "." })], spacing: { after: 300 } }),
+        ],
+      }],
+    });
+
+    const blob = await Packer.toBlob(doc);
+    saveAs(blob, "notas-inventario-" + (d.companyName || "empresa").replace(/\s+/g, "-").toLowerCase() + ".docx");
+    setMessage("Notas al inventario generadas y descargadas correctamente.");
   }
 
   async function generateInventarioAnexo() {
@@ -455,9 +497,14 @@ export default function ProfessionalReportsPage() {
             GENERAR Y DESCARGAR INFORME
           </button>
           {selectedTemplate.id === "niea3000-aumento-capital" && (
-            <button onClick={generateInventarioAnexo} style={{ ...theme.buttonStyle, marginTop: 12, marginLeft: 12, fontSize: 18, background: "#818CF8" }}>
-              GENERAR ANEXO - TABLA DE INVENTARIO
-            </button>
+            <>
+              <button onClick={generateInventarioAnexo} style={{ ...theme.buttonStyle, marginTop: 12, marginLeft: 12, fontSize: 18, background: "#818CF8" }}>
+                GENERAR ANEXO - TABLA DE INVENTARIO
+              </button>
+              <button onClick={generateNotasInventario} style={{ ...theme.buttonStyle, marginTop: 12, marginLeft: 12, fontSize: 18, background: "#FB923C" }}>
+                GENERAR NOTAS AL INVENTARIO
+              </button>
+            </>
           )}
           {message && <p style={{ marginTop: 12, fontSize: 16, color: theme.accent }}>{message}</p>}
         </div>
