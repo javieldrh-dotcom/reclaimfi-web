@@ -3,20 +3,24 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
 import VerticalPageLayout from "@/app/components/VerticalPageLayout";
+import { generateInventoryKardexPdf } from "@/app/core/reports/generateInventoryKardexPdf";
 
 export default function InventoryPage() {
   const theme = getVerticalTheme("accounting");
   const [companyId, setCompanyId] = useState<string | null>(null);
+  const [companyName, setCompanyName] = useState("");
   const [items, setItems] = useState<any[]>([]);
+  const [accounts, setAccounts] = useState<any[]>([]);
+  const [inventoryAccountId, setInventoryAccountId] = useState("");
+  const [offsetAccountId, setOffsetAccountId] = useState("");
+  const [cogsAccountId, setCogsAccountId] = useState("");
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [movements, setMovements] = useState<any[]>([]);
-
   const [sku, setSku] = useState("");
   const [itemName, setItemName] = useState("");
   const [unit, setUnit] = useState("UND");
   const [valuationMethod, setValuationMethod] = useState("WEIGHTED_AVERAGE");
   const [message, setMessage] = useState("");
-
   const [movQuantity, setMovQuantity] = useState("");
   const [movUnitCost, setMovUnitCost] = useState("");
   const [movType, setMovType] = useState("IN");
@@ -35,7 +39,17 @@ export default function InventoryPage() {
       const { data: uc } = await supabase.from("user_companies").select("company_id").eq("user_id", userData.user.id).limit(1).single();
       const cid = uc?.company_id ?? null;
       setCompanyId(cid);
-      if (cid) await loadItems(cid);
+      if (cid) {
+        const { data: companyData } = await supabase.from("companies").select("name").eq("id", cid).single();
+        setCompanyName(companyData?.name ?? "");
+        const { data: acc } = await supabase.from("chart_of_accounts").select("id, account_code, account_name, account_type").eq("company_id", cid).in("account_type", ["ASSET", "LIABILITY", "EXPENSE"]);
+        setAccounts(acc ?? []);
+        const invAcc = (acc ?? []).find((a: any) => a.account_name.toLowerCase().includes("inventario de mercancia"));
+        if (invAcc) setInventoryAccountId(invAcc.id);
+        const cogsAcc = (acc ?? []).find((a: any) => a.account_name.toLowerCase().includes("costo de mercancia vendida") || a.account_name.toLowerCase().includes("costo de ventas"));
+        if (cogsAcc) setCogsAccountId(cogsAcc.id);
+        await loadItems(cid);
+      }
     }
     load();
   }, []);
@@ -43,7 +57,6 @@ export default function InventoryPage() {
   async function createItem() {
     setMessage("");
     if (!companyId || !sku || !itemName) { setMessage("Completa SKU y nombre del producto."); return; }
-
     const { error } = await supabase.from("inventory_items").insert([{
       company_id: companyId,
       sku,
@@ -51,7 +64,6 @@ export default function InventoryPage() {
       unit,
       valuation_method: valuationMethod,
     }]);
-
     if (error) { setMessage("Error: " + error.message); return; }
     setMessage("Producto creado correctamente.");
     setSku(""); setItemName("");
@@ -63,13 +75,13 @@ export default function InventoryPage() {
     const { data } = await supabase.from("inventory_movements").select("*").eq("inventory_item_id", itemId).order("movement_date", { ascending: true });
     setMovements(data ?? []);
   }
+
   async function registerMovement() {
     setMessage("");
     if (!selectedItemId || !movQuantity) { setMessage("Selecciona un producto y la cantidad."); return; }
-
+    if (!inventoryAccountId || !offsetAccountId) { setMessage("Selecciona las cuentas contables (Inventario y Contrapartida) antes de registrar."); return; }
     const item = items.find((i) => i.id === selectedItemId);
     if (!item) return;
-
     const qty = parseFloat(movQuantity);
     let newQuantity = item.current_quantity;
     let newAvgCost = item.current_avg_cost;
@@ -87,9 +99,32 @@ export default function InventoryPage() {
         setMessage("No hay suficiente inventario disponible (disponible: " + item.current_quantity + ").");
         return;
       }
+      if (!cogsAccountId) { setMessage("Selecciona la cuenta de Costo de Ventas para registrar salidas."); return; }
       newQuantity = item.current_quantity - qty;
       costForThisMovement = item.current_avg_cost;
     }
+
+    const movementValue = qty * costForThisMovement;
+
+    const { data: entry, error: entryError } = await supabase.from("journal_entries").insert([{
+      company_id: companyId,
+      description: (movType === "IN" ? "Entrada" : "Salida") + " de Inventario - " + item.item_name + (movReference ? " (" + movReference + ")" : ""),
+      entry_date: movDate,
+    }]).select("id").single();
+
+    if (entryError || !entry) { setMessage("Error al crear asiento: " + entryError?.message); return; }
+
+    const lines = movType === "IN"
+      ? [
+          { journal_entry_id: entry.id, account_id: inventoryAccountId, debit: movementValue, credit: 0 },
+          { journal_entry_id: entry.id, account_id: offsetAccountId, debit: 0, credit: movementValue },
+        ]
+      : [
+          { journal_entry_id: entry.id, account_id: cogsAccountId, debit: movementValue, credit: 0 },
+          { journal_entry_id: entry.id, account_id: inventoryAccountId, debit: 0, credit: movementValue },
+        ];
+
+    await supabase.from("journal_lines").insert(lines);
 
     const { error: movError } = await supabase.from("inventory_movements").insert([{
       inventory_item_id: selectedItemId,
@@ -100,8 +135,8 @@ export default function InventoryPage() {
       reference: movReference,
       resulting_quantity: newQuantity,
       resulting_avg_cost: newAvgCost,
+      journal_entry_id: entry.id,
     }]);
-
     if (movError) { setMessage("Error: " + movError.message); return; }
 
     await supabase.from("inventory_items").update({
@@ -109,18 +144,47 @@ export default function InventoryPage() {
       current_avg_cost: newAvgCost,
     }).eq("id", selectedItemId);
 
-    setMessage("Movimiento registrado. Nuevo saldo: " + newQuantity + " unidades a costo promedio " + newAvgCost.toLocaleString(undefined, { maximumFractionDigits: 4 }));
+    setMessage("Movimiento registrado y asiento contable generado. Nuevo saldo: " + newQuantity + " unidades a costo promedio " + newAvgCost.toLocaleString(undefined, { maximumFractionDigits: 4 }));
     setMovQuantity(""); setMovUnitCost(""); setMovReference("");
     if (companyId) await loadItems(companyId);
     await loadMovements(selectedItemId);
   }
 
-  const inputStyle = { ...theme.inputStyle, fontSize: 20 };
+  function downloadPdf() {
+    if (!selectedItem) return;
+    const doc = generateInventoryKardexPdf(companyName, selectedItem.item_name, selectedItem.sku, movements);
+    doc.save("kardex-" + selectedItem.sku.toLowerCase() + ".pdf");
+  }
 
+  const inputStyle = { ...theme.inputStyle, fontSize: 20 };
   const selectedItem = items.find((i) => i.id === selectedItemId);
 
   return (
-    <VerticalPageLayout vertical="accounting" title="Control de Inventario" subtitle="Kardex con valuacion por Promedio Ponderado (NIC 2)" fullWidth>
+    <VerticalPageLayout vertical="accounting" title="Control de Inventario" subtitle="Kardex con valuacion por Promedio Ponderado (NIC 2) - Vinculado a contabilidad" fullWidth
+      actions={selectedItem && movements.length > 0 ? (
+        <button onClick={downloadPdf} style={{ ...theme.buttonStyle, fontSize: 13, padding: "10px 20px" }}>
+          Descargar PDF
+        </button>
+      ) : undefined}
+    >
+      <div style={{ ...theme.cardStyle, marginBottom: 20, maxWidth: 900 }}>
+        <p style={{ fontSize: 15, color: theme.accent, fontWeight: 700, marginBottom: 10 }}>Cuentas Contables (requeridas para registrar movimientos)</p>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <select value={inventoryAccountId} onChange={(e) => setInventoryAccountId(e.target.value)} style={{ ...theme.inputStyle, fontSize: 14, flex: 1 }}>
+            <option value="">Cuenta de Inventario</option>
+            {accounts.filter(a => a.account_type === "ASSET").map((a) => <option key={a.id} value={a.id}>{a.account_code} - {a.account_name}</option>)}
+          </select>
+          <select value={offsetAccountId} onChange={(e) => setOffsetAccountId(e.target.value)} style={{ ...theme.inputStyle, fontSize: 14, flex: 1 }}>
+            <option value="">Contrapartida de Entrada (ej. Ctas x Pagar)</option>
+            {accounts.filter(a => a.account_type === "LIABILITY" || a.account_type === "ASSET").map((a) => <option key={a.id} value={a.id}>{a.account_code} - {a.account_name}</option>)}
+          </select>
+          <select value={cogsAccountId} onChange={(e) => setCogsAccountId(e.target.value)} style={{ ...theme.inputStyle, fontSize: 14, flex: 1 }}>
+            <option value="">Cuenta de Costo de Ventas</option>
+            {accounts.filter(a => a.account_type === "EXPENSE").map((a) => <option key={a.id} value={a.id}>{a.account_code} - {a.account_name}</option>)}
+          </select>
+        </div>
+      </div>
+
       <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 24 }}>
         <div>
           <div style={theme.cardStyle}>
@@ -131,20 +195,18 @@ export default function InventoryPage() {
             <button onClick={createItem} style={{ ...theme.buttonStyle, marginTop: 12, fontSize: 16, width: "100%" }}>
               CREAR PRODUCTO
             </button>
-            {message && <p style={{ marginTop: 8, fontSize: 16, color: message.includes("Error") || message.includes("No hay") ? "#f87171" : theme.accent }}>{message}</p>}
+            {message && <p style={{ marginTop: 8, fontSize: 16, color: message.includes("Error") || message.includes("No hay") || message.includes("Selecciona") ? "#f87171" : theme.accent }}>{message}</p>}
           </div>
-
           <div style={{ ...theme.cardStyle, marginTop: 16, maxHeight: 500, overflowY: "auto" }}>
             <h3 style={{ fontSize: 20, color: theme.accent, fontWeight: 700, marginBottom: 12 }}>Productos</h3>
             {items.map((i) => (
               <div key={i.id} onClick={() => loadMovements(i.id)} style={{ padding: 12, borderRadius: 8, cursor: "pointer", marginBottom: 6, background: selectedItemId === i.id ? theme.accent + "30" : "transparent", border: selectedItemId === i.id ? "1px solid " + theme.accent : "1px solid transparent" }}>
                 <p style={{ fontSize: 18, fontWeight: 600 }}>{i.sku} - {i.item_name}</p>
-                <p style={{ fontSize: 16, color: "#8B93A7", marginTop: 2 }}>Stock: {i.current_quantity} {i.unit} | Costo Prom.: {i.current_avg_cost.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+                <p style={{ fontSize: 16, color: "#8B93A7", marginTop: 2 }}>Stock: {i.current_quantity} {i.unit} | Costo Prom.: {i.current_avg_cost.toLocaleString(undefined,{ maximumFractionDigits: 2 })}</p>
               </div>
             ))}
           </div>
         </div>
-
         <div>
           {selectedItem ? (
             <>
@@ -168,7 +230,6 @@ export default function InventoryPage() {
                   REGISTRAR MOVIMIENTO
                 </button>
               </div>
-
               <div style={{ marginTop: 20 }}>
                 <h3 style={{ fontSize: 20, color: theme.accent, fontWeight: 700, marginBottom: 12 }}>Kardex</h3>
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -188,7 +249,7 @@ export default function InventoryPage() {
                         <td style={{ padding: 8, fontSize: 16 }}>{m.movement_date}</td>
                         <td style={{ padding: 8, fontSize: 16, color: m.movement_type === "IN" ? "#4ade80" : "#f87171" }}>{m.movement_type === "IN" ? "Entrada" : "Salida"}</td>
                         <td style={{ padding: 8, textAlign: "right", fontSize: 16, ...theme.numberStyle }}>{m.quantity}</td>
-                        <td style={{ padding: 8, textAlign: "right", fontSize: 16, ...theme.numberStyle }}>{m.unit_cost?.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
+                        <td style={{ padding: 8, textAlign: "right", fontSize: 16, ...theme.numberStyle }}>{m.unit_cost?.toLocaleString(undefined, { maximumFractionDigits: 2})}</td>
                         <td style={{ padding: 8, textAlign: "right", fontSize: 16, ...theme.numberStyle }}>{m.resulting_quantity}</td>
                         <td style={{ padding: 8, textAlign: "right", fontSize: 16, fontWeight: 700, ...theme.numberStyle }}>{m.resulting_avg_cost?.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
                       </tr>
