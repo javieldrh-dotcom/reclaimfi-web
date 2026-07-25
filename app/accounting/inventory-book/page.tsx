@@ -10,6 +10,7 @@ export default function InventoryBookPage() {
   const [companyName, setCompanyName] = useState("");
   const [entries, setEntries] = useState<any[]>([]);
   const [periodEnd, setPeriodEnd] = useState(new Date().toISOString().slice(0, 10));
+  const [periodStart, setPeriodStart] = useState(new Date().getFullYear() + "-01-01");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [expandedEntry, setExpandedEntry] = useState<string | null>(null);
@@ -51,7 +52,6 @@ export default function InventoryBookPage() {
     const accountIds = (accountsData ?? []).map((a: any) => a.id);
 
     const { data: lines } = await supabase.from("journal_lines").select("debit, credit, account_id").in("account_id", accountIds);
-
     const balances: Record<string, number> = {};
     (lines ?? []).forEach((l: any) => {
       const acc = accountsMap[l.account_id];
@@ -59,9 +59,26 @@ export default function InventoryBookPage() {
       const netMovement = (l.debit || 0) - (l.credit || 0);
       balances[l.account_id] = (balances[l.account_id] || 0) + netMovement;
     });
-
     function bal(accId: string, invert: boolean) {
       const raw = balances[accId] || 0;
+      return invert ? -raw : raw;
+    }
+
+    const { data: periodEntries } = await supabase.from("journal_entries").select("id").eq("company_id", companyId).gte("entry_date", periodStart).lte("entry_date", periodEnd);
+    const periodEntryIds = (periodEntries ?? []).map((e: any) => e.id);
+    const periodLinesResult = periodEntryIds.length > 0
+      ? await supabase.from("journal_lines").select("debit, credit, account_id").in("account_id", accountIds).in("journal_entry_id", periodEntryIds)
+      : { data: [] };
+    const periodLines = periodLinesResult.data;
+    const periodBalances: Record<string, number> = {};
+    (periodLines ?? []).forEach((l: any) => {
+      const acc = accountsMap[l.account_id];
+      if (!acc) return;
+      const netMovement = (l.debit || 0) - (l.credit || 0);
+      periodBalances[l.account_id] = (periodBalances[l.account_id] || 0) + netMovement;
+    });
+    function periodBal(accId: string, invert: boolean) {
+      const raw = periodBalances[accId] || 0;
       return invert ? -raw : raw;
     }
 
@@ -83,10 +100,10 @@ export default function InventoryBookPage() {
     const totalNonCurrentLiabilities = nonCurrentLiabilities.reduce((s, a) => s + a.balance, 0);
     const totalLiabilities = totalCurrentLiabilities + totalNonCurrentLiabilities;
 
-    const revenueItems = revenueEntries.map((id) => ({ code: accountsMap[id].account_code, name: accountsMap[id].account_name, balance: bal(id, true) }));
-    const cogsItems = expenseEntries.filter((id) => accountsMap[id].statement_category === "COGS").map((id) => ({ code: accountsMap[id].account_code, name: accountsMap[id].account_name, balance: bal(id, false) }));
-    const operatingItems = expenseEntries.filter((id) => accountsMap[id].statement_category === "OPERATING").map((id) => ({ code: accountsMap[id].account_code, name: accountsMap[id].account_name, balance: bal(id, false) }));
-    const financialItems = expenseEntries.filter((id) => accountsMap[id].statement_category === "FINANCIAL").map((id) => ({ code: accountsMap[id].account_code, name: accountsMap[id].account_name, balance: bal(id, false) }));
+    const revenueItems = revenueEntries.map((id) => ({ code: accountsMap[id].account_code, name: accountsMap[id].account_name, balance: periodBal(id, true) }));
+    const cogsItems = expenseEntries.filter((id) => accountsMap[id].statement_category === "COGS").map((id) => ({ code: accountsMap[id].account_code, name: accountsMap[id].account_name, balance: periodBal(id, false) }));
+    const operatingItems = expenseEntries.filter((id) => accountsMap[id].statement_category === "OPERATING").map((id) => ({ code: accountsMap[id].account_code, name: accountsMap[id].account_name, balance: periodBal(id, false) }));
+    const financialItems = expenseEntries.filter((id) => accountsMap[id].statement_category === "FINANCIAL").map((id) => ({ code: accountsMap[id].account_code, name: accountsMap[id].account_name, balance: periodBal(id, false) }));
 
     const totalRevenue = revenueItems.reduce((s, a) => s + a.balance, 0);
     const totalCogs = cogsItems.reduce((s, a) => s + a.balance, 0);
@@ -157,6 +174,8 @@ export default function InventoryBookPage() {
           (Corriente/No Corriente, Utilidad Bruta/Operativa, Capital/Reservas/Resultados Acumulados). Una vez
           archivado, un registro no puede modificarse ni eliminarse.
         </p>
+        <label style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginTop: 16, display: "block" }}>Fecha de Inicio del Periodo</label>
+        <input type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} style={{ ...inputStyle, marginTop: 6 }} />
         <label style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginTop: 16, display: "block" }}>Fecha de Cierre del Ejercicio</label>
         <input type="date" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} style={{ ...inputStyle, marginTop: 6 }} />
         <button onClick={archivePeriod} disabled={loading} style={{ ...theme.buttonStyle, marginTop: 16, fontSize: 18 }}>
