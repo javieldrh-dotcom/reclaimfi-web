@@ -4,6 +4,7 @@ import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
 import VerticalPageLayout from "@/app/components/VerticalPageLayout";
 import { generateFinancialStatementPdf } from "@/app/core/reports/generateFinancialStatementPdf";
+import AccountSearchSelect from "@/app/components/AccountSearchSelect";
 interface Account { id: string; account_code: string; account_name: string; }
 interface Line { account_id: string; debit: string; credit: string; }
 export default function JournalPage() {
@@ -200,10 +201,7 @@ export default function JournalPage() {
           <input value={description} onChange={(e) => setDescription(e.target.value)} style={{ ...inputStyle, marginTop: 8 }} placeholder="Descripcion" />
           {lines.map((line, idx) => (
             <div key={idx} style={{ display: "flex", gap: 8, marginTop: 8 }}>
-              <select value={line.account_id} onChange={(e) => updateLine(idx, "account_id", e.target.value)} style={inputStyle}>
-                <option value="">Cuenta</option>
-                {accounts.map((a) => <option key={a.id} value={a.id}>{a.account_code} - {a.account_name}</option>)}
-              </select>
+              <AccountSearchSelect accounts={accounts} value={line.account_id} onChange={(id) => updateLine(idx, "account_id", id)} placeholder="Buscar cuenta..." />
               <input type="number" value={line.debit} onChange={(e) => updateLine(idx, "debit", e.target.value)} style={inputStyle} placeholder="Debe" />
               <input type="number" value={line.credit} onChange={(e) => updateLine(idx, "credit", e.target.value)} style={inputStyle} placeholder="Haber" />
             </div>
