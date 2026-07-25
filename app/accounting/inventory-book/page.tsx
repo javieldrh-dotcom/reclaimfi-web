@@ -193,6 +193,7 @@ export default function InventoryBookPage() {
                       <h4 style={{ fontSize: 15, color: theme.accent, fontWeight: 700, marginTop: 14 }}>Activos No Corrientes</h4>
                       {(e.balance_sheet_snapshot.nonCurrentAssets ?? []).map((a: any, i: number) => <div key={i} style={rowStyle}><span>{a.code} - {a.name}</span><span style={theme.numberStyle}>{a.balance?.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span></div>)}
                       <div style={totalRowStyle}><span>Total Activos No Corrientes</span><span style={theme.numberStyle}>{e.balance_sheet_snapshot.totalNonCurrentAssets?.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span></div>
+                      <div style={{ ...totalRowStyle, marginTop: 6, fontSize: 16, borderTop: "2px solid " + theme.accent }}><span>TOTAL ACTIVOS</span><span style={theme.numberStyle}>{e.total_assets?.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span></div>
 
                       <h4 style={{ fontSize: 15, color: "#facc15", fontWeight: 700, marginTop: 14 }}>Pasivos Corrientes</h4>
                       {(e.balance_sheet_snapshot.currentLiabilities ?? []).map((a: any, i: number) => <div key={i} style={rowStyle}><span>{a.code} - {a.name}</span><span style={theme.numberStyle}>{a.balance?.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span></div>)}
@@ -201,6 +202,7 @@ export default function InventoryBookPage() {
                       <h4 style={{ fontSize: 15, color: "#facc15", fontWeight: 700, marginTop: 14 }}>Pasivos No Corrientes</h4>
                       {(e.balance_sheet_snapshot.nonCurrentLiabilities ?? []).map((a: any, i: number) => <div key={i} style={rowStyle}><span>{a.code} - {a.name}</span><span style={theme.numberStyle}>{a.balance?.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span></div>)}
                       <div style={totalRowStyle}><span>Total Pasivos No Corrientes</span><span style={theme.numberStyle}>{e.balance_sheet_snapshot.totalNonCurrentLiabilities?.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span></div>
+                      <div style={{ ...totalRowStyle, marginTop: 6, fontSize: 16, borderTop: "2px solid #facc15" }}><span>TOTAL PASIVOS</span><span style={theme.numberStyle}>{e.total_liabilities?.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span></div>
 
                       <h4 style={{ fontSize: 15, color: theme.accent, fontWeight: 700, marginTop: 14 }}>Patrimonio</h4>
                       {(e.equity_statement_snapshot?.capitalItems ?? []).map((a: any, i: number) => <div key={i} style={rowStyle}><span>{a.code} - {a.name}</span><span style={theme.numberStyle}>{a.balance?.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span></div>)}
