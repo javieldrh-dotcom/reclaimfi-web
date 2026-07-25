@@ -106,10 +106,14 @@ export default function InventoryPage() {
 
     const movementValue = qty * costForThisMovement;
 
+    const { data: lastEntry } = await supabase.from("journal_entries").select("entry_number").eq("company_id", companyId).order("entry_number", { ascending: false }).limit(1).single();
+    const nextEntryNumber = (lastEntry?.entry_number || 0) + 1;
+
     const { data: entry, error: entryError } = await supabase.from("journal_entries").insert([{
       company_id: companyId,
       description: (movType === "IN" ? "Entrada" : "Salida") + " de Inventario - " + item.item_name + (movReference ? " (" + movReference + ")" : ""),
       entry_date: movDate,
+      entry_number: nextEntryNumber,
     }]).select("id").single();
 
     if (entryError || !entry) { setMessage("Error al crear asiento: " + entryError?.message); return; }
