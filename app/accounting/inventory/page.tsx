@@ -4,6 +4,7 @@ import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
 import VerticalPageLayout from "@/app/components/VerticalPageLayout";
 import { generateInventoryKardexPdf } from "@/app/core/reports/generateInventoryKardexPdf";
+import AccountSearchSelect from "@/app/components/AccountSearchSelect";
 
 export default function InventoryPage() {
   const theme = getVerticalTheme("accounting");
@@ -192,24 +193,15 @@ export default function InventoryPage() {
         <p style={{ fontSize: 15, color: theme.accent, fontWeight: 700, marginBottom: 10 }}>Cuentas Contables (requeridas para registrar movimientos)</p>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <div style={{ display: "flex", gap: 6, flex: 1 }}>
-            <select value={inventoryAccountId} onChange={(e) => setInventoryAccountId(e.target.value)} style={{ ...theme.inputStyle, fontSize: 14, flex: 1 }}>
-              <option value="">Cuenta de Inventario</option>
-              {accounts.filter(a => a.account_type === "ASSET").map((a) => <option key={a.id} value={a.id}>{a.account_code} - {a.account_name}</option>)}
-            </select>
+            <AccountSearchSelect accounts={accounts.filter(a => a.account_type === "ASSET")} value={inventoryAccountId} onChange={setInventoryAccountId} placeholder="Buscar Cuenta de Inventario..." />
             <button onClick={() => createNewAccount("ASSET", "inventory")} style={{ padding: "0 12px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap" }}>+ Nueva</button>
           </div>
           <div style={{ display: "flex", gap: 6, flex: 1 }}>
-            <select value={offsetAccountId} onChange={(e) => setOffsetAccountId(e.target.value)} style={{ ...theme.inputStyle, fontSize: 14, flex: 1 }}>
-              <option value="">Contrapartida de Entrada (ej. Ctas x Pagar)</option>
-              {accounts.filter(a => a.account_type === "LIABILITY" || a.account_type === "ASSET").map((a) => <option key={a.id} value={a.id}>{a.account_code} - {a.account_name}</option>)}
-            </select>
+            <AccountSearchSelect accounts={accounts.filter(a => a.account_type === "LIABILITY" || a.account_type === "ASSET")} value={offsetAccountId} onChange={setOffsetAccountId} placeholder="Buscar Contrapartida..." />
             <button onClick={() => createNewAccount("LIABILITY", "offset")} style={{ padding: "0 12px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap" }}>+ Nueva</button>
           </div>
           <div style={{ display: "flex", gap: 6, flex: 1 }}>
-            <select value={cogsAccountId} onChange={(e) => setCogsAccountId(e.target.value)} style={{ ...theme.inputStyle, fontSize: 14, flex: 1 }}>
-              <option value="">Cuenta de Costo de Ventas (opcional, solo requerida en Salidas)</option>
-              {accounts.filter(a => a.account_type === "EXPENSE").map((a) => <option key={a.id} value={a.id}>{a.account_code} - {a.account_name}</option>)}
-            </select>
+            <AccountSearchSelect accounts={accounts.filter(a => a.account_type === "EXPENSE")} value={cogsAccountId} onChange={setCogsAccountId} placeholder="Buscar Costo de Ventas (opcional)..." />
             <button onClick={() => createNewAccount("EXPENSE", "cogs")} style={{ padding: "0 12px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap" }}>+ Nueva</button>
           </div>
         </div>
