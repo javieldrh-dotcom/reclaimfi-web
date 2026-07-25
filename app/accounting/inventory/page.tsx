@@ -54,6 +54,23 @@ export default function InventoryPage() {
     load();
   }, []);
 
+  async function createNewAccount(type: string, target: string) {
+    const name = window.prompt("Nombre de la nueva cuenta de " + (type === "ASSET" ? "Activo" : type === "LIABILITY" ? "Pasivo" : "Gasto") + ":");
+    if (!name || !companyId) return;
+    const prefix = type === "ASSET" ? "1199" : type === "LIABILITY" ? "2199" : "5199";
+    const { data: newAcc, error } = await supabase.from("chart_of_accounts").insert([{
+      account_code: prefix + "-" + Date.now().toString().slice(-4),
+      account_name: name,
+      account_type: type,
+      company_id: companyId,
+    }]).select("id, account_code, account_name, account_type").single();
+    if (error || !newAcc) { alert("Error al crear cuenta: " + error?.message); return; }
+    setAccounts((prev) => [...prev, newAcc]);
+    if (target === "inventory") setInventoryAccountId(newAcc.id);
+    if (target === "offset") setOffsetAccountId(newAcc.id);
+    if (target === "cogs") setCogsAccountId(newAcc.id);
+  }
+
   async function createItem() {
     setMessage("");
     if (!companyId || !sku || !itemName) { setMessage("Completa SKU y nombre del producto."); return; }
@@ -174,19 +191,34 @@ export default function InventoryPage() {
       <div style={{ ...theme.cardStyle, marginBottom: 20, maxWidth: 900 }}>
         <p style={{ fontSize: 15, color: theme.accent, fontWeight: 700, marginBottom: 10 }}>Cuentas Contables (requeridas para registrar movimientos)</p>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <select value={inventoryAccountId} onChange={(e) => setInventoryAccountId(e.target.value)} style={{ ...theme.inputStyle, fontSize: 14, flex: 1 }}>
-            <option value="">Cuenta de Inventario</option>
-            {accounts.filter(a => a.account_type === "ASSET").map((a) => <option key={a.id} value={a.id}>{a.account_code} - {a.account_name}</option>)}
-          </select>
-          <select value={offsetAccountId} onChange={(e) => setOffsetAccountId(e.target.value)} style={{ ...theme.inputStyle, fontSize: 14, flex: 1 }}>
-            <option value="">Contrapartida de Entrada (ej. Ctas x Pagar)</option>
-            {accounts.filter(a => a.account_type === "LIABILITY" || a.account_type === "ASSET").map((a) => <option key={a.id} value={a.id}>{a.account_code} - {a.account_name}</option>)}
-          </select>
-          <select value={cogsAccountId} onChange={(e) => setCogsAccountId(e.target.value)} style={{ ...theme.inputStyle, fontSize: 14, flex: 1 }}>
-            <option value="">Cuenta de Costo de Ventas</option>
-            {accounts.filter(a => a.account_type === "EXPENSE").map((a) => <option key={a.id} value={a.id}>{a.account_code} - {a.account_name}</option>)}
-          </select>
+          <div style={{ display: "flex", gap: 6, flex: 1 }}>
+            <select value={inventoryAccountId} onChange={(e) => setInventoryAccountId(e.target.value)} style={{ ...theme.inputStyle, fontSize: 14, flex: 1 }}>
+              <option value="">Cuenta de Inventario</option>
+              {accounts.filter(a => a.account_type === "ASSET").map((a) => <option key={a.id} value={a.id}>{a.account_code} - {a.account_name}</option>)}
+            </select>
+            <button onClick={() => createNewAccount("ASSET", "inventory")} style={{ padding: "0 12px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap" }}>+ Nueva</button>
+          </div>
+          <div style={{ display: "flex", gap: 6, flex: 1 }}>
+            <select value={offsetAccountId} onChange={(e) => setOffsetAccountId(e.target.value)} style={{ ...theme.inputStyle, fontSize: 14, flex: 1 }}>
+              <option value="">Contrapartida de Entrada (ej. Ctas x Pagar)</option>
+              {accounts.filter(a => a.account_type === "LIABILITY" || a.account_type === "ASSET").map((a) => <option key={a.id} value={a.id}>{a.account_code} - {a.account_name}</option>)}
+            </select>
+            <button onClick={() => createNewAccount("LIABILITY", "offset")} style={{ padding: "0 12px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap" }}>+ Nueva</button>
+          </div>
+          <div style={{ display: "flex", gap: 6, flex: 1 }}>
+            <select value={cogsAccountId} onChange={(e) => setCogsAccountId(e.target.value)} style={{ ...theme.inputStyle, fontSize: 14, flex: 1 }}>
+              <option value="">Cuenta de Costo de Ventas (opcional, solo requerida en Salidas)</option>
+              {accounts.filter(a => a.account_type === "EXPENSE").map((a) => <option key={a.id} value={a.id}>{a.account_code} - {a.account_name}</option>)}
+            </select>
+            <button onClick={() => createNewAccount("EXPENSE", "cogs")} style={{ padding: "0 12px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap" }}>+ Nueva</button>
+          </div>
         </div>
+        {inventoryAccountId && offsetAccountId && inventoryAccountId === offsetAccountId && (
+          <p style={{ marginTop: 8, fontSize: 14, color: "#f87171" }}>La cuenta de Inventario y la Contrapartida no pueden ser la misma.</p>
+        )}
+        {inventoryAccountId && cogsAccountId && inventoryAccountId === cogsAccountId && (
+          <p style={{ marginTop: 8, fontSize: 14, color: "#f87171" }}>La cuenta de Inventario y la de Costo de Ventas no pueden ser la misma.</p>
+        )}
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 24 }}>
