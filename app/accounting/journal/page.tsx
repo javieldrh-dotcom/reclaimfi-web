@@ -19,23 +19,34 @@ export default function JournalPage() {
   const [lines, setLines] = useState<Line[]>([{ account_id: "", debit: "", credit: "" }, { account_id: "", debit: "", credit: "" }]);
   const [message, setMessage] = useState("");
   const [entries, setEntries] = useState<any[]>([]);
-  const [showAllHistory, setShowAllHistory] = useState(false);
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
   const [lastEntryNumber, setLastEntryNumber] = useState(0);
+  const [availableYears, setAvailableYears] = useState<string[]>([]);
+  const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
 
-  async function loadEntries(cid: string, all: boolean) {
+  async function loadAvailableYears(cid: string) {
+    const { data } = await supabase.from("journal_entries").select("entry_date").eq("company_id", cid).order("entry_date", { ascending: true });
+    const years = Array.from(new Set((data ?? []).map((e: any) => e.entry_date.slice(0, 4)))).sort((a, b) => b.localeCompare(a));
+    setAvailableYears(years);
+    if (years.length > 0 && !years.includes(selectedYear)) {
+      setSelectedYear(years[0]);
+    }
+    return years;
+  }
+
+  async function loadEntries(cid: string, year: string) {
     let query = supabase
       .from("journal_entries")
       .select("id, description, entry_date, status, entry_number")
       .eq("company_id", cid)
       .order("entry_number", { ascending: false });
-    if (!all) query = query.limit(15);
+    if (year !== "TODOS") {
+      query = query.gte("entry_date", year + "-01-01").lte("entry_date", year + "-12-31");
+    }
     const { data: entriesData } = await query;
     if (!entriesData || entriesData.length === 0) { setEntries([]); return; }
-
     const maxNum = Math.max(...entriesData.map((e: any) => e.entry_number || 0));
     setLastEntryNumber(maxNum);
-
     const entryIds = entriesData.map((e: any) => e.id);
     const { data: linesData } = await supabase
       .from("journal_lines")
@@ -70,17 +81,24 @@ export default function JournalPage() {
         setCurrencyDoc(companyData?.functional_currency ?? "USD");
         const { data: acc } = await supabase.from("chart_of_accounts").select("id, account_code, account_name").eq("company_id", cid).order("account_code");
         setAccounts(acc ?? []);
-        await loadEntries(cid, false);
+        const years = await loadAvailableYears(cid);
+        const initialYear = years.length > 0 ? years[0] : new Date().getFullYear().toString();
+        setSelectedYear(initialYear);
+        await loadEntries(cid, initialYear);
       }
     }
     load();
   }, []);
 
+  async function changeYear(year: string) {
+    setSelectedYear(year);
+    if (companyId) await loadEntries(companyId, year);
+  }
+
   function updateLine(i: number, f: keyof Line, v: string) { const u = [...lines]; u[i][f] = v; setLines(u); }
   function addLine() { setLines([...lines, { account_id: "", debit: "", credit: "" }]); }
   function totalDebit() { return lines.reduce((s, l) => s + (parseFloat(l.debit) || 0), 0); }
   function totalCredit() { return lines.reduce((s, l) => s + (parseFloat(l.credit) || 0), 0); }
-
   function startEdit(entry: any) {
     setEditingEntryId(entry.id);
     setDescription(entry.description);
@@ -93,20 +111,17 @@ export default function JournalPage() {
     })));
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
-
   function cancelEdit() {
     setEditingEntryId(null);
     setDescription("");
     setLines([{ account_id: "", debit: "", credit: "" }, { account_id: "", debit: "", credit: "" }]);
   }
-
   async function saveEntry() {
     setMessage("");
     if (!companyId) { setMessage("Sin empresa asociada."); return; }
     const d = totalDebit(); const c = totalCredit();
     if (d !== c || d === 0) { setMessage("El asiento no cuadra."); return; }
     const rate = parseFloat(exchangeRate) || 1;
-
     if (editingEntryId) {
       const { error: eUpd } = await supabase.from("journal_entries").update({ description }).eq("id", editingEntryId);
       if (eUpd) { setMessage("Error: " + eUpd.message); return; }
@@ -116,12 +131,12 @@ export default function JournalPage() {
       if (e2) { setMessage("Error: " + e2.message); return; }
       setMessage("Asiento editado correctamente.");
       cancelEdit();
-      if (companyId) await loadEntries(companyId, showAllHistory);
+      if (companyId) await loadEntries(companyId, selectedYear);
       return;
     }
-
-    const nextNumber = lastEntryNumber + 1;
-    const { data: entry, error: e1 } = await supabase.from("journal_entries").insert([{ company_id: companyId, description, entry_date: new Date().toISOString().slice(0,10), currency, exchange_rate: rate, entry_number: nextNumber }]).select("id").single();
+    const { data: lastEntry } = await supabase.from("journal_entries").select("entry_number").eq("company_id", companyId).order("entry_number", { ascending: false }).limit(1).maybeSingle();
+    const nextNumber = (lastEntry?.entry_number || 0) + 1;
+    const { data: entry, error: e1 } = await supabase.from("journal_entries").insert([{ company_id: companyId, description, entry_date: new Date().toISOString().slice(0,10),currency, exchange_rate: rate, entry_number: nextNumber }]).select("id").single();
     if (e1 || !entry) { setMessage("Error: " + e1?.message); return; }
     const rows = lines.filter(l => l.account_id).map(l => ({ journal_entry_id: entry.id, account_id: l.account_id, debit: (parseFloat(l.debit) || 0) * rate, credit: (parseFloat(l.credit) || 0) * rate }));
     const { error: e2 } = await supabase.from("journal_lines").insert(rows);
@@ -129,20 +144,19 @@ export default function JournalPage() {
     setMessage("Asiento Nº " + nextNumber + " guardado correctamente.");
     setDescription("");
     setLines([{ account_id: "", debit: "", credit: "" }, { account_id: "", debit: "", credit: "" }]);
-    if (companyId) await loadEntries(companyId, showAllHistory);
+    await loadAvailableYears(companyId);
+    if (companyId) await loadEntries(companyId, selectedYear);
   }
-
   async function voidEntry(entryId: string) {
     const reason = window.prompt("Motivo de la anulacion:");
     if (!reason) return;
     await supabase.from("journal_entries").update({ status: "VOIDED", voided_at: new Date().toISOString(), void_reason: reason }).eq("id", entryId);
-    if (companyId) await loadEntries(companyId, showAllHistory);
+    if (companyId) await loadEntries(companyId, selectedYear);
   }
-
   function downloadPdf() {
     const items = entries.filter((e) => e.status === "ACTIVE").flatMap((e: any) =>
       (e.journal_lines ?? []).map((l: any) => ({
-        name: "Nº" + e.entry_number + " " + e.entry_date + " - " + e.description + " (" + (l.chart_of_accounts?.account_code ?? "") + " " + (l.chart_of_accounts?.account_name ?? "") + ")",
+        name: "Nº" + (e.entry_number ?? "S/N") + " " + e.entry_date + " - " + e.description + " (" + (l.chart_of_accounts?.account_code ?? "") + " " + (l.chart_of_accounts?.account_name ?? "") + ")",
         amount: l.debit > 0 ? l.debit : l.credit,
         debitAmount: l.debit,
         creditAmount: l.credit,
@@ -151,28 +165,21 @@ export default function JournalPage() {
     const totalD = items.reduce((s, i) => s + (i.debitAmount || 0), 0);
     const totalC = items.reduce((s, i) => s + (i.creditAmount || 0), 0);
     const doc = generateFinancialStatementPdf(
-      "LIBRO DIARIO",
+      "LIBRO DIARIO - EJERCICIO " + selectedYear,
       companyName,
       [{ title: "Asientos Contables", items, total: 0, totalLabel: "Totales", totalDebit: totalD, totalCredit: totalC }],
       "Total General",
       totalD,
       currencyDoc
     );
-    doc.save("libro-diario.pdf");
+    doc.save("libro-diario-" + selectedYear + ".pdf");
   }
-
-  async function toggleHistory() {
-    const newVal = !showAllHistory;
-    setShowAllHistory(newVal);
-    if (companyId) await loadEntries(companyId, newVal);
-  }
-
   const inputStyle = theme.inputStyle;
   return (
     <VerticalPageLayout
       vertical="accounting"
       title="Libro Diario"
-      subtitle={lastEntryNumber > 0 ? "Ultimo asiento registrado: Nº " + lastEntryNumber : undefined}
+      subtitle={lastEntryNumber > 0 ? "Ultimo asiento del ejercicio " + selectedYear + ": Nº " + lastEntryNumber : undefined}
       fullWidth
       actions={entries.length > 0 ? (
         <button onClick={downloadPdf} style={{ ...theme.buttonStyle, fontSize: 13, padding: "10px 20px" }}>
@@ -212,19 +219,36 @@ export default function JournalPage() {
           {message && <p style={{ marginTop: 8, color: message.includes("Error") ? "#F87171" : theme.accent }}>{message}</p>}
         </div>
       )}
-      {entries.length > 0 && (
-        <div style={{ marginTop: 32 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h2 style={{ fontSize: 26, color: theme.accent, fontFamily: theme.titleStyle.fontFamily, fontWeight: 700 }}>{showAllHistory ? "Historial Completo" : "Asientos Recientes"}</h2>
-            <button onClick={toggleHistory} style={{ background: "none", border: "1px solid " + theme.accent, color: theme.accent, padding: "6px 16px", borderRadius: 8, fontSize: 14, cursor: "pointer" }}>
-              {showAllHistory ? "Ver solo recientes" : "Ver Historial Completo"}
-            </button>
+      <div style={{ marginTop: 24, display: "flex", gap: 8, flexWrap: "wrap" }}>
+        {availableYears.map((y) => (
+          <div key={y} onClick={() => changeYear(y)} style={{
+            padding: "8px 20px", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 15,
+            background: selectedYear === y ? theme.accent : "transparent",
+            color: selectedYear === y ? "#0B0E14" : "#8B93A7",
+            border: selectedYear === y ? "none" : "1px solid #1F2937",
+          }}>
+            Ejercicio {y}
           </div>
+        ))}
+        <div onClick={() => changeYear("TODOS")} style={{
+          padding: "8px 20px", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 15,
+          background: selectedYear === "TODOS" ? theme.accent : "transparent",
+          color: selectedYear === "TODOS" ? "#0B0E14" : "#8B93A7",
+          border: selectedYear === "TODOS" ? "none" : "1px solid #1F2937",
+        }}>
+          Todos los Ejercicios
+        </div>
+      </div>
+      {entries.length > 0 && (
+        <div style={{ marginTop: 20 }}>
+          <h2 style={{ fontSize: 26, color: theme.accent, fontFamily: theme.titleStyle.fontFamily, fontWeight: 700 }}>
+            {selectedYear === "TODOS" ? "Todos los Ejercicios" : "Ejercicio Fiscal " + selectedYear}
+          </h2>
           {entries.map((e) => (
             <div key={e.id} style={{ ...theme.cardStyle, marginTop: 12, opacity: e.status === "VOIDED" ? 0.5 : 1 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontWeight: 700, fontSize: 22 }}>
-                  Nº{e.entry_number} - {e.entry_date} - {e.description}
+                  Nº{e.entry_number ?? "S/N"} - {e.entry_date} - {e.description}
                   {e.status === "VOIDED" && <span style={{ color: "#F87171", marginLeft: 8, fontSize: 16 }}>[ANULADO]</span>}
                 </span>
                 {e.status === "ACTIVE" && (
@@ -232,7 +256,7 @@ export default function JournalPage() {
                     <button onClick={() => startEdit(e)} style={{ background: "none", border: "1px solid " + theme.accent, color: theme.accent, padding: "4px 12px", borderRadius: 8, fontSize: 13, cursor: "pointer" }}>
                       Editar
                     </button>
-                    <button onClick={() => voidEntry(e.id)} style={{ background: "none", border: "1px solid #F87171", color: "#F87171", padding: "4px 12px", borderRadius: 8, fontSize: 13, cursor: "pointer" }}>
+                    <button onClick={() => voidEntry(e.id)} style={{ background: "none", border: "1px solid #F87171", color: "#F87171", padding: "4px 12px", borderRadius: 8,fontSize: 13, cursor: "pointer" }}>
                       Anular
                     </button>
                   </div>
