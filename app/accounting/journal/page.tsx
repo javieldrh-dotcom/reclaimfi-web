@@ -154,20 +154,32 @@ export default function JournalPage() {
     if (companyId) await loadEntries(companyId, selectedYear);
   }
   function downloadPdf() {
-    const items = entries.filter((e) => e.status === "ACTIVE").flatMap((e: any) =>
-      (e.journal_lines ?? []).map((l: any) => ({
-        name: "Nº" + (e.entry_number ?? "S/N") + " " + e.entry_date + " - " + e.description + " (" + (l.chart_of_accounts?.account_code ?? "") + " " + (l.chart_of_accounts?.account_name ?? "") + ")",
+    const activeEntries = entries.filter((e) => e.status === "ACTIVE");
+    const sections = activeEntries.map((e: any) => {
+      const entryItems = (e.journal_lines ?? []).map((l: any) => ({
+        code: l.chart_of_accounts?.account_code ?? "",
+        name: l.chart_of_accounts?.account_name ?? "",
         amount: l.debit > 0 ? l.debit : l.credit,
         debitAmount: l.debit,
         creditAmount: l.credit,
-      }))
-    );
-    const totalD = items.reduce((s, i) => s + (i.debitAmount || 0), 0);
-    const totalC = items.reduce((s, i) => s + (i.creditAmount || 0), 0);
+      }));
+      const entryDebit = entryItems.reduce((s: number, i: any) => s + (i.debitAmount || 0), 0);
+      const entryCredit = entryItems.reduce((s: number, i: any) => s + (i.creditAmount || 0), 0);
+      return {
+        title: "Nº" + (e.entry_number ?? "S/N") + " - " + e.entry_date + " - " + e.description,
+        items: entryItems,
+        total: 0,
+        totalLabel: "Subtotal",
+        totalDebit: entryDebit,
+        totalCredit: entryCredit,
+      };
+    });
+    const totalD = activeEntries.flatMap((e: any) => e.journal_lines ?? []).reduce((s: number, l: any) => s + (l.debit || 0), 0);
+    const totalC = activeEntries.flatMap((e: any) => e.journal_lines ?? []).reduce((s: number, l: any) => s + (l.credit || 0), 0);
     const doc = generateFinancialStatementPdf(
       "LIBRO DIARIO - EJERCICIO " + selectedYear,
       companyName,
-      [{ title: "Asientos Contables", items, total: 0, totalLabel: "Totales", totalDebit: totalD, totalCredit: totalC }],
+      sections,
       "Total General",
       totalD,
       currencyDoc
