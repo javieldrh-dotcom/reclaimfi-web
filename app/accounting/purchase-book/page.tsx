@@ -93,6 +93,16 @@ export default function PurchaseBookPage() {
     if (type === "ASSET") setVatCreditAccountId(newAcc.id);
   }
 
+  async function voidEntry(entryId: string, journalEntryId: string) {
+    const reason = window.prompt("Motivo de la anulacion:");
+    if (!reason) return;
+    await supabase.from("purchase_book_entries").update({ status: "VOIDED", voided_at: new Date().toISOString(), void_reason: reason }).eq("id", entryId);
+    if (journalEntryId) {
+      await supabase.from("journal_entries").update({ status: "VOIDED", voided_at: new Date().toISOString(), void_reason: reason }).eq("id", journalEntryId);
+    }
+    if (companyId) await loadEntries(companyId);
+  }
+
   async function createEntry() {
     setMessage("");
     if (!companyId || !vendorName || !vendorTaxId || !taxableBaseGeneral || !apAccountId || !expenseAccountId || !vatCreditAccountId) {

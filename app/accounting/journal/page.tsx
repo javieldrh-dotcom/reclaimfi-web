@@ -40,6 +40,7 @@ export default function JournalPage() {
       .from("journal_entries")
       .select("id, description, entry_date, status, entry_number")
       .eq("company_id", cid)
+      .eq("status", "ACTIVE")
       .order("entry_number", { ascending: false });
     if (year !== "TODOS") {
       query = query.gte("entry_date", year + "-01-01").lte("entry_date", year + "-12-31");
