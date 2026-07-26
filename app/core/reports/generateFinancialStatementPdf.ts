@@ -23,7 +23,8 @@ export function generateFinancialStatementPdf(
   sections: StatementSection[],
   finalLabel: string,
   finalValue: number,
-  currency: string = "USD"
+  currency: string = "USD",
+  hideCodes: boolean = false
 ) {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -77,7 +78,7 @@ export function generateFinancialStatementPdf(
     doc.setFont("helvetica", "normal");
     section.items.forEach((item) => {
       if (y > 270) { doc.addPage(); y = 20; }
-      const label = item.code ? item.code + " - " + item.name : item.name;
+      const label = item.code && !hideCodes ? item.code + " - " + item.name : item.name;
 
       if (hasTwoColumns) {
         doc.text(label, 15, y, { maxWidth: pageWidth - 90 });
