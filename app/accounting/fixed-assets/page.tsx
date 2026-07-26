@@ -3,14 +3,18 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
 import VerticalPageLayout from "@/app/components/VerticalPageLayout";
+import AccountSearchSelect from "@/app/components/AccountSearchSelect";
 
 export default function FixedAssetsPage() {
   const theme = getVerticalTheme("accounting");
   const [assets, setAssets] = useState<any[]>([]);
   const [accounts, setAccounts] = useState<any[]>([]);
   const [companyId, setCompanyId] = useState<string | null>(null);
+  const [assetAccountId, setAssetAccountId] = useState("");
+  const [accumulatedDepAccountId, setAccumulatedDepAccountId] = useState("");
+  const [depExpenseAccountId, setDepExpenseAccountId] = useState("");
+  const [offsetAccountId, setOffsetAccountId] = useState("");
   const [assetName, setAssetName] = useState("");
-  const [accountId, setAccountId] = useState("");
   const [acquisitionDate, setAcquisitionDate] = useState("");
   const [acquisitionCost, setAcquisitionCost] = useState("");
   const [usefulLife, setUsefulLife] = useState("5");
@@ -30,13 +34,31 @@ export default function FixedAssetsPage() {
       const cid = uc?.company_id ?? null;
       setCompanyId(cid);
       if (cid) {
-        const { data: acc } = await supabase.from("chart_of_accounts").select("id, account_code, account_name").eq("company_id", cid).eq("account_type", "ASSET").order("account_code");
+        const { data: acc } = await supabase.from("chart_of_accounts").select("id, account_code, account_name, account_type").eq("company_id", cid).in("account_type", ["ASSET", "LIABILITY", "EXPENSE"]);
         setAccounts(acc ?? []);
         await loadAssets(cid);
       }
     }
     load();
   }, []);
+
+  async function createNewAccount(type: string, target: string) {
+    const name = window.prompt("Nombre de la nueva cuenta:");
+    if (!name || !companyId) return;
+    const prefix = type === "ASSET" ? "1199" : type === "LIABILITY" ? "2199" : "5199";
+    const { data: newAcc, error } = await supabase.from("chart_of_accounts").insert([{
+      account_code: prefix + "-" + Date.now().toString().slice(-4),
+      account_name: name,
+      account_type: type,
+      company_id: companyId,
+    }]).select("id, account_code, account_name, account_type").single();
+    if (error || !newAcc) { alert("Error al crear cuenta: " + error?.message); return; }
+    setAccounts((prev) => [...prev, newAcc]);
+    if (target === "asset") setAssetAccountId(newAcc.id);
+    if (target === "accdep") setAccumulatedDepAccountId(newAcc.id);
+    if (target === "depexp") setDepExpenseAccountId(newAcc.id);
+    if (target === "offset") setOffsetAccountId(newAcc.id);
+  }
 
   function calculateDepreciation(asset: any) {
     const cost = asset.acquisition_cost;
@@ -54,32 +76,97 @@ export default function FixedAssetsPage() {
   async function addAsset() {
     setMessage("");
     if (!companyId || !assetName || !acquisitionDate || !acquisitionCost) { setMessage("Completa todos los campos."); return; }
+    if (!assetAccountId || !offsetAccountId) { setMessage("Selecciona la Cuenta de Activo Fijo y la Contrapartida."); return; }
+
+    const cost = parseFloat(acquisitionCost);
+
+    const { data: entry, error: entryError } = await supabase.from("journal_entries").insert([{
+      company_id: companyId,
+      description: "Adquisicion de Activo Fijo - " + assetName,
+      entry_date: acquisitionDate,
+    }]).select("id").single();
+
+    if (entryError || !entry) { setMessage("Error al crear asiento: " + entryError?.message); return; }
+
+    await supabase.from("journal_lines").insert([
+      { journal_entry_id: entry.id, account_id: assetAccountId, debit: cost, credit: 0 },
+      { journal_entry_id: entry.id, account_id: offsetAccountId, debit: 0, credit: cost },
+    ]);
 
     const { error } = await supabase.from("fixed_assets").insert([{
       company_id: companyId,
-      account_id: accountId || null,
+      account_id: assetAccountId,
       asset_name: assetName,
       acquisition_date: acquisitionDate,
-      acquisition_cost: parseFloat(acquisitionCost),
+      acquisition_cost: cost,
       useful_life_years: parseFloat(usefulLife),
       salvage_value: parseFloat(salvageValue) || 0,
     }]);
-
     if (error) { setMessage("Error: " + error.message); return; }
-    setMessage("Activo registrado correctamente.");
+    setMessage("Activo registrado y asiento de adquisicion generado correctamente.");
     setAssetName(""); setAcquisitionDate(""); setAcquisitionCost("");
     if (companyId) await loadAssets(companyId);
   }
+
+  async function postDepreciation(asset: any) {
+    if (!companyId) return;
+    if (!accumulatedDepAccountId || !depExpenseAccountId) { alert("Selecciona la Cuenta de Depreciacion Acumulada y la de Gasto de Depreciacion antes de contabilizar."); return; }
+    const d = calculateDepreciation(asset);
+    const today = new Date().toISOString().slice(0, 10);
+
+    const { error: depError } = await supabase.from("depreciation_entries").insert([{
+      fixed_asset_id: asset.id,
+      period_date: today,
+      monthly_depreciation: d.monthlyDep,
+      accumulated_depreciation: d.accumulated,
+      book_value: d.bookValue,
+    }]);
+    if (depError) { alert("Error al registrar depreciacion: " + depError.message); return; }
+
+    const { data: entry, error: entryError } = await supabase.from("journal_entries").insert([{
+      company_id: companyId,
+      description: "Depreciacion del Mes - " + asset.asset_name,
+      entry_date: today,
+    }]).select("id").single();
+    if (entryError || !entry) { alert("Error al crear asiento: " + entryError?.message); return; }
+
+    await supabase.from("journal_lines").insert([
+      { journal_entry_id: entry.id, account_id: depExpenseAccountId, debit: d.monthlyDep, credit: 0 },
+      { journal_entry_id: entry.id, account_id: accumulatedDepAccountId, debit: 0, credit: d.monthlyDep },
+    ]);
+
+    alert("Depreciacion del mes contabilizada correctamente: " + d.monthlyDep.toLocaleString(undefined, { maximumFractionDigits: 2 }));
+    if (companyId) await loadAssets(companyId);
+  }
+
   const inputStyle = { ...theme.inputStyle, fontSize: 20 };
 
   return (
-    <VerticalPageLayout vertical="accounting" title="Activos Fijos y Depreciacion" fullWidth>
+    <VerticalPageLayout vertical="accounting" title="Activos Fijos y Depreciacion" subtitle="Vinculado a contabilidad - genera asiento en adquisicion y al contabilizar depreciacion" fullWidth>
+      <div style={{ ...theme.cardStyle, marginBottom: 20, maxWidth: 900 }}>
+        <p style={{ fontSize: 15, color: theme.accent, fontWeight: 700, marginBottom: 10 }}>Cuentas Contables (requeridas)</p>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 6, flex: 1, minWidth: 220 }}>
+            <AccountSearchSelect accounts={accounts.filter(a => a.account_type === "ASSET")} value={assetAccountId} onChange={setAssetAccountId} placeholder="Cuenta de Activo Fijo..." />
+            <button onClick={() => createNewAccount("ASSET", "asset")} style={{ padding: "0 12px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap" }}>+ Nueva</button>
+          </div>
+          <div style={{ display: "flex", gap: 6, flex: 1, minWidth: 220 }}>
+            <AccountSearchSelect accounts={accounts.filter(a => a.account_type === "ASSET")} value={accumulatedDepAccountId} onChange={setAccumulatedDepAccountId} placeholder="Depreciacion Acumulada..." />
+            <button onClick={() => createNewAccount("ASSET", "accdep")} style={{ padding: "0 12px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap" }}>+ Nueva</button>
+          </div>
+          <div style={{ display: "flex", gap: 6, flex: 1, minWidth: 220 }}>
+            <AccountSearchSelect accounts={accounts.filter(a => a.account_type === "EXPENSE")} value={depExpenseAccountId} onChange={setDepExpenseAccountId} placeholder="Gasto de Depreciacion..." />
+            <button onClick={() => createNewAccount("EXPENSE", "depexp")} style={{ padding: "0 12px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap" }}>+ Nueva</button>
+          </div>
+          <div style={{ display: "flex", gap: 6, flex: 1, minWidth: 220 }}>
+            <AccountSearchSelect accounts={accounts.filter(a => a.account_type === "LIABILITY" || a.account_type === "ASSET")} value={offsetAccountId} onChange={setOffsetAccountId} placeholder="Contrapartida de Compra..." />
+            <button onClick={() => createNewAccount("LIABILITY", "offset")} style={{ padding: "0 12px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap" }}>+ Nueva</button>
+          </div>
+        </div>
+      </div>
+
       <div style={{ maxWidth: 600 }}>
         <input value={assetName} onChange={(e) => setAssetName(e.target.value)} style={inputStyle} placeholder="Nombre del activo" />
-        <select value={accountId} onChange={(e) => setAccountId(e.target.value)} style={{ ...inputStyle, marginTop: 10 }}>
-          <option value="">Cuenta contable (opcional)</option>
-          {accounts.map((a) => <option key={a.id} value={a.id}>{a.account_code} - {a.account_name}</option>)}
-        </select>
         <input type="date" value={acquisitionDate} onChange={(e) => setAcquisitionDate(e.target.value)} style={{ ...inputStyle, marginTop: 10 }} />
         <input type="number" value={acquisitionCost} onChange={(e) => setAcquisitionCost(e.target.value)} style={{ ...inputStyle, marginTop: 10 }} placeholder="Costo de adquisicion" />
         <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
@@ -89,7 +176,7 @@ export default function FixedAssetsPage() {
         <button onClick={addAsset} style={{ ...theme.buttonStyle, marginTop: 16, fontSize: 18 }}>
           REGISTRAR ACTIVO
         </button>
-        {message && <p style={{ marginTop: 8, fontSize: 18, color: message.includes("Error") ? "#f87171" : theme.accent }}>{message}</p>}
+        {message && <p style={{ marginTop: 8, fontSize: 18, color: message.includes("Error") || message.includes("Selecciona") ? "#f87171" : theme.accent }}>{message}</p>}
       </div>
 
       {assets.length > 0 && (
@@ -97,12 +184,13 @@ export default function FixedAssetsPage() {
           <h2 style={{ fontSize: 24, color: theme.accent, fontWeight: 700 }}>Activos Registrados</h2>
           <table style={{ width: "100%", marginTop: 16, borderCollapse: "collapse" }}>
             <thead>
-              <tr style={{ textAlign: "left", color: theme.accent, fontSize: 16, fontWeight: 700 }}>
+              <tr style={{ textAlign: "left", color: theme.accent, fontSize: 15, fontWeight: 700 }}>
                 <th style={{ padding: 10 }}>Activo</th>
                 <th style={{ padding: 10 }}>Costo</th>
                 <th style={{ padding: 10 }}>Dep. Mensual</th>
                 <th style={{ padding: 10 }}>Dep. Acumulada</th>
                 <th style={{ padding: 10 }}>Valor en Libros</th>
+                <th style={{ padding: 10 }}></th>
               </tr>
             </thead>
             <tbody>
@@ -110,11 +198,16 @@ export default function FixedAssetsPage() {
                 const d = calculateDepreciation(a);
                 return (
                   <tr key={a.id} style={{ borderBottom: "1px solid #1F2937" }}>
-                    <td style={{ padding: 10, fontSize: 20 }}>{a.asset_name}</td>
-                    <td style={{ padding: 10, fontSize: 20, ...theme.numberStyle }}>{a.acquisition_cost.toLocaleString()}</td>
-                    <td style={{ padding: 10, fontSize: 20, ...theme.numberStyle }}>{d.monthlyDep.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
-                    <td style={{ padding: 10, fontSize: 20, ...theme.numberStyle }}>{d.accumulated.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
-                    <td style={{ padding: 10, fontWeight: 700, fontSize: 20, ...theme.numberStyle }}>{d.bookValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
+                    <td style={{ padding: 10, fontSize: 18 }}>{a.asset_name}</td>
+                    <td style={{ padding: 10, fontSize: 18, ...theme.numberStyle }}>{a.acquisition_cost.toLocaleString()}</td>
+                    <td style={{ padding: 10, fontSize: 18, ...theme.numberStyle }}>{d.monthlyDep.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
+                    <td style={{ padding: 10, fontSize: 18, ...theme.numberStyle }}>{d.accumulated.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
+                    <td style={{ padding: 10, fontWeight: 700, fontSize: 18, ...theme.numberStyle }}>{d.bookValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
+                    <td style={{ padding: 10 }}>
+                      <button onClick={() => postDepreciation(a)} style={{ background: "none", border: "1px solid " + theme.accent, color: theme.accent, padding: "6px 12px", borderRadius: 8, fontSize: 13, cursor: "pointer" }}>
+                        Contabilizar Depreciacion
+                      </button>
+                    </td>
                   </tr>
                 );
               })}

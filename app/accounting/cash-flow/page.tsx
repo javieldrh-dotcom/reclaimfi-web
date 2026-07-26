@@ -46,7 +46,7 @@ export default function CashFlowPage() {
       else if (acc.cash_flow_category === "INVESTING") investingDelta += netMove;
       else if (acc.cash_flow_category === "FINANCING") financingDelta += -netMove;
     });
-    const { data: depData } = await supabase.from("depreciation_entries").select("monthly_depreciation, entry_date, fixed_assets!inner(company_id)").eq("fixed_assets.company_id", cid).gte("entry_date", start).lte("entry_date", end);
+    const { data: depData } = await supabase.from("depreciation_entries").select("monthly_depreciation, period_date, fixed_assets!inner(company_id)").eq("fixed_assets.company_id", cid).gte("period_date", start).lte("period_date", end);
     const totalDep = (depData ?? []).reduce((s: number, d: any) => s + (d.monthly_depreciation || 0), 0);
     setNetIncome(revenue - expense);
     setDepreciation(totalDep);
