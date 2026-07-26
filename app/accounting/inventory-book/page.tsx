@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
 import VerticalPageLayout from "@/app/components/VerticalPageLayout";
+import { generateFinancialStatementPdf } from "@/app/core/reports/generateFinancialStatementPdf";
 
 export default function InventoryBookPage() {
   const theme = getVerticalTheme("accounting");
@@ -36,6 +37,87 @@ export default function InventoryBookPage() {
     }
     load();
   }, []);
+
+  function downloadBalancePdf(e: any) {
+    const s = e.balance_sheet_snapshot;
+    const eq = e.equity_statement_snapshot;
+    const equityItems = [
+      ...(eq?.capitalItems ?? []),
+      ...(eq?.reservesItems ?? []),
+      ...(eq?.retainedItems ?? []),
+      { name: "Resultado del Ejercicio", amount: eq?.netIncome ?? 0 },
+    ].map((a: any) => ({ code: a.code, name: a.name ?? "Resultado del Ejercicio", amount: a.balance ?? a.amount }));
+    const doc = generateFinancialStatementPdf(
+      "ESTADO DE SITUACION FINANCIERA - Nº" + e.entry_number,
+      companyName,
+      [
+        { title: "Activos Corrientes", items: (s.currentAssets ?? []).map((a: any) => ({ code: a.code, name: a.name, amount: a.balance })), total: s.totalCurrentAssets, totalLabel: "Total Activos Corrientes" },
+        { title: "Activos No Corrientes", items: (s.nonCurrentAssets ?? []).map((a: any) => ({ code: a.code, name: a.name, amount: a.balance })), total: s.totalNonCurrentAssets, totalLabel: "Total Activos No Corrientes" },
+        { title: "Pasivos Corrientes", items: (s.currentLiabilities ?? []).map((a: any) => ({ code: a.code, name: a.name, amount: a.balance })), total: s.totalCurrentLiabilities, totalLabel: "Total Pasivos Corrientes" },
+        { title: "Pasivos No Corrientes", items: (s.nonCurrentLiabilities ?? []).map((a: any) => ({ code: a.code, name: a.name, amount: a.balance })), total: s.totalNonCurrentLiabilities, totalLabel: "Total Pasivos No Corrientes" },
+        { title: "Patrimonio", items: equityItems, total: e.total_equity, totalLabel: "Total Patrimonio" },
+      ],
+      "Total Pasivo + Patrimonio",
+      e.total_liabilities + e.total_equity,
+      "USD"
+    );
+    doc.save("balance-situacion-nº" + e.entry_number + ".pdf");
+  }
+
+  function downloadIncomePdf(e: any) {
+    const s = e.income_statement_snapshot;
+    const doc = generateFinancialStatementPdf(
+      "ESTADO DE RESULTADOS - Nº" + e.entry_number,
+      companyName,
+      [
+        { title: "Ingresos", items: (s.revenueItems ?? []).map((a: any) => ({ code: a.code, name: a.name, amount: a.balance })), total: s.totalRevenue, totalLabel: "Total Ingresos" },
+        { title: "Costo de Ventas", items: (s.cogsItems ?? []).map((a: any) => ({ code: a.code, name: a.name, amount: a.balance })), total: s.totalCogs, totalLabel: "Total Costo de Ventas" },
+        { title: "Utilidad Bruta", items: [], total: s.grossProfit, totalLabel: "Utilidad Bruta" },
+        { title: "Gastos Operativos", items: (s.operatingItems ?? []).map((a: any) => ({ code: a.code, name: a.name, amount: a.balance })), total: s.totalOperating, totalLabel: "Total Gastos Operativos" },
+        { title: "Utilidad Operativa", items: [], total: s.operatingProfit, totalLabel: "Utilidad Operativa" },
+        { title: "Gastos Financieros", items: (s.financialItems ?? []).map((a: any) => ({ code: a.code, name: a.name, amount: a.balance })), total: s.totalFinancial, totalLabel: "Total Gastos Financieros" },
+      ],
+      s.netIncome >= 0 ? "Utilidad Neta" : "Perdida Neta",
+      s.netIncome,
+      "USD"
+    );
+    doc.save("estado-resultados-nº" + e.entry_number + ".pdf");
+  }
+
+  function downloadCashFlowPdf(e: any) {
+    const s = e.cash_flow_snapshot;
+    const doc = generateFinancialStatementPdf(
+      "ESTADO DE FLUJO DE EFECTIVO - Nº" + e.entry_number,
+      companyName,
+      [
+        { title: "Actividades de Operacion", items: [{ name: "Efectivo Neto de Operacion", amount: s.operatingCF }], total: s.operatingCF, totalLabel: "Total Operacion" },
+        { title: "Actividades de Inversion", items: [{ name: "Efectivo Neto de Inversion", amount: s.investingCF }], total: s.investingCF, totalLabel: "Total Inversion" },
+        { title: "Actividades de Financiamiento", items: [{ name: "Efectivo Neto de Financiamiento", amount: s.financingCF }], total: s.financingCF, totalLabel: "Total Financiamiento" },
+      ],
+      "Variacion Neta de Efectivo",
+      s.netChange,
+      "USD"
+    );
+    doc.save("flujo-efectivo-nº" + e.entry_number + ".pdf");
+  }
+
+  function downloadEquityPdf(e: any) {
+    const s = e.equity_statement_snapshot;
+    const doc = generateFinancialStatementPdf(
+      "ESTADO DE CAMBIOS EN EL PATRIMONIO - Nº" + e.entry_number,
+      companyName,
+      [
+        { title: "Capital Social", items: (s.capitalItems ?? []).map((a: any) => ({ code: a.code, name: a.name, amount: a.balance })), total: s.totalCapital, totalLabel: "Total Capital Social" },
+        { title: "Reservas", items: (s.reservesItems ?? []).map((a: any) => ({ code: a.code, name: a.name, amount: a.balance })), total: s.totalReserves, totalLabel: "Total Reservas" },
+        { title: "Resultados Acumulados", items: (s.retainedItems ?? []).map((a: any) => ({ code: a.code, name: a.name, amount: a.balance })), total: s.totalRetained, totalLabel: "Total Resultados Acumulados" },
+        { title: "Resultado del Ejercicio", items: [{ name: "Resultado Neto del Periodo", amount: s.netIncome }], total: s.netIncome, totalLabel: "Total Resultado del Ejercicio" },
+      ],
+      "Patrimonio Final",
+      s.totalEquity,
+      "USD"
+    );
+    doc.save("cambios-patrimonio-nº" + e.entry_number + ".pdf");
+  }
 
   async function archivePeriod() {
     setMessage("");
@@ -201,6 +283,14 @@ export default function InventoryBookPage() {
                     <div onClick={() => setActiveTab("income")} style={tabStyle("income")}>Estado de Resultados</div>
                     <div onClick={() => setActiveTab("cashflow")} style={tabStyle("cashflow")}>Flujo de Efectivo</div>
                     <div onClick={() => setActiveTab("equity")} style={tabStyle("equity")}>Cambios en el Patrimonio</div>
+                    <button onClick={() => {
+                      if (activeTab === "balance") downloadBalancePdf(e);
+                      if (activeTab === "income") downloadIncomePdf(e);
+                      if (activeTab === "cashflow") downloadCashFlowPdf(e);
+                      if (activeTab === "equity") downloadEquityPdf(e);
+                    }} style={{ marginLeft: "auto", background: "none", border: "1px solid " + theme.accent, color: theme.accent, padding: "8px 16px", borderRadius: 8, fontSize: 13, cursor: "pointer" }}>
+                      Descargar PDF
+                    </button>
                   </div>
 
                   {activeTab === "balance" && e.balance_sheet_snapshot && (
