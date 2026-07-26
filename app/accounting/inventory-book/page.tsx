@@ -203,9 +203,9 @@ export default function InventoryBookPage() {
     const totalRetained = retainedItems.reduce((s, a) => s + a.balance, 0);
     const totalEquity = totalCapital + totalReserves + totalRetained + netIncome;
 
-    const operatingCF = accountIds.filter((id) => accountsMap[id].cash_flow_category === "OPERATING").reduce((s, id) => s + (balances[id] || 0), 0);
-    const investingCF = accountIds.filter((id) => accountsMap[id].cash_flow_category === "INVESTING").reduce((s, id) => s + (balances[id] || 0), 0);
-    const financingCF = accountIds.filter((id) => accountsMap[id].cash_flow_category === "FINANCING").reduce((s, id) => s + (balances[id] || 0), 0);
+    const operatingCF = accountIds.filter((id) => accountsMap[id].cash_flow_category === "OPERATING").reduce((s, id) => s + (periodBalances[id] || 0), 0);
+    const investingCF = accountIds.filter((id) => accountsMap[id].cash_flow_category === "INVESTING").reduce((s, id) => s + (periodBalances[id] || 0), 0);
+    const financingCF = accountIds.filter((id) => accountsMap[id].cash_flow_category === "FINANCING").reduce((s, id) => s + (periodBalances[id] || 0), 0);
 
     const nextNumber = entries.length > 0 ? Math.max(...entries.map((e) => e.entry_number)) + 1 : 1;
 
