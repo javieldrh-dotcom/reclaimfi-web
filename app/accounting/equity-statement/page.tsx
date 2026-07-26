@@ -13,6 +13,7 @@ export default function EquityStatementPage() {
   const [companyName, setCompanyName] = useState("");
   const [currency, setCurrency] = useState("USD");
   const [loading, setLoading] = useState(true);
+  const [presentationMode, setPresentationMode] = useState(false);
   useEffect(() => {
     async function load() {
       const { data: userData } = await supabase.auth.getUser();
@@ -75,7 +76,8 @@ export default function EquityStatementPage() {
       ],
       "Patrimonio Final",
       totalEquityAfter,
-      currency
+      currency,
+      presentationMode
     );
     doc.save("estado-cambios-patrimonio.pdf");
   }
@@ -88,9 +90,15 @@ export default function EquityStatementPage() {
       title="Estado de Cambios en el Patrimonio"
       fullWidth
       actions={
-        <button onClick={downloadPdf} style={{ ...theme.buttonStyle, fontSize: 13, padding: "10px 20px" }}>
-          Descargar PDF
-        </button>
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "#8B93A7", cursor: "pointer" }}>
+            <input type="checkbox" checked={presentationMode} onChange={(e) => setPresentationMode(e.target.checked)} />
+            Modo Presentacion (sin codigos)
+          </label>
+          <button onClick={downloadPdf} style={{ ...theme.buttonStyle, fontSize: 13, padding: "10px 20px" }}>
+            Descargar PDF
+          </button>
+        </div>
       }
     >
       <div style={{ maxWidth: 700 }}>
@@ -98,7 +106,7 @@ export default function EquityStatementPage() {
         {capital.length === 0 && <p style={{ fontSize: 15, color: "#8B93A7", padding: 8 }}>Sin movimientos de capital registrados.</p>}
         {capital.map((r) => (
           <div key={r.code} style={rowStyle}>
-            <span>{r.code} - {r.name}</span>
+            <span>{presentationMode ? r.name : r.code + " - " + r.name}</span>
             <span style={theme.numberStyle}>{r.amount.toLocaleString()}</span>
           </div>
         ))}
@@ -108,7 +116,7 @@ export default function EquityStatementPage() {
         {reserves.length === 0 && <p style={{ fontSize: 15, color: "#8B93A7", padding: 8 }}>Sin reservas registradas.</p>}
         {reserves.map((r) => (
           <div key={r.code} style={rowStyle}>
-            <span>{r.code} - {r.name}</span>
+            <span>{presentationMode ? r.name : r.code + " - " + r.name}</span>
             <span style={theme.numberStyle}>{r.amount.toLocaleString()}</span>
           </div>
         ))}
@@ -118,7 +126,7 @@ export default function EquityStatementPage() {
         {retainedEarnings.length === 0 && <p style={{ fontSize: 15, color: "#8B93A7", padding: 8 }}>Sin resultados acumulados de ejercicios anteriores.</p>}
         {retainedEarnings.map((r) => (
           <div key={r.code} style={rowStyle}>
-            <span>{r.code} - {r.name}</span>
+            <span>{presentationMode ? r.name : r.code + " - " + r.name}</span>
             <span style={theme.numberStyle}>{r.amount.toLocaleString()}</span>
           </div>
         ))}
