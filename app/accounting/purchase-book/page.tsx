@@ -35,7 +35,7 @@ export default function PurchaseBookPage() {
   const [message, setMessage] = useState("");
 
   async function loadEntries(cid: string) {
-    const { data } = await supabase.from("purchase_book_entries").select("*").eq("company_id", cid).order("entry_date", { ascending: true });
+    const { data } = await supabase.from("purchase_book_entries").select("*").eq("company_id", cid).eq("status", "ACTIVE").order("entry_date", { ascending: true });
     setEntries(data ?? []);
   }
 
@@ -284,6 +284,7 @@ export default function PurchaseBookPage() {
                   <th style={{ border: "1px solid #1F2937", padding: 6 }}>Total c/IVA</th>
                   <th style={{ border: "1px solid #1F2937", padding: 6 }}>Nº Comprob.</th>
                   <th style={{ border: "1px solid #1F2937", padding: 6 }}>Monto</th>
+                  <th style={{ border: "1px solid #1F2937", padding: 6 }}>Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -306,6 +307,11 @@ export default function PurchaseBookPage() {
                     <td style={{ padding: 6, textAlign: "right", ...theme.numberStyle }}>{(e.total_document_amount || 0).toLocaleString()}</td>
                     <td style={{ padding: 6 }}>{e.withholding_receipt_number || "-"}</td>
                     <td style={{ padding: 6, textAlign: "right", ...theme.numberStyle }}>{(e.withheld_amount || 0).toLocaleString()}</td>
+                    <td style={{ padding: 6 }}>
+                      <button onClick={() => voidEntry(e.id, e.journal_entry_id)} style={{ background: "none", border: "1px solid #F87171", color: "#F87171", padding: "4px 10px", borderRadius: 6, fontSize: 12, cursor: "pointer" }}>
+                        Anular
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
