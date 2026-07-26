@@ -4,20 +4,58 @@ import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
 import VerticalPageLayout from "@/app/components/VerticalPageLayout";
 import { generateFinancialStatementPdf } from "@/app/core/reports/generateFinancialStatementPdf";
-
 export default function CashFlowPage() {
   const theme = getVerticalTheme("accounting");
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [companyName, setCompanyName] = useState("");
   const [currency, setCurrency] = useState("USD");
   const [loading, setLoading] = useState(true);
-
+  const [periodStart, setPeriodStart] = useState(new Date().getFullYear() + "-01-01");
+  const [periodEnd, setPeriodEnd] = useState(new Date().toISOString().slice(0, 10));
   const [netIncome, setNetIncome] = useState(0);
   const [depreciation, setDepreciation] = useState(0);
   const [arChange, setArChange] = useState(0);
   const [apChange, setApChange] = useState(0);
   const [fixedAssetPurchases, setFixedAssetPurchases] = useState(0);
   const [financingChange, setFinancingChange] = useState(0);
+
+  async function loadData(cid: string, start: string, end: string) {
+    const { data: accountsData } = await supabase
+      .from("chart_of_accounts")
+      .select("id, account_code, account_name, account_type, cash_flow_category")
+      .eq("company_id", cid);
+    const accountsMap: Record<string, any> = {};
+    (accountsData ?? []).forEach((a: any) => { accountsMap[a.id] = a; });
+    const accountIds = (accountsData ?? []).map((a: any) => a.id);
+    const { data: lines } = await supabase
+      .from("journal_lines")
+      .select("debit, credit, account_id, journal_entries!inner(status, entry_date)")
+      .in("account_id", accountIds)
+      .eq("journal_entries.status", "ACTIVE")
+      .gte("journal_entries.entry_date", start)
+      .lte("journal_entries.entry_date", end);
+    let revenue = 0, expense = 0, arDelta = 0, apDelta = 0, investingDelta = 0, financingDelta = 0;
+    (lines ?? []).forEach((l: any) => {
+      const acc = accountsMap[l.account_id];
+      if (!acc) return;
+      const netMove = (l.debit || 0) - (l.credit || 0);
+      if (acc.account_type === "REVENUE") revenue += (l.credit || 0) - (l.debit || 0);
+      else if (acc.account_type === "EXPENSE") expense += (l.debit || 0) - (l.credit || 0);
+      else if (acc.cash_flow_category === "OPERATING" && acc.account_name.toLowerCase().includes("cliente")) arDelta += netMove;
+      else if (acc.cash_flow_category === "OPERATING" && acc.account_name.toLowerCase().includes("proveedor")) apDelta += -netMove;
+      else if (acc.cash_flow_category === "INVESTING") investingDelta += netMove;
+      else if (acc.cash_flow_category === "FINANCING") financingDelta += -netMove;
+    });
+    const { data: depData } = await supabase.from("depreciation_entries").select("monthly_depreciation, entry_date, fixed_assets!inner(company_id)").eq("fixed_assets.company_id", cid).gte("entry_date", start).lte("entry_date", end);
+    const totalDep = (depData ?? []).reduce((s: number, d: any) => s + (d.monthly_depreciation || 0), 0);
+    setNetIncome(revenue - expense);
+    setDepreciation(totalDep);
+    setArChange(arDelta);
+    setApChange(apDelta);
+    setFixedAssetPurchases(investingDelta);
+    setFinancingChange(financingDelta);
+    setLoading(false);
+  }
 
   useEffect(() => {
     async function load() {
@@ -27,54 +65,20 @@ export default function CashFlowPage() {
       const cid = uc?.company_id;
       if (!cid) { setLoading(false); return; }
       setCompanyId(cid);
-
       const { data: companyData } = await supabase.from("companies").select("name, functional_currency").eq("id", cid).single();
       setCompanyName(companyData?.name ?? "");
       setCurrency(companyData?.functional_currency ?? "USD");
-
-      const { data: accountsData } = await supabase
-        .from("chart_of_accounts")
-        .select("id, account_code, account_name, account_type, cash_flow_category")
-        .eq("company_id", cid);
-
-      const accountsMap: Record<string, any> = {};
-      (accountsData ?? []).forEach((a: any) => { accountsMap[a.id] = a; });
-      const accountIds = (accountsData ?? []).map((a: any) => a.id);
-
-      const { data: lines } = await supabase
-        .from("journal_lines")
-        .select("debit, credit, account_id, journal_entries!inner(status)")
-        .in("account_id", accountIds)
-        .eq("journal_entries.status", "ACTIVE");
-
-      let revenue = 0, expense = 0, arDelta = 0, apDelta = 0, investingDelta = 0, financingDelta = 0;
-
-      (lines ?? []).forEach((l: any) => {
-        const acc = accountsMap[l.account_id];
-        if (!acc) return;
-        const netMove = (l.debit || 0) - (l.credit || 0);
-
-        if (acc.account_type === "REVENUE") revenue += (l.credit || 0) - (l.debit || 0);
-        else if (acc.account_type === "EXPENSE") expense += (l.debit || 0) - (l.credit || 0);
-        else if (acc.cash_flow_category === "OPERATING" && acc.account_name.toLowerCase().includes("cliente")) arDelta += netMove;
-        else if (acc.cash_flow_category === "OPERATING" && acc.account_name.toLowerCase().includes("proveedor")) apDelta += -netMove;
-        else if (acc.cash_flow_category === "INVESTING") investingDelta += netMove;
-        else if (acc.cash_flow_category === "FINANCING") financingDelta += -netMove;
-      });
-
-      const { data: depData } = await supabase.from("depreciation_entries").select("monthly_depreciation, fixed_assets!inner(company_id)").eq("fixed_assets.company_id", cid);
-      const totalDep = (depData ?? []).reduce((s: number, d: any) => s + (d.monthly_depreciation || 0), 0);
-
-      setNetIncome(revenue - expense);
-      setDepreciation(totalDep);
-      setArChange(arDelta);
-      setApChange(apDelta);
-      setFixedAssetPurchases(investingDelta);
-      setFinancingChange(financingDelta);
-      setLoading(false);
+      await loadData(cid, periodStart, periodEnd);
     }
     load();
   }, []);
+
+  async function recalculate() {
+    if (!companyId) return;
+    setLoading(true);
+    await loadData(companyId, periodStart, periodEnd);
+  }
+
   const operatingCashFlow = netIncome + depreciation + arChange + apChange;
   const investingCashFlow = -fixedAssetPurchases;
   const financingCashFlow = financingChange;
@@ -133,6 +137,14 @@ export default function CashFlowPage() {
         </button>
       }
     >
+      <div style={{ ...theme.cardStyle, maxWidth: 700, marginBottom: 20 }}>
+        <p style={{ fontSize: 15, color: theme.accent, fontWeight: 700, marginBottom: 10 }}>Periodo del Flujo</p>
+        <div style={{ display: "flex", gap: 10 }}>
+          <input type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} style={theme.inputStyle} />
+          <input type="date" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} style={theme.inputStyle} />
+          <button onClick={recalculate} style={{ ...theme.buttonStyle, fontSize: 14, padding: "8px 20px" }}>Recalcular</button>
+        </div>
+      </div>
       <div style={{ ...theme.cardStyle, maxWidth: 700 }}>
         <h3 style={{ color: "#4ade80", fontSize: 24, marginBottom: 16, fontWeight: 700 }}>Actividades de Operacion</h3>
         <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", fontSize: 22 }}><span>Utilidad del Ejercicio</span><span style={theme.numberStyle}>{netIncome.toLocaleString()}</span></div>
@@ -142,19 +154,16 @@ export default function CashFlowPage() {
         <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", marginTop: 8, borderTop: "1px solid #1F2937", fontWeight: 700, fontSize: 22 }}>
           <span>Efectivo Neto de Operacion</span><span style={theme.numberStyle}>{operatingCashFlow.toLocaleString()}</span>
         </div>
-
         <h3 style={{ color: "#facc15", fontSize: 24, marginTop: 28, marginBottom: 16, fontWeight: 700 }}>Actividades de Inversion</h3>
         <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", fontSize: 22 }}><span>Adquisicion de Activos Fijos</span><span style={theme.numberStyle}>{(-fixedAssetPurchases).toLocaleString()}</span></div>
         <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", marginTop: 8, borderTop: "1px solid #1F2937", fontWeight: 700, fontSize: 22 }}>
           <span>Efectivo Neto de Inversion</span><span style={theme.numberStyle}>{investingCashFlow.toLocaleString()}</span>
         </div>
-
         <h3 style={{ color: "#818CF8", fontSize: 24, marginTop: 28, marginBottom: 16, fontWeight: 700 }}>Actividades de Financiamiento</h3>
         <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", fontSize: 22 }}><span>Variacion en Patrimonio y Deuda</span><span style={theme.numberStyle}>{financingCashFlow.toLocaleString()}</span></div>
         <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", marginTop: 8, borderTop: "1px solid #1F2937", fontWeight: 700, fontSize: 22 }}>
           <span>Efectivo Neto de Financiamiento</span><span style={theme.numberStyle}>{financingCashFlow.toLocaleString()}</span>
         </div>
-
         <div style={{ marginTop: 24, padding: 16, background: "#0B0E14", borderRadius: 12, display: "flex", justifyContent: "space-between", fontSize: 18, fontWeight: 900, color: netCashChange >= 0 ? "#4ade80" : "#f87171" }}>
           <span>Variacion Neta de Efectivo</span>
           <span style={theme.numberStyle}>{netCashChange.toLocaleString()}</span>
