@@ -23,6 +23,7 @@ export default function JournalPage() {
   const [lastEntryNumber, setLastEntryNumber] = useState(0);
   const [availableYears, setAvailableYears] = useState<string[]>([]);
   const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
+  const [presentationMode, setPresentationMode] = useState(false);
 
   async function loadAvailableYears(cid: string) {
     const { data } = await supabase.from("journal_entries").select("entry_date").eq("company_id", cid).order("entry_date", { ascending: true });
@@ -157,7 +158,7 @@ export default function JournalPage() {
     const activeEntries = entries.filter((e) => e.status === "ACTIVE");
     const sections = activeEntries.map((e: any) => {
       const entryItems = (e.journal_lines ?? []).map((l: any) => ({
-        code: l.chart_of_accounts?.account_code ?? "",
+        code: presentationMode ? undefined : (l.chart_of_accounts?.account_code ?? ""),
         name: l.chart_of_accounts?.account_name ?? "",
         amount: l.debit > 0 ? l.debit : l.credit,
         debitAmount: l.debit,
@@ -194,9 +195,15 @@ export default function JournalPage() {
       subtitle={lastEntryNumber > 0 ? "Ultimo asiento del ejercicio " + selectedYear + ": Nº " + lastEntryNumber : undefined}
       fullWidth
       actions={entries.length > 0 ? (
-        <button onClick={downloadPdf} style={{ ...theme.buttonStyle, fontSize: 13, padding: "10px 20px" }}>
-          Descargar PDF
-        </button>
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "#8B93A7", cursor: "pointer" }}>
+            <input type="checkbox" checked={presentationMode} onChange={(e) => setPresentationMode(e.target.checked)} />
+            Modo Presentacion (sin codigos)
+          </label>
+          <button onClick={downloadPdf} style={{ ...theme.buttonStyle, fontSize: 13, padding: "10px 20px" }}>
+            Descargar PDF
+          </button>
+        </div>
       ) : undefined}
     >
       {accounts.length > 0 && (
@@ -276,7 +283,7 @@ export default function JournalPage() {
               </div>
               {(e.journal_lines ?? []).map((l: any, idx: number) => (
                 <div key={idx} style={{ display: "flex", justifyContent: "space-between", fontSize: 20, color: "#B0B8C8", marginTop: 6, paddingLeft: 12 }}>
-                  <span>{l.chart_of_accounts?.account_code} - {l.chart_of_accounts?.account_name}</span>
+                  <span>{presentationMode ? l.chart_of_accounts?.account_name : l.chart_of_accounts?.account_code + " - " + l.chart_of_accounts?.account_name}</span>
                   <span style={theme.numberStyle}>{l.debit > 0 ? "Debe: " + l.debit.toLocaleString() : "Haber: " + l.credit.toLocaleString()}</span>
                 </div>
               ))}
