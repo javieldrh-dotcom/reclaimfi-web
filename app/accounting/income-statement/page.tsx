@@ -13,6 +13,7 @@ export default function IncomeStatementPage() {
   const [companyName, setCompanyName] = useState("");
   const [currency, setCurrency] = useState("USD");
   const [loading, setLoading] = useState(true);
+  const [presentationMode, setPresentationMode] = useState(false);
   useEffect(() => {
     async function load() {
       const { data: userData } = await supabase.auth.getUser();
@@ -75,7 +76,8 @@ export default function IncomeStatementPage() {
       ],
       netResult >= 0 ? "Utilidad Neta" : "Perdida Neta",
       netResult,
-      currency
+      currency,
+      presentationMode
     );
     doc.save("estado-de-resultados.pdf");
   }
@@ -91,16 +93,22 @@ export default function IncomeStatementPage() {
       title="Estado de Resultados"
       fullWidth
       actions={
-        <button onClick={downloadPdf} style={{ ...theme.buttonStyle, fontSize: 13, padding: "10px 20px" }}>
-          Descargar PDF
-        </button>
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "#8B93A7", cursor: "pointer" }}>
+            <input type="checkbox" checked={presentationMode} onChange={(e) => setPresentationMode(e.target.checked)} />
+            Modo Presentacion (sin codigos)
+          </label>
+          <button onClick={downloadPdf} style={{ ...theme.buttonStyle, fontSize: 13, padding: "10px 20px" }}>
+            Descargar PDF
+          </button>
+        </div>
       }
     >
       <div style={{ maxWidth: 700 }}>
         <h2 style={{ marginTop: 20, fontSize: 24, color: "#4ade80", fontWeight: 700 }}>Ingresos</h2>
         {revenue.map((r) => (
           <div key={r.code} style={rowStyle}>
-            <span>{r.code} - {r.name}</span>
+            <span>{presentationMode ? r.name : r.code + " - " + r.name}</span>
             <span style={theme.numberStyle}>{r.amount.toLocaleString()}</span>
           </div>
         ))}
@@ -110,7 +118,7 @@ export default function IncomeStatementPage() {
         {cogs.length === 0 && <p style={{ fontSize: 15, color: "#8B93A7", padding: 8 }}>Sin costo de ventas registrado.</p>}
         {cogs.map((r) => (
           <div key={r.code} style={rowStyle}>
-            <span>{r.code} - {r.name}</span>
+            <span>{presentationMode ? r.name : r.code + " - " + r.name}</span>
             <span style={theme.numberStyle}>{r.amount.toLocaleString()}</span>
           </div>
         ))}
@@ -121,7 +129,7 @@ export default function IncomeStatementPage() {
         <h2 style={{ marginTop: 24, fontSize: 24, color: "#f87171", fontWeight: 700 }}>Gastos Operativos</h2>
         {operatingExpenses.map((r) => (
           <div key={r.code} style={rowStyle}>
-            <span>{r.code} - {r.name}</span>
+            <span>{presentationMode ? r.name : r.code + " - " + r.name}</span>
             <span style={theme.numberStyle}>{r.amount.toLocaleString()}</span>
           </div>
         ))}
@@ -133,7 +141,7 @@ export default function IncomeStatementPage() {
         {financialExpenses.length === 0 && <p style={{ fontSize: 15, color: "#8B93A7", padding: 8 }}>Sin gastos financieros registrados.</p>}
         {financialExpenses.map((r) => (
           <div key={r.code} style={rowStyle}>
-            <span>{r.code} - {r.name}</span>
+            <span>{presentationMode ? r.name : r.code + " - " + r.name}</span>
             <span style={theme.numberStyle}>{r.amount.toLocaleString()}</span>
           </div>
         ))}

@@ -103,16 +103,22 @@ export default function BalanceSheetPage() {
       title="Estado de Situacion Financiera"
       fullWidth
       actions={
-        <button onClick={downloadPdf} style={{ ...theme.buttonStyle, fontSize: 13, padding: "10px 20px" }}>
-          Descargar PDF
-        </button>
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "#8B93A7", cursor: "pointer" }}>
+            <input type="checkbox" checked={presentationMode} onChange={(e) => setPresentationMode(e.target.checked)} />
+            Modo Presentacion (sin codigos)
+          </label>
+          <button onClick={downloadPdf} style={{ ...theme.buttonStyle, fontSize: 13, padding: "10px 20px" }}>
+            Descargar PDF
+          </button>
+        </div>
       }
     >
       <div style={{ maxWidth: 700 }}>
         <h2 style={{ marginTop: 20, fontSize: 24, color: theme.accent, fontWeight: 700 }}>Activos Corrientes</h2>
         {currentAssets.map((r) => (
           <div key={r.code} style={rowStyle}>
-            <span>{r.code} - {r.name}</span>
+            <span>{presentationMode ? r.name : r.code + " - " + r.name}</span>
             <span style={theme.numberStyle}>{r.amount.toLocaleString()}</span>
           </div>
         ))}
@@ -121,7 +127,7 @@ export default function BalanceSheetPage() {
         <h2 style={{ marginTop: 24, fontSize: 24, color: theme.accent, fontWeight: 700 }}>Activos No Corrientes</h2>
         {nonCurrentAssets.map((r) => (
           <div key={r.code} style={rowStyle}>
-            <span>{r.code} - {r.name}</span>
+            <span>{presentationMode ? r.name : r.code + " - " + r.name}</span>
             <span style={theme.numberStyle}>{r.amount.toLocaleString()}</span>
           </div>
         ))}
@@ -131,7 +137,7 @@ export default function BalanceSheetPage() {
         <h2 style={{ marginTop: 30, fontSize: 24, color: "#facc15", fontWeight: 700 }}>Pasivos Corrientes</h2>
         {currentLiabilities.map((r) => (
           <div key={r.code} style={rowStyle}>
-            <span>{r.code} - {r.name}</span>
+            <span>{presentationMode ? r.name : r.code + " - " + r.name}</span>
             <span style={theme.numberStyle}>{r.amount.toLocaleString()}</span>
           </div>
         ))}
@@ -140,7 +146,7 @@ export default function BalanceSheetPage() {
         <h2 style={{ marginTop: 24, fontSize: 24, color: "#facc15", fontWeight: 700 }}>Pasivos No Corrientes</h2>
         {nonCurrentLiabilities.map((r) => (
           <div key={r.code} style={rowStyle}>
-            <span>{r.code} - {r.name}</span>
+            <span>{presentationMode ? r.name : r.code + " - " + r.name}</span>
             <span style={theme.numberStyle}>{r.amount.toLocaleString()}</span>
           </div>
         ))}
@@ -150,7 +156,7 @@ export default function BalanceSheetPage() {
         <h2 style={{ marginTop: 30, fontSize: 24, color: "#4ade80", fontWeight: 700 }}>Patrimonio</h2>
         {equity.map((r) => (
           <div key={r.code} style={rowStyle}>
-            <span>{r.code} - {r.name}</span>
+            <span>{presentationMode ? r.name : r.code + " - " + r.name}</span>
             <span style={theme.numberStyle}>{r.amount.toLocaleString()}</span>
           </div>
         ))}
