@@ -17,6 +17,8 @@ export default function PurchaseBookPage() {
   const [vatCreditAccountId, setVatCreditAccountId] = useState("");
 
   const [entryDate, setEntryDate] = useState(new Date().toISOString().slice(0, 10));
+  const [invoiceCurrency, setInvoiceCurrency] = useState("USD");
+  const [invoiceExchangeRate, setInvoiceExchangeRate] = useState("1");
   const [documentType, setDocumentType] = useState("FACTURA");
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [controlNumber, setControlNumber] = useState("");
@@ -115,10 +117,12 @@ export default function PurchaseBookPage() {
 
     if (entryError || !entry) { setMessage("Error al crear asiento: " + entryError?.message); return; }
 
-    const lines = [{ journal_entry_id: entry.id, account_id: expenseAccountId, debit: base + nonTaxable, credit: 0 }];
+    const fxRate = parseFloat(invoiceExchangeRate) || 1;
+    const lines = [{ journal_entry_id: entry.id, account_id: expenseAccountId, debit: (base + nonTaxable) * fxRate, credit: 0 }];
     if (credit > 0) {
-      lines.push({ journal_entry_id: entry.id, account_id: vatCreditAccountId, debit: credit, credit: 0 });
+      lines.push({ journal_entry_id: entry.id, account_id: vatCreditAccountId, debit: credit * fxRate, credit: 0 });
     }
+    lines.push({ journal_entry_id: entry.id, account_id: apAccountId, debit: 0, credit: netPayable * fxRate });
     lines.push({ journal_entry_id: entry.id, account_id: apAccountId, debit: 0, credit: netPayable });
 
     const { error: linesError } = await supabase.from("journal_lines").insert(lines);
@@ -173,6 +177,12 @@ export default function PurchaseBookPage() {
       <div style={{ maxWidth: 900 }}>
         <div style={{ display: "flex", gap: 10 }}>
           <input type="date" value={entryDate} onChange={(e) => setEntryDate(e.target.value)} style={inputStyle} />
+          <select value={invoiceCurrency} onChange={(e) => setInvoiceCurrency(e.target.value)} style={inputStyle}>
+            <option value="USD">USD</option>
+            <option value="EUR">EUR</option>
+            <option value="VES">VES (Bolivares)</option>
+          </select>
+          <input type="number" step="0.0001" value={invoiceExchangeRate} onChange={(e) => setInvoiceExchangeRate(e.target.value)} style={inputStyle} placeholder="Tasa de Cambio" />
           <select value={documentType} onChange={(e) => setDocumentType(e.target.value)} style={inputStyle}>
             <option value="FACTURA">Factura</option>
             <option value="NOTA_DEBITO">Nota de Debito</option>
