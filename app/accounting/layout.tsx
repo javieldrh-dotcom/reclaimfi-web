@@ -39,6 +39,7 @@ const navItems = [
       { href: "/accounting/purchase-book", label: "Libro de Compras" },
       { href: "/accounting/vat-summary", label: "Resumen de IVA" },
       { href: "/accounting/withholding-summary", label: "Resumen Retenciones" },
+      { href: "/accounting/igtf", label: "IGTF" },
       { href: "/accounting/special-taxpayer", label: "Contribuyente Especial" },
       { href: "/accounting/islr", label: "ISLR Anual" },
       { href: "/accounting/islr-estimated", label: "ISLR Declaracion Estimada" },
