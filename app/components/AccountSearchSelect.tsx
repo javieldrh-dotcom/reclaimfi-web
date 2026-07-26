@@ -1,5 +1,5 @@
 ﻿"use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useId } from "react";
 
 interface Account { id: string; account_code: string; account_name: string; }
 
@@ -12,7 +12,7 @@ interface Props {
 }
 
 export default function AccountSearchSelect({ accounts, value, onChange, placeholder, style }: Props) {
-  const listId = "acc-list-" + Math.random().toString(36).slice(2);
+  const listId = "acc-list-" + useId();
   const selectedAccount = accounts.find((a) => a.id === value);
   const [textValue, setTextValue] = useState(selectedAccount ? selectedAccount.account_code + " - " + selectedAccount.account_name : "");
 
