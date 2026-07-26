@@ -13,6 +13,7 @@ export default function BalanceSheetPage() {
   const [companyName, setCompanyName] = useState("");
   const [currency, setCurrency] = useState("USD");
   const [loading, setLoading] = useState(true);
+  const [presentationMode, setPresentationMode] = useState(false);
   useEffect(() => {
     async function load() {
       const { data: userData } = await supabase.auth.getUser();
@@ -86,7 +87,8 @@ export default function BalanceSheetPage() {
       ],
       "Total Pasivo + Patrimonio",
       totalLiabilities + totalEquity,
-      currency
+      currency,
+        presentationMode
     );
     doc.save("estado-situacion-financiera.pdf");
   }
