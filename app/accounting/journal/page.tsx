@@ -59,7 +59,7 @@ export default function JournalPage() {
     const accountIds = Array.from(new Set((linesData ?? []).map((l: any) => l.account_id)));
     const { data: accountsData } = await supabase
       .from("chart_of_accounts")
-      .select("id, account_code, account_name")
+      .select("id, account_code, account_name, mayor_folio")
       .in("id", accountIds);
     const accountsById: Record<string, any> = {};
     (accountsData ?? []).forEach((a: any) => { accountsById[a.id] = a; });
@@ -67,7 +67,8 @@ export default function JournalPage() {
       ...e,
       journal_lines: (linesData ?? [])
         .filter((l: any) => l.journal_entry_id === e.id)
-        .map((l: any) => ({ ...l, chart_of_accounts: accountsById[l.account_id] })),
+        .map((l: any) => ({ ...l, chart_of_accounts: accountsById[l.account_id] }))
+        .sort((a: any, b: any) => (b.debit > 0 ? 1 : 0) - (a.debit > 0 ? 1 : 0)),
     }));
     setEntries(enrichedEntries);
   }
