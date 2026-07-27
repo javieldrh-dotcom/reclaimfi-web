@@ -5,6 +5,7 @@ import { getVerticalTheme } from "@/app/core/design/tokens";
 import VerticalPageLayout from "@/app/components/VerticalPageLayout";
 import { generateFinancialStatementPdf } from "@/app/core/reports/generateFinancialStatementPdf";
 import AccountSearchSelect from "@/app/components/AccountSearchSelect";
+import { generateRegionalDiarioPdf } from "@/app/core/reports/generateRegionalDiarioPdf";
 interface Account { id: string; account_code: string; account_name: string; }
 interface Line { account_id: string; debit: string; credit: string; }
 
@@ -201,37 +202,23 @@ export default function JournalPage() {
   function downloadPdf() {
     if (accountingConvention === "REGIONAL_VE") {
       const consolidated = getMonthlyConsolidated();
-      const sections = consolidated.map((m: any) => {
-        const debitAccounts = Object.values(m.accounts).filter((a: any) => a.debit > 0);
-        const creditAccounts = Object.values(m.accounts).filter((a: any) => a.credit > 0);
-        const items = [...debitAccounts, ...creditAccounts].map((a: any) => ({
-          code: presentationMode ? undefined : ("Ref." + (a.folio ?? "-") + " " + a.code),
-          name: a.name,
-          amount: a.debit > 0 ? a.debit : a.credit,
-          debitAmount: a.debit,
-          creditAmount: a.credit,
-        }));
-        const mDebit = items.reduce((s: number, i: any) => s + (i.debitAmount || 0), 0);
-        const mCredit = items.reduce((s: number, i: any) => s + (i.creditAmount || 0), 0);
+      const blocks = consolidated.map((m: any) => {
         const lbl = monthLabel(m.month);
+        const accountsArr = Object.values(m.accounts).map((a: any) => ({
+          code: presentationMode ? "" : a.code,
+          name: a.name,
+          folio: a.folio ?? "-",
+          debit: a.debit,
+          credit: a.credit,
+        }));
         return {
-          title: lbl.year + " - " + lbl.month + " (Asiento Resumen)",
-          items,
-          total: 0,
-          totalLabel: "Subtotal del Mes",
-          totalDebit: mDebit,
-          totalCredit: mCredit,
+          year: lbl.year,
+          month: lbl.month,
+          accounts: accountsArr,
+          explanation: "Resumen de operaciones registradas durante " + lbl.month + " " + lbl.year + ", conforme al Art. 34 del Codigo de Comercio.",
         };
       });
-      const totalD = consolidated.reduce((s: number, m: any) => s + Object.values(m.accounts).reduce((s2: number, a: any) => s2 + (a.debit || 0), 0), 0);
-      const doc = generateFinancialStatementPdf(
-        "LIBRO DIARIO - EJERCICIO " + selectedYear + " (Asientos Resumen Mensuales - Formato Venezuela)",
-        companyName,
-        sections,
-        "Total General",
-        totalD,
-        currencyDoc
-      );
+      const doc = generateRegionalDiarioPdf(companyName, selectedYear, blocks);
       doc.save("libro-diario-" + selectedYear + ".pdf");
       return;
     }
