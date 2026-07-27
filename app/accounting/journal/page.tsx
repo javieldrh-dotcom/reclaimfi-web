@@ -191,6 +191,13 @@ export default function JournalPage() {
         byMonth[monthKey].accounts[accId].credit += l.credit || 0;
       });
     });
+    Object.values(byMonth).forEach((m: any) => {
+      Object.values(m.accounts).forEach((a: any) => {
+        const net = a.debit - a.credit;
+        a.debit = net > 0 ? net : 0;
+        a.credit = net < 0 ? -net : 0;
+      });
+    });
     return Object.values(byMonth).sort((a: any, b: any) => b.month.localeCompare(a.month));
   }
 
