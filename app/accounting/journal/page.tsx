@@ -187,10 +187,34 @@ export default function JournalPage() {
     });
     const totalD = activeEntries.flatMap((e: any) => e.journal_lines ?? []).reduce((s: number, l: any) => s + (l.debit || 0), 0);
     const totalC = activeEntries.flatMap((e: any) => e.journal_lines ?? []).reduce((s: number, l: any) => s + (l.credit || 0), 0);
+
+    const finalSections = [...sections];
+    if (accountingConvention === "REGIONAL_VE") {
+      getMonthlyConsolidated().forEach((m: any) => {
+        const items = Object.values(m.accounts).map((a: any) => ({
+          code: presentationMode ? undefined : a.code,
+          name: a.name,
+          amount: a.debit > 0 ? a.debit : a.credit,
+          debitAmount: a.debit,
+          creditAmount: a.credit,
+        }));
+        const mDebit = items.reduce((s: number, i: any) => s + (i.debitAmount || 0), 0);
+        const mCredit = items.reduce((s: number, i: any) => s + (i.creditAmount || 0), 0);
+        finalSections.push({
+          title: "RESUMEN MENSUAL - " + m.month,
+          items,
+          total: 0,
+          totalLabel: "Subtotal del Mes",
+          totalDebit: mDebit,
+          totalCredit: mCredit,
+        });
+      });
+    }
+
     const doc = generateFinancialStatementPdf(
       "LIBRO DIARIO - EJERCICIO " + selectedYear,
       companyName,
-      sections,
+      finalSections,
       "Total General",
       totalD,
       currencyDoc
@@ -325,8 +349,7 @@ export default function JournalPage() {
               ))}
             </div>
           )}
-          {accountingConvention !== "REGIONAL_VE" && (
-          entries.map((e) => (
+          {entries.map((e) => (
             <div key={e.id} style={{ ...theme.cardStyle, marginTop: 12, opacity: e.status === "VOIDED" ? 0.5 : 1 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontWeight: 700, fontSize: 22 }}>
@@ -351,8 +374,7 @@ export default function JournalPage() {
                 </div>
               ))}
             </div>
-          ))
-)}
+          ))}
         </div>
       )}
     </VerticalPageLayout>
