@@ -14,6 +14,7 @@ export default function GeneralLedgerPage() {
   const [movements, setMovements] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMovements, setLoadingMovements] = useState(false);
+  const [continuationFolio, setContinuationFolio] = useState("");
 
   useEffect(() => {
     async function load() {
@@ -43,6 +44,8 @@ export default function GeneralLedgerPage() {
   async function loadMovements(accountId: string) {
     setSelectedAccountId(accountId);
     setLoadingMovements(true);
+    const acc = accounts.find((a) => a.id === accountId);
+    setContinuationFolio(acc?.mayor_folio_continuation ? String(acc.mayor_folio_continuation) : "");
     const { data } = await supabase
       .from("journal_lines")
       .select("debit, credit, journal_entries!inner(description, entry_date, status)")
@@ -64,6 +67,14 @@ export default function GeneralLedgerPage() {
     setMovements(rows);
     setLoadingMovements(false);
   }
+  async function saveContinuationFolio(value: string) {
+    setContinuationFolio(value);
+    if (!selectedAccountId) return;
+    const num = value ? parseInt(value, 10) : null;
+    await supabase.from("chart_of_accounts").update({ mayor_folio_continuation: num }).eq("id", selectedAccountId);
+    setAccounts((prev) => prev.map((a) => a.id === selectedAccountId ? { ...a, mayor_folio_continuation: num } : a));
+  }
+
   function downloadPdf() {
     const selectedAccount = accounts.find((a) => a.id === selectedAccountId);
     const items = movements.map((m) => ({
@@ -127,7 +138,12 @@ export default function GeneralLedgerPage() {
           {selectedAccountId && loadingMovements && <p style={{ color: "#8B93A7", fontSize: 16 }}>Cargando movimientos...</p>}
           {selectedAccountId && !loadingMovements && (
             <>
-              <h3 style={{ fontSize: 26, color: theme.accent, marginBottom: 20, fontWeight: 700 }}>{selectedAccount?.account_code} - {selectedAccount?.account_name}</h3>
+              <h3 style={{ fontSize: 26, color: theme.accent, marginBottom: 4, fontWeight: 700 }}>{selectedAccount?.account_code} - {selectedAccount?.account_name}</h3>
+              <p style={{ fontSize: 14, color: "#8B93A7", marginBottom: 16 }}>Folio Mayor Nº {selectedAccount?.mayor_folio ?? "-"}</p>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+                <label style={{ fontSize: 14, color: theme.accent }}>Si esta cuenta continua en otra pagina, Folio de Continuacion:</label>
+                <input type="number" value={continuationFolio} onChange={(e) => saveContinuationFolio(e.target.value)} style={{ ...theme.inputStyle, fontSize: 14, width: 100, padding: "6px 10px" }} placeholder="Ej. 15" />
+              </div>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr style={{ textAlign: "left", color: theme.accent, fontSize: 17, fontWeight: 700 }}>
