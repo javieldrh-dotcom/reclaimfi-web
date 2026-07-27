@@ -10,6 +10,7 @@ export default function GeneralLedgerPage() {
   const [companyName, setCompanyName] = useState("");
   const [currency, setCurrency] = useState("USD");
   const [accounts, setAccounts] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [movements, setMovements] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -119,8 +120,8 @@ export default function GeneralLedgerPage() {
     >
       <div style={{ display: "grid", gridTemplateColumns: "1fr 3fr", gap: 24, maxWidth: "none" }}>
         <div style={{ ...theme.cardStyle, maxHeight: 700, overflowY: "auto" }}>
-          <h3 style={{ fontSize: 18, color: theme.accent, marginBottom: 16, fontWeight: 700 }}>Cuentas</h3>
-          {accounts.map((a) => (
+          <h3 style={{ fontSize: 18, color: theme.accent, marginBottom: 12, fontWeight: 700 }}>Cuentas</h3><input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Buscar cuenta..." style={{ width: "100%", padding: "8px 12px", fontSize: 14, borderRadius: 8, border: "1px solid #1F2937", background: "#0d1117", color: "white", marginBottom: 12, boxSizing: "border-box" }} />
+          {accounts.filter((a) => (a.account_code + " " + a.account_name).toLowerCase().includes(searchQuery.toLowerCase())).map((a) => (
             <div
               key={a.id}
               onClick={() => loadMovements(a.id)}
