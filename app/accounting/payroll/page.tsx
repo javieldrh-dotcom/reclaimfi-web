@@ -16,6 +16,8 @@ export default function PayrollPage() {
   const [empSalary, setEmpSalary] = useState("");
   const [message, setMessage] = useState("");
   const [periodStart, setPeriodStart] = useState("");
+  const [payrollCurrency, setPayrollCurrency] = useState("USD");
+  const [payrollExchangeRate, setPayrollExchangeRate] = useState("1");
   const [periodEnd, setPeriodEnd] = useState("");
   const [salaryExpenseAccount, setSalaryExpenseAccount] = useState("");
   const [patronalExpenseAccount, setPatronalExpenseAccount] = useState("");
@@ -104,7 +106,8 @@ export default function PayrollPage() {
     const TOTAL_PATRONAL_RATE = IVSS_PATRONAL_RATE + INCES_RATE + FAOV_PATRONAL_RATE;
 
     const details = employees.map((emp) => {
-      const gross = emp.daily_salary * daysInPeriod;
+      const fxRate = parseFloat(payrollExchangeRate) || 1;
+      const gross = emp.daily_salary * daysInPeriod * fxRate;
       const socialSecurity = gross * IVSS_EMPLOYEE_RATE;
       const net = gross - socialSecurity;
       const patronal = gross * TOTAL_PATRONAL_RATE;
@@ -207,6 +210,13 @@ export default function PayrollPage() {
           <div style={{ display: "flex", gap: 10 }}>
             <input type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} style={inputStyle} />
             <input type="date" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} style={inputStyle} />
+          </div>
+          <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
+            <select value={payrollCurrency} onChange={(e) => setPayrollCurrency(e.target.value)} style={inputStyle}>
+              <option value="USD">USD</option>
+              <option value="VES">VES (Bolivares)</option>
+            </select>
+            <input type="number" step="0.0001" value={payrollExchangeRate} onChange={(e) => setPayrollExchangeRate(e.target.value)} style={inputStyle} placeholder="Tasa de Cambio" />
           </div>
           <button onClick={processPayroll} disabled={processing} style={{ ...theme.buttonStyle, marginTop: 12, fontSize: 16, width: "100%", background: "#f87171" }}>
             {processing ? "PROCESANDO..." : "PROCESAR NOMINA"}
