@@ -92,6 +92,12 @@ export default function GeneralLedgerPage() {
       finalBalance,
       currency
     );
+    if (continuationFolio) {
+      const pw = doc.internal.pageSize.getWidth();
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "italic");
+      doc.text("Pasa al Folio Nº " + continuationFolio, 15, 280);
+    }
     doc.save("libro-mayor-" + (selectedAccount?.account_code ?? "cuenta") + ".pdf");
   }
 
