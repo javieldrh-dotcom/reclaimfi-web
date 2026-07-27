@@ -197,6 +197,29 @@ export default function JournalPage() {
     );
     doc.save("libro-diario-" + selectedYear + ".pdf");
   }
+  function getMonthlyConsolidated() {
+    const activeEntries = entries.filter((e) => e.status === "ACTIVE");
+    const byMonth: Record<string, any> = {};
+    activeEntries.forEach((e: any) => {
+      const monthKey = e.entry_date.slice(0, 7);
+      if (!byMonth[monthKey]) byMonth[monthKey] = { month: monthKey, accounts: {} };
+      (e.journal_lines ?? []).forEach((l: any) => {
+        const accId = l.account_id;
+        if (!byMonth[monthKey].accounts[accId]) {
+          byMonth[monthKey].accounts[accId] = {
+            code: l.chart_of_accounts?.account_code,
+            name: l.chart_of_accounts?.account_name,
+            debit: 0,
+            credit: 0,
+          };
+        }
+        byMonth[monthKey].accounts[accId].debit += l.debit || 0;
+        byMonth[monthKey].accounts[accId].credit += l.credit || 0;
+      });
+    });
+    return Object.values(byMonth).sort((a: any, b: any) => b.month.localeCompare(a.month));
+  }
+
   const inputStyle = theme.inputStyle;
   return (
     <VerticalPageLayout
@@ -287,7 +310,23 @@ export default function JournalPage() {
           <h2 style={{ fontSize: 26, color: theme.accent, fontFamily: theme.titleStyle.fontFamily, fontWeight: 700 }}>
             {selectedYear === "TODOS" ? "Todos los Ejercicios" : "Ejercicio Fiscal " + selectedYear}
           </h2>
-          {entries.map((e) => (
+          {accountingConvention === "REGIONAL_VE" && (
+            <div>
+              {getMonthlyConsolidated().map((m: any) => (
+                <div key={m.month} style={{ ...theme.cardStyle, marginTop: 12 }}>
+                  <p style={{ fontWeight: 700, fontSize: 20, color: theme.accent, marginBottom: 8 }}>Asiento Resumen - {m.month}</p>
+                  {Object.values(m.accounts).map((a: any, idx: number) => (
+                    <div key={idx} style={{ display: "flex", justifyContent: "space-between", fontSize: 18, color: "#B0B8C8", marginTop: 4, paddingLeft: 12 }}>
+                      <span>{a.code} - {a.name}</span>
+                      <span style={theme.numberStyle}>{a.debit > 0 ? "Debe: " + a.debit.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "Haber: " + a.credit.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          )}
+          {accountingConvention !== "REGIONAL_VE" && (
+          entries.map((e) => (
             <div key={e.id} style={{ ...theme.cardStyle, marginTop: 12, opacity: e.status === "VOIDED" ? 0.5 : 1 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontWeight: 700, fontSize: 22 }}>
@@ -312,7 +351,8 @@ export default function JournalPage() {
                 </div>
               ))}
             </div>
-          ))}
+          ))
+)}
         </div>
       )}
     </VerticalPageLayout>
