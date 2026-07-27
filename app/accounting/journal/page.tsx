@@ -5,7 +5,7 @@ import { getVerticalTheme } from "@/app/core/design/tokens";
 import VerticalPageLayout from "@/app/components/VerticalPageLayout";
 import { generateFinancialStatementPdf } from "@/app/core/reports/generateFinancialStatementPdf";
 import AccountSearchSelect from "@/app/components/AccountSearchSelect";
-import { generateSimpleDiarioPdf } from "@/app/core/reports/generateSimpleDiarioPdf";
+import { generateProfessionalDiarioPdf } from "@/app/core/reports/generateProfessionalDiarioPdf";
 interface Account { id: string; account_code: string; account_name: string; }
 interface Line { account_id: string; debit: string; credit: string; }
 export default function JournalPage() {
@@ -168,35 +168,21 @@ export default function JournalPage() {
   }
   function downloadPdf() {
     const activeEntries = entries.filter((e) => e.status === "ACTIVE");
-    const sections = activeEntries.map((e: any) => {
-      const entryItems = (e.journal_lines ?? []).map((l: any) => ({
+    const MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+    const entryBlocks = activeEntries.map((e: any) => {
+      const d = new Date(e.entry_date);
+      const yearStr = e.entry_date.slice(0, 4);
+      const monthStr = MESES[d.getUTCMonth()];
+      const entryLines = (e.journal_lines ?? []).map((l: any) => ({
         code: presentationMode ? undefined : (l.chart_of_accounts?.account_code ?? ""),
         name: l.chart_of_accounts?.account_name ?? "",
         folio: l.chart_of_accounts?.mayor_folio ?? "-",
-        amount: l.debit > 0 ? l.debit : l.credit,
-        debitAmount: l.debit,
-        creditAmount: l.credit,
+        debit: l.debit || 0,
+        credit: l.credit || 0,
       }));
-      const entryDebit = entryItems.reduce((s: number, i: any) => s + (i.debitAmount || 0), 0);
-      const entryCredit = entryItems.reduce((s: number, i: any) => s + (i.creditAmount || 0), 0);
-      return {
-        title: "Nº" + (e.entry_number ?? "S/N") + " - " + e.entry_date + " - " + e.description,
-        items: entryItems,
-        total: 0,
-        totalLabel: "Subtotal",
-        totalDebit: entryDebit,
-        totalCredit: entryCredit,
-      };
+      return { year: yearStr, month: monthStr, lines: entryLines, narration: e.description };
     });
-    const totalD = activeEntries.flatMap((e: any) => e.journal_lines ?? []).reduce((s: number, l: any) => s + (l.debit || 0), 0);
-    const doc = generateFinancialStatementPdf(
-      "LIBRO DIARIO - EJERCICIO " + selectedYear + (accountingConvention === "REGIONAL_VE" ? " (Convencion Regional Venezuela)" : " (Convencion Internacional)"),
-      companyName,
-      sections,
-      "Total General",
-      totalD,
-      currencyDoc
-    );
+    const doc = generateProfessionalDiarioPdf(companyName, selectedYear, currencyDoc, entryBlocks, 1);
     doc.save("libro-diario-" + selectedYear + ".pdf");
   }
   const inputStyle = theme.inputStyle;
