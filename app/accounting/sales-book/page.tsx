@@ -17,6 +17,8 @@ export default function SalesBookPage() {
   const [vatPayableAccountId, setVatPayableAccountId] = useState("");
 
   const [entryDate, setEntryDate] = useState(new Date().toISOString().slice(0, 10));
+  const [invoiceCurrency, setInvoiceCurrency] = useState("USD");
+  const [invoiceExchangeRate, setInvoiceExchangeRate] = useState("1");
   const [documentType, setDocumentType] = useState("FACTURA");
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [controlNumber, setControlNumber] = useState("");
@@ -31,7 +33,7 @@ export default function SalesBookPage() {
   const [message, setMessage] = useState("");
 
   async function loadEntries(cid: string) {
-    const { data } = await supabase.from("sales_book_entries").select("*").eq("company_id", cid).order("entry_date", { ascending: true });
+    const { data } = await supabase.from("sales_book_entries").select("*").eq("company_id", cid).eq("status", "ACTIVE").order("entry_date", { ascending: true });
     setEntries(data ?? []);
   }
 
@@ -71,6 +73,16 @@ export default function SalesBookPage() {
     if (type === "ASSET") setArAccountId(newAcc.id);
   }
 
+  async function voidEntry(entryId: string, journalEntryId: string) {
+    const reason = window.prompt("Motivo de la anulacion:");
+    if (!reason) return;
+    await supabase.from("sales_book_entries").update({ status: "VOIDED", voided_at: new Date().toISOString(), void_reason: reason }).eq("id", entryId);
+    if (journalEntryId) {
+      await supabase.from("journal_entries").update({ status: "VOIDED", voided_at: new Date().toISOString(), void_reason: reason }).eq("id", journalEntryId);
+    }
+    if (companyId) await loadEntries(companyId);
+  }
+
   async function createEntry() {
     setMessage("");
     if (!companyId || !customerName || !customerTaxId || !taxableBaseGeneral || !arAccountId || !revenueAccountId || !vatPayableAccountId) {
@@ -95,10 +107,11 @@ export default function SalesBookPage() {
 
     if (entryError || !entry) { setMessage("Error al crear asiento: " + entryError?.message); return; }
 
-    const lines = [{ journal_entry_id: entry.id, account_id: arAccountId, debit: netReceivable, credit: 0 }];
-    lines.push({ journal_entry_id: entry.id, account_id: revenueAccountId, debit: 0, credit: base + nonTaxable });
+    const fxRate = parseFloat(invoiceExchangeRate) || 1;
+    const lines = [{ journal_entry_id: entry.id, account_id: arAccountId, debit: netReceivable * fxRate, credit: 0 }];
+    lines.push({ journal_entry_id: entry.id, account_id: revenueAccountId, debit: 0, credit: (base + nonTaxable) * fxRate });
     if (debit > 0) {
-      lines.push({ journal_entry_id: entry.id, account_id: vatPayableAccountId, debit: 0, credit: debit });
+      lines.push({ journal_entry_id: entry.id, account_id: vatPayableAccountId, debit: 0, credit: debit * fxRate });
     }
 
     const { error: linesError } = await supabase.from("journal_lines").insert(lines);
@@ -173,6 +186,12 @@ export default function SalesBookPage() {
       <div style={{ maxWidth: 900 }}>
         <div style={{ display: "flex", gap: 10 }}>
           <input type="date" value={entryDate} onChange={(e) => setEntryDate(e.target.value)} style={inputStyle} />
+          <select value={invoiceCurrency} onChange={(e) => setInvoiceCurrency(e.target.value)} style={inputStyle}>
+            <option value="USD">USD</option>
+            <option value="EUR">EUR</option>
+            <option value="VES">VES (Bolivares)</option>
+          </select>
+          <input type="number" step="0.0001" value={invoiceExchangeRate} onChange={(e) => setInvoiceExchangeRate(e.target.value)} style={inputStyle} placeholder="Tasa de Cambio" />
           <select value={documentType} onChange={(e) => setDocumentType(e.target.value)} style={inputStyle}>
             <option value="FACTURA">Factura</option>
             <option value="NOTA_DEBITO">Nota de Debito</option>
@@ -248,6 +267,7 @@ export default function SalesBookPage() {
                   <th rowSpan={2} style={{ border: "1px solid #1F2937", padding: 6 }}>Ventas Exportacion</th>
                   <th colSpan={5} style={{ border: "1px solid #1F2937", padding: 6, background: "#2DD4BF20" }}>VENTAS INTERNAS</th>
                   <th rowSpan={2} style={{ border: "1px solid #1F2937", padding: 6, background: "#FB923C20" }}>IVA Retenido</th>
+                  <th style={{ border: "1px solid #1F2937", padding: 6 }}>Acciones</th>
                 </tr>
                 <tr style={{ color: theme.accent, fontWeight: 700 }}>
                   <th style={{ border: "1px solid #1F2937", padding: 6 }}>Total c/IVA</th>
@@ -273,6 +293,11 @@ export default function SalesBookPage() {
                     <td style={{ padding: 6, textAlign: "right", ...theme.numberStyle }}>{(e.taxable_base_general || 0).toLocaleString()}</td>
                     <td style={{ padding: 6, textAlign: "center" }}>{e.rate_general || 0}%</td>
                     <td style={{ padding: 6, textAlign: "right", ...theme.numberStyle }}>{(e.fiscal_debit || 0).toLocaleString()}</td>
+                    <td style={{ padding: 6 }}>
+                      <button onClick={() => voidEntry(e.id, e.journal_entry_id)} style={{ background: "none", border: "1px solid #F87171", color: "#F87171", padding: "4px 10px", borderRadius: 6, fontSize: 12, cursor: "pointer" }}>
+                        Anular
+                      </button>
+                    </td>
                     <td style={{ padding: 6, textAlign: "right", ...theme.numberStyle }}>{(e.withheld_by_customer || 0).toLocaleString()}</td>
                   </tr>
                 ))}
