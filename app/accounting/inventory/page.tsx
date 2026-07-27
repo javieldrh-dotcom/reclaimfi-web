@@ -26,6 +26,8 @@ export default function InventoryPage() {
   const [movUnitCost, setMovUnitCost] = useState("");
   const [movType, setMovType] = useState("IN");
   const [movDate, setMovDate] = useState(new Date().toISOString().slice(0, 10));
+  const [movCurrency, setMovCurrency] = useState("USD");
+  const [movExchangeRate, setMovExchangeRate] = useState("1");
   const [movReference, setMovReference] = useState("");
 
   async function loadItems(cid: string) {
@@ -106,7 +108,8 @@ export default function InventoryPage() {
     let costForThisMovement = 0;
 
     if (movType === "IN") {
-      const unitCost = parseFloat(movUnitCost) || 0;
+      const fxRate = parseFloat(movExchangeRate) || 1;
+      const unitCost = (parseFloat(movUnitCost) || 0) * fxRate;
       const totalOldValue = item.current_quantity * item.current_avg_cost;
       const totalNewValue = qty * unitCost;
       newQuantity = item.current_quantity + qty;
@@ -246,11 +249,19 @@ export default function InventoryPage() {
                     <option value="OUT">Salida</option>
                   </select>
                   <input type="date" value={movDate} onChange={(e) => setMovDate(e.target.value)} style={inputStyle} />
+                  <select value={movCurrency} onChange={(e) => setMovCurrency(e.target.value)} style={inputStyle}>
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                    <option value="VES">VES (Bolivares)</option>
+                  </select>
                 </div>
                 <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
                   <input type="number" value={movQuantity} onChange={(e) => setMovQuantity(e.target.value)} style={inputStyle} placeholder="Cantidad" />
                   {movType === "IN" && (
                     <input type="number" value={movUnitCost} onChange={(e) => setMovUnitCost(e.target.value)} style={inputStyle} placeholder="Costo Unitario" />
+                  )}
+                  {movType === "IN" && (
+                    <input type="number" step="0.0001" value={movExchangeRate} onChange={(e) => setMovExchangeRate(e.target.value)} style={inputStyle} placeholder="Tasa de Cambio" />
                   )}
                 </div>
                 <input value={movReference} onChange={(e) => setMovReference(e.target.value)} style={{ ...inputStyle, marginTop: 8 }} placeholder="Referencia (opcional)" />
