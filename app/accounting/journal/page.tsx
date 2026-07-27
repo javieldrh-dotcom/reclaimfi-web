@@ -168,20 +168,35 @@ export default function JournalPage() {
   }
   function downloadPdf() {
     const activeEntries = entries.filter((e) => e.status === "ACTIVE");
-    const MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-    const items: any[] = [];
-    activeEntries.forEach((e: any) => {
-      const d = new Date(e.entry_date);
-      const year = e.entry_date.slice(0, 4);
-      const month = MESES[d.getUTCMonth()];
-      (e.journal_lines ?? []).forEach((l: any) => {
-        const label = presentationMode
-          ? (l.chart_of_accounts?.account_name ?? "")
-          : (l.chart_of_accounts?.account_code ?? "") + " - " + (l.chart_of_accounts?.account_name ?? "");
-        items.push({ year, month, accountLabel: label, debit: l.debit || 0, credit: l.credit || 0 });
-      });
+    const sections = activeEntries.map((e: any) => {
+      const entryItems = (e.journal_lines ?? []).map((l: any) => ({
+        code: presentationMode ? undefined : (l.chart_of_accounts?.account_code ?? ""),
+        name: l.chart_of_accounts?.account_name ?? "",
+        folio: l.chart_of_accounts?.mayor_folio ?? "-",
+        amount: l.debit > 0 ? l.debit : l.credit,
+        debitAmount: l.debit,
+        creditAmount: l.credit,
+      }));
+      const entryDebit = entryItems.reduce((s: number, i: any) => s + (i.debitAmount || 0), 0);
+      const entryCredit = entryItems.reduce((s: number, i: any) => s + (i.creditAmount || 0), 0);
+      return {
+        title: "Nº" + (e.entry_number ?? "S/N") + " - " + e.entry_date + " - " + e.description,
+        items: entryItems,
+        total: 0,
+        totalLabel: "Subtotal",
+        totalDebit: entryDebit,
+        totalCredit: entryCredit,
+      };
     });
-    const doc = generateSimpleDiarioPdf(companyName, selectedYear, items);
+    const totalD = activeEntries.flatMap((e: any) => e.journal_lines ?? []).reduce((s: number, l: any) => s + (l.debit || 0), 0);
+    const doc = generateFinancialStatementPdf(
+      "LIBRO DIARIO - EJERCICIO " + selectedYear + (accountingConvention === "REGIONAL_VE" ? " (Convencion Regional Venezuela)" : " (Convencion Internacional)"),
+      companyName,
+      sections,
+      "Total General",
+      totalD,
+      currencyDoc
+    );
     doc.save("libro-diario-" + selectedYear + ".pdf");
   }
   const inputStyle = theme.inputStyle;
