@@ -35,7 +35,28 @@ export function generateRegionalDiarioPdf(companyName: string, exerciseYear: str
   y += 12;
 
   blocks.forEach((block) => {
-    if (y > 240) { doc.addPage(); y = 20; }
+    const debitAccounts = block.accounts.filter((a) => a.debit > 0);
+    const creditAccounts = block.accounts.filter((a) => a.credit > 0);
+    const explanationLinesCount = doc.splitTextToSize("Explicacion: " + block.explanation, pageWidth - 40).length;
+
+    // Calcular la altura TOTAL que necesita este bloque completo
+    const blockHeight =
+      15 + // encabezado del mes
+      10 + // encabezados de columna
+      6 +  // titulo DEBE
+      debitAccounts.length * 6 +
+      3 +  // espacio
+      6 +  // titulo HABER
+      creditAccounts.length * 6 +
+      10 + // linea + espacio
+      explanationLinesCount * 4 +
+      12;  // espacio final
+
+    // Si el bloque completo no cabe en lo que queda de pagina, saltar de pagina ANTES de empezar
+    if (y + blockHeight > 280) {
+      doc.addPage();
+      y = 20;
+    }
 
     // Encabezado del bloque mensual
     doc.setFillColor(23, 27, 38);
@@ -46,9 +67,6 @@ export function generateRegionalDiarioPdf(companyName: string, exerciseYear: str
     doc.text(block.month + " " + block.year, 20, y + 7);
     doc.setTextColor(0);
     y += 15;
-
-    const debitAccounts = block.accounts.filter((a) => a.debit > 0);
-    const creditAccounts = block.accounts.filter((a) => a.credit > 0);
 
     // Encabezados de columna
     doc.setFontSize(8);
@@ -73,7 +91,6 @@ export function generateRegionalDiarioPdf(companyName: string, exerciseYear: str
     y += 6;
     doc.setFont("helvetica", "normal");
     debitAccounts.forEach((a) => {
-      if (y > 270) { doc.addPage(); y = 20; }
       doc.text(a.code, 20, y);
       doc.text(a.name, 40, y, { maxWidth: pageWidth - 105 });
       doc.text(String(a.folio ?? "-"), pageWidth - 65, y, { align: "center" });
@@ -92,7 +109,6 @@ export function generateRegionalDiarioPdf(companyName: string, exerciseYear: str
     y += 6;
     doc.setFont("helvetica", "normal");
     creditAccounts.forEach((a) => {
-      if (y > 270) { doc.addPage(); y = 20; }
       doc.text(a.code, 20, y);
       doc.text("     " + a.name, 40, y, { maxWidth: pageWidth - 105 });
       doc.text(String(a.folio ?? "-"), pageWidth - 65, y, { align: "center" });
@@ -105,7 +121,7 @@ export function generateRegionalDiarioPdf(companyName: string, exerciseYear: str
     doc.line(15, y, pageWidth - 15, y);
     y += 6;
 
-    // Explicación
+    // Explicacion
     doc.setFontSize(8);
     doc.setFont("helvetica", "italic");
     doc.setTextColor(120);
