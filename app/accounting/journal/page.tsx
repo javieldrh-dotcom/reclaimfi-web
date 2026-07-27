@@ -294,7 +294,7 @@ export default function JournalPage() {
               </div>
               {(e.journal_lines ?? []).map((l: any, idx: number) => (
                 <div key={idx} style={{ display: "flex", justifyContent: "space-between", fontSize: 20, color: "#B0B8C8", marginTop: 6, paddingLeft: 12 }}>
-                  <span>{presentationMode ? l.chart_of_accounts?.account_name : l.chart_of_accounts?.account_code + " - " + l.chart_of_accounts?.account_name}</span>
+                  <span>{presentationMode ? l.chart_of_accounts?.account_name : "Fol." + (l.chart_of_accounts?.mayor_folio ?? "-") + " · " + l.chart_of_accounts?.account_code + " - " + l.chart_of_accounts?.account_name}</span>
                   <span style={theme.numberStyle}>{l.debit > 0 ? "Debe: " + l.debit.toLocaleString() : "Haber: " + l.credit.toLocaleString()}</span>
                 </div>
               ))}
