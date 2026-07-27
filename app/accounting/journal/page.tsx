@@ -24,6 +24,7 @@ export default function JournalPage() {
   const [availableYears, setAvailableYears] = useState<string[]>([]);
   const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
   const [presentationMode, setPresentationMode] = useState(false);
+  const [accountingConvention, setAccountingConvention] = useState("REGIONAL_VE");
 
   async function loadAvailableYears(cid: string) {
     const { data } = await supabase.from("journal_entries").select("entry_date").eq("company_id", cid).order("entry_date", { ascending: true });
@@ -78,7 +79,8 @@ export default function JournalPage() {
       const cid = uc?.company_id ?? null;
       setCompanyId(cid);
       if (cid) {
-        const { data: companyData } = await supabase.from("companies").select("name, functional_currency").eq("id", cid).single();
+        const { data: companyData } = await supabase.from("companies").select("name, functional_currency, accounting_convention").eq("id", cid).single();
+        setAccountingConvention(companyData?.accounting_convention ?? "REGIONAL_VE");
         setCompanyName(companyData?.name ?? "");
         setCurrencyDoc(companyData?.functional_currency ?? "USD");
         const { data: acc } = await supabase.from("chart_of_accounts").select("id, account_code, account_name").eq("company_id", cid).order("account_code");
@@ -95,6 +97,13 @@ export default function JournalPage() {
   async function changeYear(year: string) {
     setSelectedYear(year);
     if (companyId) await loadEntries(companyId, year);
+  }
+
+  async function changeConvention(convention: string) {
+    setAccountingConvention(convention);
+    if (companyId) {
+      await supabase.from("companies").update({ accounting_convention: convention }).eq("id", companyId);
+    }
   }
 
   function updateLine(i: number, f: keyof Line, v: string) { const u = [...lines]; u[i][f] = v; setLines(u); }
@@ -259,6 +268,20 @@ export default function JournalPage() {
           Todos los Ejercicios
         </div>
       </div>
+
+      <div style={{ marginTop: 16, ...theme.cardStyle, maxWidth: 500 }}>
+        <p style={{ fontSize: 14, color: theme.accent, fontWeight: 700, marginBottom: 8 }}>Convencion Contable del Diario</p>
+        <div style={{ display: "flex", gap: 8 }}>
+          <div onClick={() => changeConvention("REGIONAL_VE")} style={{ padding: "8px 16px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 700, background: accountingConvention === "REGIONAL_VE" ? theme.accent : "transparent", color: accountingConvention === "REGIONAL_VE" ? "#0B0E14" : "#8B93A7", border: accountingConvention === "REGIONAL_VE" ? "none" : "1px solid #1F2937" }}>
+            Regional (Venezuela)
+          </div>
+          <div onClick={() => changeConvention("INTERNATIONAL")} style={{ padding: "8px 16px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 700, background: accountingConvention === "INTERNATIONAL" ? theme.accent : "transparent", color: accountingConvention === "INTERNATIONAL" ? "#0B0E14" : "#8B93A7", border: accountingConvention === "INTERNATIONAL" ? "none" : "1px solid #1F2937" }}>
+            Internacional (IFRS)
+          </div>
+        </div>
+        <p style={{ fontSize: 12, color: "#8B93A7", marginTop: 8 }}>{accountingConvention === "REGIONAL_VE" ? "Permite asientos resumen mensuales (Art. 34 C.Com), libro legal en Bolivares." : "Registro transaccion por transaccion con fecha exacta, formato tabular estandar."}</p>
+      </div>
+
       {entries.length > 0 && (
         <div style={{ marginTop: 20 }}>
           <h2 style={{ fontSize: 26, color: theme.accent, fontFamily: theme.titleStyle.fontFamily, fontWeight: 700 }}>
