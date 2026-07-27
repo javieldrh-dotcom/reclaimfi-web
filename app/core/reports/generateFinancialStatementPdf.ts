@@ -6,6 +6,7 @@ interface LineItem {
   amount: number;
   debitAmount?: number;
   creditAmount?: number;
+  folio?: number | string;
 }
 
 interface StatementSection {
@@ -65,7 +66,8 @@ export function generateFinancialStatementPdf(
     if (hasTwoColumns) {
       doc.setFontSize(10);
       doc.setFont("helvetica", "bold");
-      doc.text("Cuenta", 15, y);
+      doc.text("Fol.", 15, y);
+      doc.text("Cuenta", 30, y);
       doc.text("Debe", pageWidth - 60, y, { align: "right" });
       doc.text("Haber", pageWidth - 20, y, { align: "right" });
       y += 5;
@@ -81,8 +83,14 @@ export function generateFinancialStatementPdf(
       const label = item.code && !hideCodes ? item.code + " - " + item.name : item.name;
 
       if (hasTwoColumns) {
-        doc.text(label, 15, y, { maxWidth: pageWidth - 90 });
+        if (item.folio !== undefined) {
+          doc.setFontSize(8);
+          doc.text(String(item.folio), 15, y);
+          doc.setFontSize(12);
+        }
+        doc.text(label, 30, y, { maxWidth: pageWidth - 105 });
         doc.text(item.debitAmount ? item.debitAmount.toLocaleString() : "-", pageWidth - 60, y, { align: "right" });
+        doc.text(item.creditAmount ? item.creditAmount.toLocaleString() : "-", pageWidth - 20, y, { align: "right" });
         doc.text(item.creditAmount ? item.creditAmount.toLocaleString() : "-", pageWidth - 20, y, { align: "right" });
       } else {
         doc.text(label, 15, y, { maxWidth: pageWidth - 80 });
