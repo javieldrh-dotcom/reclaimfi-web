@@ -16,6 +16,8 @@ export default function FixedAssetsPage() {
   const [offsetAccountId, setOffsetAccountId] = useState("");
   const [assetName, setAssetName] = useState("");
   const [acquisitionDate, setAcquisitionDate] = useState("");
+  const [acquisitionCurrency, setAcquisitionCurrency] = useState("USD");
+  const [acquisitionExchangeRate, setAcquisitionExchangeRate] = useState("1");
   const [acquisitionCost, setAcquisitionCost] = useState("");
   const [usefulLife, setUsefulLife] = useState("5");
   const [salvageValue, setSalvageValue] = useState("0");
@@ -78,7 +80,8 @@ export default function FixedAssetsPage() {
     if (!companyId || !assetName || !acquisitionDate || !acquisitionCost) { setMessage("Completa todos los campos."); return; }
     if (!assetAccountId || !offsetAccountId) { setMessage("Selecciona la Cuenta de Activo Fijo y la Contrapartida."); return; }
 
-    const cost = parseFloat(acquisitionCost);
+    const fxRate = parseFloat(acquisitionExchangeRate) || 1;
+    const cost = parseFloat(acquisitionCost) * fxRate;
 
     const { data: entry, error: entryError } = await supabase.from("journal_entries").insert([{
       company_id: companyId,
@@ -168,6 +171,14 @@ export default function FixedAssetsPage() {
       <div style={{ maxWidth: 600 }}>
         <input value={assetName} onChange={(e) => setAssetName(e.target.value)} style={inputStyle} placeholder="Nombre del activo" />
         <input type="date" value={acquisitionDate} onChange={(e) => setAcquisitionDate(e.target.value)} style={{ ...inputStyle, marginTop: 10 }} />
+        <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
+          <select value={acquisitionCurrency} onChange={(e) => setAcquisitionCurrency(e.target.value)} style={inputStyle}>
+            <option value="USD">USD</option>
+            <option value="EUR">EUR</option>
+            <option value="VES">VES (Bolivares)</option>
+          </select>
+          <input type="number" step="0.0001" value={acquisitionExchangeRate} onChange={(e) => setAcquisitionExchangeRate(e.target.value)} style={inputStyle} placeholder="Tasa de Cambio" />
+        </div>
         <input type="number" value={acquisitionCost} onChange={(e) => setAcquisitionCost(e.target.value)} style={{ ...inputStyle, marginTop: 10 }} placeholder="Costo de adquisicion" />
         <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
           <input type="number" value={usefulLife} onChange={(e) => setUsefulLife(e.target.value)} style={inputStyle} placeholder="Vida util (años)" />
