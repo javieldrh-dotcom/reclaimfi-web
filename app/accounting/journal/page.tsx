@@ -5,12 +5,8 @@ import { getVerticalTheme } from "@/app/core/design/tokens";
 import VerticalPageLayout from "@/app/components/VerticalPageLayout";
 import { generateFinancialStatementPdf } from "@/app/core/reports/generateFinancialStatementPdf";
 import AccountSearchSelect from "@/app/components/AccountSearchSelect";
-import { generateRegionalDiarioPdf } from "@/app/core/reports/generateRegionalDiarioPdf";
 interface Account { id: string; account_code: string; account_name: string; }
 interface Line { account_id: string; debit: string; credit: string; }
-
-const MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-
 export default function JournalPage() {
   const theme = getVerticalTheme("accounting");
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -29,8 +25,6 @@ export default function JournalPage() {
   const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
   const [presentationMode, setPresentationMode] = useState(false);
   const [accountingConvention, setAccountingConvention] = useState("REGIONAL_VE");
-  const [activePeriodYear, setActivePeriodYear] = useState(new Date().getFullYear().toString());
-  const [activePeriodMonth, setActivePeriodMonth] = useState((new Date().getMonth() + 1).toString().padStart(2, "0"));
 
   async function loadAvailableYears(cid: string) {
     const { data } = await supabase.from("journal_entries").select("entry_date").eq("company_id", cid).order("entry_date", { ascending: true });
@@ -64,7 +58,7 @@ export default function JournalPage() {
     const accountIds = Array.from(new Set((linesData ?? []).map((l: any) => l.account_id)));
     const { data: accountsData } = await supabase
       .from("chart_of_accounts")
-      .select("id, account_code, account_name, mayor_folio")
+      .select("id, account_code, account_name")
       .in("id", accountIds);
     const accountsById: Record<string, any> = {};
     (accountsData ?? []).forEach((a: any) => { accountsById[a.id] = a; });
@@ -104,12 +98,14 @@ export default function JournalPage() {
     setSelectedYear(year);
     if (companyId) await loadEntries(companyId, year);
   }
+
   async function changeConvention(convention: string) {
     setAccountingConvention(convention);
     if (companyId) {
       await supabase.from("companies").update({ accounting_convention: convention }).eq("id", companyId);
     }
   }
+
   function updateLine(i: number, f: keyof Line, v: string) { const u = [...lines]; u[i][f] = v; setLines(u); }
   function addLine() { setLines([...lines, { account_id: "", debit: "", credit: "" }]); }
   function totalDebit() { return lines.reduce((s, l) => s + (parseFloat(l.debit) || 0), 0); }
@@ -151,8 +147,7 @@ export default function JournalPage() {
     }
     const { data: lastEntry } = await supabase.from("journal_entries").select("entry_number").eq("company_id", companyId).order("entry_number", { ascending: false }).limit(1).maybeSingle();
     const nextNumber = (lastEntry?.entry_number || 0) + 1;
-    const entryDateToUse = accountingConvention === "REGIONAL_VE" ? activePeriodYear + "-" + activePeriodMonth + "-01" : new Date().toISOString().slice(0,10);
-    const { data: entry, error: e1 } = await supabase.from("journal_entries").insert([{ company_id: companyId, description, entry_date: entryDateToUse, currency, exchange_rate: rate, entry_number: nextNumber }]).select("id").single();
+    const { data: entry, error: e1 } = await supabase.from("journal_entries").insert([{ company_id: companyId, description, entry_date: new Date().toISOString().slice(0,10),currency, exchange_rate: rate, entry_number: nextNumber }]).select("id").single();
     if (e1 || !entry) { setMessage("Error: " + e1?.message); return; }
     const rows = lines.filter(l => l.account_id).map(l => ({ journal_entry_id: entry.id, account_id: l.account_id, debit: (parseFloat(l.debit) || 0) * rate, credit: (parseFloat(l.credit) || 0) * rate }));
     const { error: e2 } = await supabase.from("journal_lines").insert(rows);
@@ -169,67 +164,7 @@ export default function JournalPage() {
     await supabase.from("journal_entries").update({ status: "VOIDED", voided_at: new Date().toISOString(), void_reason: reason }).eq("id", entryId);
     if (companyId) await loadEntries(companyId, selectedYear);
   }
-
-  function getMonthlyConsolidated() {
-    const activeEntries = entries.filter((e) => e.status === "ACTIVE");
-    const byMonth: Record<string, any> = {};
-    activeEntries.forEach((e: any) => {
-      const monthKey = e.entry_date.slice(0, 7);
-      if (!byMonth[monthKey]) byMonth[monthKey] = { month: monthKey, accounts: {} };
-      (e.journal_lines ?? []).forEach((l: any) => {
-        const accId = l.account_id;
-        if (!byMonth[monthKey].accounts[accId]) {
-          byMonth[monthKey].accounts[accId] = {
-            code: l.chart_of_accounts?.account_code,
-            name: l.chart_of_accounts?.account_name,
-            folio: l.chart_of_accounts?.mayor_folio,
-            debit: 0,
-            credit: 0,
-          };
-        }
-        byMonth[monthKey].accounts[accId].debit += l.debit || 0;
-        byMonth[monthKey].accounts[accId].credit += l.credit || 0;
-      });
-    });
-    Object.values(byMonth).forEach((m: any) => {
-      Object.values(m.accounts).forEach((a: any) => {
-        const net = a.debit - a.credit;
-        a.debit = net > 0 ? net : 0;
-        a.credit = net < 0 ? -net : 0;
-      });
-    });
-    return Object.values(byMonth).sort((a: any, b: any) => b.month.localeCompare(a.month));
-  }
-
-  function monthLabel(monthKey: string) {
-    const [y, m] = monthKey.split("-");
-    return { year: y, month: MESES[parseInt(m, 10) - 1] };
-  }
-
   function downloadPdf() {
-    if (accountingConvention === "REGIONAL_VE") {
-      const consolidated = getMonthlyConsolidated();
-      const blocks = consolidated.map((m: any) => {
-        const lbl = monthLabel(m.month);
-        const accountsArr = Object.values(m.accounts).map((a: any) => ({
-          code: presentationMode ? "" : a.code,
-          name: a.name,
-          folio: a.folio ?? "-",
-          debit: a.debit,
-          credit: a.credit,
-        }));
-        return {
-          year: lbl.year,
-          month: lbl.month,
-          accounts: accountsArr,
-          explanation: "Resumen de operaciones registradas durante " + lbl.month + " " + lbl.year + ", conforme al Art. 34 del Codigo de Comercio.",
-        };
-      });
-      const doc = generateRegionalDiarioPdf(companyName, selectedYear, blocks);
-      doc.save("libro-diario-" + selectedYear + ".pdf");
-      return;
-    }
-
     const activeEntries = entries.filter((e) => e.status === "ACTIVE");
     const sections = activeEntries.map((e: any) => {
       const entryItems = (e.journal_lines ?? []).map((l: any) => ({
@@ -251,6 +186,7 @@ export default function JournalPage() {
       };
     });
     const totalD = activeEntries.flatMap((e: any) => e.journal_lines ?? []).reduce((s: number, l: any) => s + (l.debit || 0), 0);
+    const totalC = activeEntries.flatMap((e: any) => e.journal_lines ?? []).reduce((s: number, l: any) => s + (l.credit || 0), 0);
     const doc = generateFinancialStatementPdf(
       "LIBRO DIARIO - EJERCICIO " + selectedYear,
       companyName,
@@ -261,7 +197,6 @@ export default function JournalPage() {
     );
     doc.save("libro-diario-" + selectedYear + ".pdf");
   }
-
   const inputStyle = theme.inputStyle;
   return (
     <VerticalPageLayout
@@ -290,17 +225,7 @@ export default function JournalPage() {
             </div>
           )}
           <div style={{ display: "flex", gap: 8 }}>
-            {accountingConvention === "REGIONAL_VE" && (
-            <>
-              <select value={activePeriodYear} onChange={(e) => setActivePeriodYear(e.target.value)} style={inputStyle}>
-                {[2024, 2025, 2026, 2027].map((y) => <option key={y} value={y}>{y}</option>)}
-              </select>
-              <select value={activePeriodMonth} onChange={(e) => setActivePeriodMonth(e.target.value)} style={inputStyle}>
-                {MESES.map((m, idx) => <option key={m} value={(idx + 1).toString().padStart(2, "0")}>{m}</option>)}
-              </select>
-            </>
-          )}
-          <select value={currency} onChange={(e) => setCurrency(e.target.value)} style={inputStyle}>
+            <select value={currency} onChange={(e) => setCurrency(e.target.value)} style={inputStyle}>
               <option value="USD">USD</option>
               <option value="EUR">EUR</option>
               <option value="VES">VES (Bolivares)</option>
@@ -343,66 +268,24 @@ export default function JournalPage() {
           Todos los Ejercicios
         </div>
       </div>
+
       <div style={{ marginTop: 16, ...theme.cardStyle, maxWidth: 500 }}>
         <p style={{ fontSize: 14, color: theme.accent, fontWeight: 700, marginBottom: 8 }}>Convencion Contable del Diario</p>
         <div style={{ display: "flex", gap: 8 }}>
           <div onClick={() => changeConvention("REGIONAL_VE")} style={{ padding: "8px 16px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 700, background: accountingConvention === "REGIONAL_VE" ? theme.accent : "transparent", color: accountingConvention === "REGIONAL_VE" ? "#0B0E14" : "#8B93A7", border: accountingConvention === "REGIONAL_VE" ? "none" : "1px solid #1F2937" }}>
             Regional (Venezuela)
           </div>
-          <div onClick={() => changeConvention("INTERNATIONAL")} style={{ padding: "8px 16px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 700, background:accountingConvention === "INTERNATIONAL" ? theme.accent : "transparent", color: accountingConvention === "INTERNATIONAL" ? "#0B0E14" : "#8B93A7", border: accountingConvention === "INTERNATIONAL" ? "none" : "1px solid #1F2937" }}>
+          <div onClick={() => changeConvention("INTERNATIONAL")} style={{ padding: "8px 16px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 700, background: accountingConvention === "INTERNATIONAL" ? theme.accent : "transparent", color: accountingConvention === "INTERNATIONAL" ? "#0B0E14" : "#8B93A7", border: accountingConvention === "INTERNATIONAL" ? "none" : "1px solid #1F2937" }}>
             Internacional (IFRS)
           </div>
         </div>
-        <p style={{ fontSize: 12, color: "#8B93A7", marginTop: 8 }}>{accountingConvention === "REGIONAL_VE" ? "Asientos resumen mensuales (Art. 34 C.Com), formato tabular con folio del Mayor." : "Registro transaccion por transaccion con fecha exacta, formato tabular estandar."}</p>
+        <p style={{ fontSize: 12, color: "#8B93A7", marginTop: 8 }}>{accountingConvention === "REGIONAL_VE" ? "Permite asientos resumen mensuales (Art. 34 C.Com), libro legal en Bolivares." : "Registro transaccion por transaccion con fecha exacta, formato tabular estandar."}</p>
       </div>
-      {entries.length > 0 && accountingConvention === "REGIONAL_VE" && (
-        <div style={{ marginTop: 20, overflowX: "auto" }}>
-          <h2 style={{ fontSize: 26, color: theme.accent, fontFamily: theme.titleStyle.fontFamily, fontWeight: 700, marginBottom: 12 }}>
-            Asientos Resumen Mensuales - Ejercicio {selectedYear}
-          </h2>
-          <table style={{ borderCollapse: "collapse", minWidth: 900, fontSize: 15 }}>
-            <thead>
-              <tr style={{ color: theme.accent, fontWeight: 700 }}>
-                <th style={{ border: "1px solid #1F2937", padding: 8, textAlign: "left" }}>FECHA</th>
-                <th style={{ border: "1px solid #1F2937", padding: 8, textAlign: "left" }}>CODIGO</th>
-                <th style={{ border: "1px solid #1F2937", padding: 8, textAlign: "left" }}>DESCRIPCION</th>
-                <th style={{ border: "1px solid #1F2937", padding: 8, textAlign: "center" }}>REF.</th>
-                <th style={{ border: "1px solid #1F2937", padding: 8, textAlign: "right" }}>DEBE</th>
-                <th style={{ border: "1px solid #1F2937", padding: 8, textAlign: "right" }}>HABER</th>
-              </tr>
-            </thead>
-            <tbody>
-              {getMonthlyConsolidated().map((m: any) => {
-                const lbl = monthLabel(m.month);
-                const debitAccounts = Object.values(m.accounts).filter((a: any) => a.debit > 0);
-                const creditAccounts = Object.values(m.accounts).filter((a: any) => a.credit > 0);
-                const rows = [...debitAccounts, ...creditAccounts];
-                return (
-                  <>
-                    {rows.map((a: any, idx: number) => (
-                      <tr key={m.month + "-" + idx}>
-                        <td style={{ border: "1px solid #1F2937", padding: 8 }}>{idx === 0 ? lbl.year : ""}{idx === 1 ? lbl.month : ""}</td>
-                        <td style={{ border: "1px solid #1F2937", padding: 8 }}>{presentationMode ? "" : a.code}</td>
-                        <td style={{ border: "1px solid #1F2937", padding: 8, paddingLeft: a.credit > 0 ? 24 : 8 }}>{a.name}</td>
-                        <td style={{ border: "1px solid #1F2937", padding: 8, textAlign: "center" }}>{a.folio ?? "-"}</td>
-                        <td style={{ border: "1px solid #1F2937", padding: 8, textAlign: "right", ...theme.numberStyle }}>{a.debit > 0 ? a.debit.toLocaleString(undefined, { maximumFractionDigits: 2 }) : ""}</td>
-                        <td style={{ border: "1px solid #1F2937", padding: 8, textAlign: "right", ...theme.numberStyle }}>{a.credit > 0 ? a.credit.toLocaleString(undefined, { maximumFractionDigits: 2 }) : ""}</td>
-                      </tr>
-                    ))}
-                    <tr>
-                      <td colSpan={6} style={{ border: "1px solid #1F2937", padding: 8, fontStyle: "italic", color: "#8B93A7", fontSize: 13 }}>(Asiento Resumen del Mes - Consolida las operaciones del periodo)</td>
-                    </tr>
-                  </>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+
       {entries.length > 0 && (
-        <div style={{ marginTop: 32 }}>
-          <h2 style={{ fontSize: 22, color: theme.accent, fontFamily: theme.titleStyle.fontFamily, fontWeight: 700 }}>
-            {accountingConvention === "REGIONAL_VE" ? "Detalle Transaccional (soporte de los resumenes)" : (selectedYear === "TODOS" ? "Todos los Ejercicios" : "Ejercicio Fiscal " + selectedYear)}
+        <div style={{ marginTop: 20 }}>
+          <h2 style={{ fontSize: 26, color: theme.accent, fontFamily: theme.titleStyle.fontFamily, fontWeight: 700 }}>
+            {selectedYear === "TODOS" ? "Todos los Ejercicios" : "Ejercicio Fiscal " + selectedYear}
           </h2>
           {entries.map((e) => (
             <div key={e.id} style={{ ...theme.cardStyle, marginTop: 12, opacity: e.status === "VOIDED" ? 0.5 : 1 }}>
