@@ -15,6 +15,7 @@ export default function PurchaseBookPage() {
   const [apAccountId, setApAccountId] = useState("");
   const [expenseAccountId, setExpenseAccountId] = useState("");
   const [vatCreditAccountId, setVatCreditAccountId] = useState("");
+  const [vatWithholdingAccountId, setVatWithholdingAccountId] = useState("");
 
   const [entryDate, setEntryDate] = useState(new Date().toISOString().slice(0, 10));
   const [invoiceCurrency, setInvoiceCurrency] = useState("USD");
@@ -126,12 +127,15 @@ export default function PurchaseBookPage() {
     }]).select("id").single();
 
     if (entryError || !entry) { setMessage("Error al crear asiento: " + entryError?.message); return; }
-
     const fxRate = parseFloat(invoiceExchangeRate) || 1;
-    const lines = [{ journal_entry_id: entry.id, account_id: expenseAccountId, debit: (base + nonTaxable) * fxRate, credit: 0 }];
+    const lines = [{ journal_entry_id: entry.id, account_id: expenseAccountId, debit: (base + nonTaxable) / fxRate, credit: 0 }];
     if (credit > 0) {
-      lines.push({ journal_entry_id: entry.id, account_id: vatCreditAccountId, debit: credit * fxRate, credit: 0 });
+      lines.push({ journal_entry_id: entry.id, account_id: vatCreditAccountId, debit: credit / fxRate, credit: 0 });
     }
+    if (withheld > 0) {
+      lines.push({ journal_entry_id: entry.id, account_id: vatWithholdingAccountId, debit: 0, credit: withheld / fxRate });
+    }
+    lines.push({ journal_entry_id: entry.id, account_id: apAccountId, debit: 0, credit: netPayable / fxRate });
     lines.push({ journal_entry_id: entry.id, account_id: apAccountId, debit: 0, credit: netPayable * fxRate });
     lines.push({ journal_entry_id: entry.id, account_id: apAccountId, debit: 0, credit: netPayable });
 
@@ -245,6 +249,10 @@ export default function PurchaseBookPage() {
         <select value={vatCreditAccountId} onChange={(e) => setVatCreditAccountId(e.target.value)} style={{ ...inputStyle, marginTop: 8 }}>
           <option value="">Cuenta de IVA Credito Fiscal</option>
           {accounts.filter(a => a.account_type === "ASSET").map((a) => <option key={a.id} value={a.id}>{a.account_code} - {a.account_name}</option>)}
+        </select>
+        <select value={vatWithholdingAccountId} onChange={(e) => setVatWithholdingAccountId(e.target.value)} style={{ ...inputStyle, marginTop: 8 }}>
+          <option value="">Cuenta de Retencion de IVA por Enterar (opcional, solo si hay retencion)</option>
+          {accounts.filter(a => a.account_type === "LIABILITY").map((a) => <option key={a.id} value={a.id}>{a.account_code} - {a.account_name}</option>)}
         </select>
 
         <button onClick={createEntry} style={{ ...theme.buttonStyle, marginTop: 16, fontSize: 18 }}>
