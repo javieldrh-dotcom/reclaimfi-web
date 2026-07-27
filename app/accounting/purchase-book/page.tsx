@@ -128,14 +128,14 @@ export default function PurchaseBookPage() {
 
     if (entryError || !entry) { setMessage("Error al crear asiento: " + entryError?.message); return; }
     const fxRate = parseFloat(invoiceExchangeRate) || 1;
-    const lines = [{ journal_entry_id: entry.id, account_id: expenseAccountId, debit: (base + nonTaxable) / fxRate, credit: 0 }];
+    const lines = [{ journal_entry_id: entry.id, account_id: expenseAccountId, debit: (base + nonTaxable) * fxRate, credit: 0 }];
     if (credit > 0) {
-      lines.push({ journal_entry_id: entry.id, account_id: vatCreditAccountId, debit: credit / fxRate, credit: 0 });
+      lines.push({ journal_entry_id: entry.id, account_id: vatCreditAccountId, debit: credit * fxRate, credit: 0 });
     }
     if (withheld > 0) {
-      lines.push({ journal_entry_id: entry.id, account_id: vatWithholdingAccountId, debit: 0, credit: withheld / fxRate });
+      lines.push({ journal_entry_id: entry.id, account_id: vatWithholdingAccountId, debit: 0, credit: withheld * fxRate });
     }
-    lines.push({ journal_entry_id: entry.id, account_id: apAccountId, debit: 0, credit: netPayable / fxRate });
+    lines.push({ journal_entry_id: entry.id, account_id: apAccountId, debit: 0, credit: netPayable * fxRate });
 
     const { error: linesError } = await supabase.from("journal_lines").insert(lines);
     if (linesError) { setMessage("Error al guardar asiento: " + linesError.message); return; }
