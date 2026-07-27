@@ -136,8 +136,6 @@ export default function PurchaseBookPage() {
       lines.push({ journal_entry_id: entry.id, account_id: vatWithholdingAccountId, debit: 0, credit: withheld / fxRate });
     }
     lines.push({ journal_entry_id: entry.id, account_id: apAccountId, debit: 0, credit: netPayable / fxRate });
-    lines.push({ journal_entry_id: entry.id, account_id: apAccountId, debit: 0, credit: netPayable * fxRate });
-    lines.push({ journal_entry_id: entry.id, account_id: apAccountId, debit: 0, credit: netPayable });
 
     const { error: linesError } = await supabase.from("journal_lines").insert(lines);
     if (linesError) { setMessage("Error al guardar asiento: " + linesError.message); return; }
