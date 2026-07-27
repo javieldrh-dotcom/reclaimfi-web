@@ -1,4 +1,4 @@
-export type RiskLevel = "LOW" | "MEDIUM" | "HIGH";
+﻿export type RiskLevel = "LOW" | "MEDIUM" | "HIGH";
 
 interface RiskInput {
   fileName: string;
@@ -46,19 +46,19 @@ function scoreAmount(amount?: number): { points: number; reason?: string } {
   if (amount >= 1_000_000) {
     return {
       points: 40,
-      reason: `Monto declarado igual o mayor a $1,000,000 (${amount.toLocaleString()})`,
+      reason: `Monto declarado igual o mayor a $1,000,000 (${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`,
     };
   }
   if (amount >= 100_000) {
     return {
       points: 20,
-      reason: `Monto declarado igual o mayor a $100,000 (${amount.toLocaleString()})`,
+      reason: `Monto declarado igual o mayor a $100,000 (${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`,
     };
   }
   if (amount >= 10_000) {
     return {
       points: 10,
-      reason: `Monto declarado igual o mayor a $10,000 (${amount.toLocaleString()})`,
+      reason: `Monto declarado igual o mayor a $10,000 (${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`,
     };
   }
   return { points: 0 };
@@ -90,7 +90,7 @@ export function calculateRisk({
 
   const classWeight = CLASSIFICATION_WEIGHTS[classification] ?? 5;
   score += classWeight;
-  reasons.push(`Clasificación "${classification}" suma ${classWeight} puntos base`);
+  reasons.push(`ClasificaciÃ³n "${classification}" suma ${classWeight} puntos base`);
 
   const amountResult = scoreAmount(amount);
   if (amountResult.points > 0) {

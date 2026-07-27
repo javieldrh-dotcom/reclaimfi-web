@@ -159,7 +159,7 @@ export function generateForensicReport(
       doc.text(asset.entity_type, 85, y, { maxWidth: 40 });
       const val = asset.estimated_value ?? 0;
       total += val;
-      doc.text("$" + val.toLocaleString(), 130, y);
+      doc.text("$" + val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }), 130, y);
       doc.text(asset.risk_level ?? "N/D", 175, y);
       y += 6;
     });
@@ -169,7 +169,7 @@ export function generateForensicReport(
     doc.line(15, y, pageWidth - 15, y);
     y += 6;
     doc.setFont("helvetica", "bold");
-    doc.text("Total estimado: $" + total.toLocaleString(), 15, y);
+    doc.text("Total estimado: $" + total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }), 15, y);
     y += 10;
 
     doc.setFontSize(7);

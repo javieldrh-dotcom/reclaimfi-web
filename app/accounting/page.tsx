@@ -58,23 +58,23 @@ export default function AccountingDashboard() {
       <div style={{ marginTop: 30, ...rowStyle }}>
         <div style={{ ...cardStyle, minWidth: 200, flexShrink: 0 }}>
           <p style={{ fontSize: 13, color: "#8B93A7" }}>TOTAL ACTIVOS</p>
-          <p style={{ fontSize: 24, fontWeight: 900, marginTop: 6 }}>{totalAssets.toLocaleString()}</p>
+          <p style={{ fontSize: 24, fontWeight: 900, marginTop: 6 }}>{totalAssets.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
         </div>
         <div style={{ ...cardStyle, minWidth: 200, flexShrink: 0 }}>
           <p style={{ fontSize: 13, color: "#8B93A7" }}>TOTAL PASIVOS</p>
-          <p style={{ fontSize: 24, fontWeight: 900, marginTop: 6 }}>{totalLiabilities.toLocaleString()}</p>
+          <p style={{ fontSize: 24, fontWeight: 900, marginTop: 6 }}>{totalLiabilities.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
         </div>
         <div style={{ ...cardStyle, minWidth: 200, flexShrink: 0, borderColor: netResult >= 0 ? "#2DD4BF40" : "#F8717140" }}>
           <p style={{ fontSize: 13, color: "#8B93A7" }}>RESULTADO DEL PERIODO</p>
-          <p style={{ fontSize: 24, fontWeight: 900, marginTop: 6, color: netResult >= 0 ? "#4ade80" : "#f87171" }}>{netResult.toLocaleString()}</p>
+          <p style={{ fontSize: 24, fontWeight: 900, marginTop: 6, color: netResult >= 0 ? "#4ade80" : "#f87171" }}>{netResult.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
         </div>
         <div style={{ ...cardStyle, minWidth: 200, flexShrink: 0 }}>
           <p style={{ fontSize: 13, color: "#8B93A7" }}>POR COBRAR PENDIENTE</p>
-          <p style={{ fontSize: 24, fontWeight: 900, marginTop: 6, color: "#facc15" }}>{pendingAR.toLocaleString()}</p>
+          <p style={{ fontSize: 24, fontWeight: 900, marginTop: 6, color: "#facc15" }}>{pendingAR.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
         </div>
         <div style={{ ...cardStyle, minWidth: 200, flexShrink: 0 }}>
           <p style={{ fontSize: 13, color: "#8B93A7" }}>POR PAGAR PENDIENTE</p>
-          <p style={{ fontSize: 24, fontWeight: 900, marginTop: 6, color: "#facc15" }}>{pendingAP.toLocaleString()}</p>
+          <p style={{ fontSize: 24, fontWeight: 900, marginTop: 6, color: "#facc15" }}>{pendingAP.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
         </div>
       </div>
 

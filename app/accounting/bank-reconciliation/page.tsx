@@ -88,7 +88,7 @@ export default function BankReconciliationPage() {
                 {result.matches.map((m: any, idx: number) => (
                   <tr key={idx} style={{ borderBottom: "1px solid #1F2937" }}>
                     <td style={{ padding: 10, fontSize: 20 }}>{m.description}</td>
-                    <td style={{ padding: 10, fontSize: 20, ...theme.numberStyle }}>{m.amount?.toLocaleString()}</td>
+                    <td style={{ padding: 10, fontSize: 20, ...theme.numberStyle }}>{m.amount?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     <td style={{ padding: 10, fontSize: 20, color: statusColor[m.status] ?? "white", fontWeight: 700 }}>{statusLabel[m.status] ?? m.status}</td>
                   </tr>
                 ))}

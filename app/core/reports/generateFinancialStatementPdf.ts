@@ -89,12 +89,12 @@ export function generateFinancialStatementPdf(
           doc.setFontSize(12);
         }
         doc.text(label, 30, y, { maxWidth: pageWidth - 105 });
-        doc.text(item.debitAmount ? item.debitAmount.toLocaleString() : "-", pageWidth - 60, y, { align: "right" });
-        doc.text(item.creditAmount ? item.creditAmount.toLocaleString() : "-", pageWidth - 20, y, { align: "right" });
-        doc.text(item.creditAmount ? item.creditAmount.toLocaleString() : "-", pageWidth - 20, y, { align: "right" });
+        doc.text(item.debitAmount ? item.debitAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "-", pageWidth - 60, y, { align: "right" });
+        doc.text(item.creditAmount ? item.creditAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "-", pageWidth - 20, y, { align: "right" });
+        doc.text(item.creditAmount ? item.creditAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "-", pageWidth - 20, y, { align: "right" });
       } else {
         doc.text(label, 15, y, { maxWidth: pageWidth - 80 });
-        doc.text(item.amount.toLocaleString(), pageWidth - 20, y, { align: "right" });
+        doc.text(item.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }), pageWidth - 20, y, { align: "right" });
       }
       y += 6;
     });
@@ -106,11 +106,11 @@ export function generateFinancialStatementPdf(
 
     if (hasTwoColumns && section.totalDebit !== undefined) {
       doc.text(section.totalLabel, 15, y);
-      doc.text(section.totalDebit.toLocaleString(), pageWidth - 60, y, { align: "right" });
-      doc.text((section.totalCredit ?? 0).toLocaleString(), pageWidth - 20, y, { align: "right" });
+      doc.text(section.totalDebit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }), pageWidth - 60, y, { align: "right" });
+      doc.text((section.totalCredit ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }), pageWidth - 20, y, { align: "right" });
     } else {
       doc.text(section.totalLabel, 15, y);
-      doc.text(section.total.toLocaleString(), pageWidth - 20, y, { align: "right" });
+      doc.text(section.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }), pageWidth - 20, y, { align: "right" });
     }
     y += 12;
   });
@@ -123,7 +123,7 @@ export function generateFinancialStatementPdf(
   doc.line(15, y, pageWidth - 15, y);
   y += 8;
   doc.text(finalLabel, 15, y);
-  doc.text(finalValue.toLocaleString(), pageWidth - 20, y, { align: "right" });
+  doc.text(finalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }), pageWidth - 20, y, { align: "right" });
 
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {

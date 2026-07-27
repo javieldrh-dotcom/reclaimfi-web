@@ -95,7 +95,7 @@ export default function FinancialQualificationPage() {
             <div key={h.id} style={{ ...theme.cardStyle, marginTop: 12 }}>
               <p style={{ fontSize: 20, fontWeight: 700, color: "#4ade80" }}>${h.qualification_usd.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
               <p style={{ fontSize: 16, color: "#8B93A7", marginTop: 4 }}>
-                Patrimonio: {h.patrimonio_bs.toLocaleString()} Bs | Tasa: {h.tasa_bcv} | {new Date(h.calculated_at).toLocaleDateString()}
+                Patrimonio: {h.patrimonio_bs.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Bs | Tasa: {h.tasa_bcv} | {new Date(h.calculated_at).toLocaleDateString()}
               </p>
               {h.notes && <p style={{ fontSize: 16, marginTop: 6 }}>{h.notes}</p>}
             </div>

@@ -147,7 +147,7 @@ export default function WithholdingSummaryPage() {
           {salesWithheld.map((s, idx) => (
             <div key={idx} style={{ display: "flex", justifyContent: "space-between", padding: 8, fontSize: 18, borderBottom: "1px solid #1F2937" }}>
               <span>{s.entry_date} - {s.customer_name}</span>
-              <span style={theme.numberStyle}>{s.withheld_by_customer.toLocaleString()}</span>
+              <span style={theme.numberStyle}>{s.withheld_by_customer.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
           ))}
         </div>
@@ -164,7 +164,7 @@ export default function WithholdingSummaryPage() {
           {purchaseWithheld.map((p, idx) => (
             <div key={idx} style={{ display: "flex", justifyContent: "space-between", padding: 8, fontSize: 18, borderBottom: "1px solid #1F2937" }}>
               <span>{p.entry_date} - {p.vendor_name} (Comp. {p.withholding_receipt_number})</span>
-              <span style={theme.numberStyle}>{p.withheld_amount.toLocaleString()}</span>
+              <span style={theme.numberStyle}>{p.withheld_amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
           ))}
         </div>
@@ -175,7 +175,7 @@ export default function WithholdingSummaryPage() {
           <h2 style={{ fontSize: 26, color: theme.accent, fontWeight: 700 }}>Resumenes Guardados</h2>
           {history.map((h) => (
             <div key={h.id} style={{ ...theme.cardStyle, marginTop: 12, fontSize: 20 }}>
-              {h.period_start} a {h.period_end} - Neto: <span style={theme.numberStyle}>{h.net_withholding_position?.toLocaleString()}</span>
+              {h.period_start} a {h.period_end} - Neto: <span style={theme.numberStyle}>{h.net_withholding_position?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
           ))}
         </div>

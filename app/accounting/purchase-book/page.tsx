@@ -297,16 +297,16 @@ export default function PurchaseBookPage() {
                     <td style={{ padding: 6, textAlign: "center" }}>{e.document_type}</td>
                     <td style={{ padding: 6 }}>{e.invoice_number}</td>
                     <td style={{ padding: 6 }}>{e.control_number}</td>
-                    <td style={{ padding: 6, textAlign: "right", ...theme.numberStyle }}>{(e.import_taxable_base || 0).toLocaleString()}</td>
+                    <td style={{ padding: 6, textAlign: "right", ...theme.numberStyle }}>{(e.import_taxable_base || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     <td style={{ padding: 6, textAlign: "center" }}>{e.import_rate || 0}%</td>
-                    <td style={{ padding: 6, textAlign: "right", ...theme.numberStyle }}>{(e.import_tax || 0).toLocaleString()}</td>
-                    <td style={{ padding: 6, textAlign: "right", ...theme.numberStyle }}>{(e.non_taxable_amount || 0).toLocaleString()}</td>
-                    <td style={{ padding: 6, textAlign: "right", ...theme.numberStyle }}>{(e.taxable_base_general || 0).toLocaleString()}</td>
+                    <td style={{ padding: 6, textAlign: "right", ...theme.numberStyle }}>{(e.import_tax || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    <td style={{ padding: 6, textAlign: "right", ...theme.numberStyle }}>{(e.non_taxable_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    <td style={{ padding: 6, textAlign: "right", ...theme.numberStyle }}>{(e.taxable_base_general || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     <td style={{ padding: 6, textAlign: "center" }}>{e.rate_general || 0}%</td>
-                    <td style={{ padding: 6, textAlign: "right", ...theme.numberStyle }}>{(e.fiscal_credit || 0).toLocaleString()}</td>
-                    <td style={{ padding: 6, textAlign: "right", ...theme.numberStyle }}>{(e.total_document_amount || 0).toLocaleString()}</td>
+                    <td style={{ padding: 6, textAlign: "right", ...theme.numberStyle }}>{(e.fiscal_credit || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    <td style={{ padding: 6, textAlign: "right", ...theme.numberStyle }}>{(e.total_document_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     <td style={{ padding: 6 }}>{e.withholding_receipt_number || "-"}</td>
-                    <td style={{ padding: 6, textAlign: "right", ...theme.numberStyle }}>{(e.withheld_amount || 0).toLocaleString()}</td>
+                    <td style={{ padding: 6, textAlign: "right", ...theme.numberStyle }}>{(e.withheld_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     <td style={{ padding: 6 }}>
                       <button onClick={() => voidEntry(e.id, e.journal_entry_id)} style={{ background: "none", border: "1px solid #F87171", color: "#F87171", padding: "4px 10px", borderRadius: 6, fontSize: 12, cursor: "pointer" }}>
                         Anular
@@ -318,16 +318,16 @@ export default function PurchaseBookPage() {
               <tfoot>
                 <tr style={{ fontWeight: 700, borderTop: "2px solid " + theme.accent }}>
                   <td colSpan={7} style={{ padding: 8 }}>TOTALES</td>
-                  <td style={{ padding: 8, textAlign: "right", ...theme.numberStyle }}>{entries.reduce((s, e) => s + (e.import_taxable_base || 0), 0).toLocaleString()}</td>
+                  <td style={{ padding: 8, textAlign: "right", ...theme.numberStyle }}>{entries.reduce((s, e) => s + (e.import_taxable_base || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                   <td></td>
-                  <td style={{ padding: 8, textAlign: "right", ...theme.numberStyle }}>{entries.reduce((s, e) => s + (e.import_tax || 0), 0).toLocaleString()}</td>
-                  <td style={{ padding: 8, textAlign: "right", ...theme.numberStyle }}>{entries.reduce((s, e) => s + (e.non_taxable_amount || 0), 0).toLocaleString()}</td>
-                  <td style={{ padding: 8, textAlign: "right", ...theme.numberStyle }}>{entries.reduce((s, e) => s + (e.taxable_base_general || 0), 0).toLocaleString()}</td>
+                  <td style={{ padding: 8, textAlign: "right", ...theme.numberStyle }}>{entries.reduce((s, e) => s + (e.import_tax || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                  <td style={{ padding: 8, textAlign: "right", ...theme.numberStyle }}>{entries.reduce((s, e) => s + (e.non_taxable_amount || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                  <td style={{ padding: 8, textAlign: "right", ...theme.numberStyle }}>{entries.reduce((s, e) => s + (e.taxable_base_general || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                   <td></td>
-                  <td style={{ padding: 8, textAlign: "right", ...theme.numberStyle }}>{entries.reduce((s, e) => s + (e.fiscal_credit || 0), 0).toLocaleString()}</td>
-                  <td style={{ padding: 8, textAlign: "right", ...theme.numberStyle }}>{entries.reduce((s, e) => s + (e.total_document_amount || 0), 0).toLocaleString()}</td>
+                  <td style={{ padding: 8, textAlign: "right", ...theme.numberStyle }}>{entries.reduce((s, e) => s + (e.fiscal_credit || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                  <td style={{ padding: 8, textAlign: "right", ...theme.numberStyle }}>{entries.reduce((s, e) => s + (e.total_document_amount || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                   <td></td>
-                  <td style={{ padding: 8, textAlign: "right", ...theme.numberStyle }}>{entries.reduce((s, e) => s + (e.withheld_amount || 0), 0).toLocaleString()}</td>
+                  <td style={{ padding: 8, textAlign: "right", ...theme.numberStyle }}>{entries.reduce((s, e) => s + (e.withheld_amount || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                 </tr>
               </tfoot>
             </table>
@@ -335,10 +335,10 @@ export default function PurchaseBookPage() {
 
           <div style={{ ...theme.cardStyle, marginTop: 24, maxWidth: 500 }}>
             <h3 style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginBottom: 12 }}>RESUMEN LIBRO DE COMPRAS</h3>
-            <div style={{ display: "flex", justifyContent: "space-between", padding: 6, fontSize: 15 }}><span>Compras no gravadas o sin derecho a C.F.</span><span style={theme.numberStyle}>{entries.reduce((s, e) => s + (e.non_taxable_amount || 0), 0).toLocaleString()}</span></div>
-            <div style={{ display: "flex", justifyContent: "space-between", padding: 6, fontSize: 15 }}><span>Importaciones gravadas alicuota general</span><span style={theme.numberStyle}>{entries.reduce((s, e) => s + (e.import_taxable_base || 0), 0).toLocaleString()}</span></div>
-            <div style={{ display: "flex", justifyContent: "space-between", padding: 6, fontSize: 15 }}><span>Compras internas gravadas alicuota general</span><span style={theme.numberStyle}>{entries.reduce((s, e) => s + (e.taxable_base_general || 0), 0).toLocaleString()}</span></div>
-            <div style={{ display: "flex", justifyContent: "space-between", padding: 10, marginTop: 10, borderTop: "1px solid #1F2937", fontWeight: 700, fontSize: 17 }}><span>Total Creditos Fiscales</span><span style={theme.numberStyle}>{(entries.reduce((s, e) => s + (e.fiscal_credit || 0), 0) + entries.reduce((s, e) => s + (e.import_tax || 0), 0)).toLocaleString()}</span></div>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: 6, fontSize: 15 }}><span>Compras no gravadas o sin derecho a C.F.</span><span style={theme.numberStyle}>{entries.reduce((s, e) => s + (e.non_taxable_amount || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: 6, fontSize: 15 }}><span>Importaciones gravadas alicuota general</span><span style={theme.numberStyle}>{entries.reduce((s, e) => s + (e.import_taxable_base || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: 6, fontSize: 15 }}><span>Compras internas gravadas alicuota general</span><span style={theme.numberStyle}>{entries.reduce((s, e) => s + (e.taxable_base_general || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: 10, marginTop: 10, borderTop: "1px solid #1F2937", fontWeight: 700, fontSize: 17 }}><span>Total Creditos Fiscales</span><span style={theme.numberStyle}>{(entries.reduce((s, e) => s + (e.fiscal_credit || 0), 0) + entries.reduce((s, e) => s + (e.import_tax || 0), 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
           </div>
         </div>
       )}

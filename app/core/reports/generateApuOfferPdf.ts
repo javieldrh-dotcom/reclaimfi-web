@@ -72,8 +72,8 @@ export function generateApuOfferPdf(
         materialsCost += lineTotal;
         doc.text(m.description, 15, y, { maxWidth: pageWidth - 100 });
         doc.text(m.quantity.toString(), pageWidth - 90, y, { align: "right" });
-        doc.text(m.unitCost.toLocaleString(), pageWidth - 55, y, { align: "right" });
-        doc.text(lineTotal.toLocaleString(), pageWidth - 20, y, { align: "right" });
+        doc.text(m.unitCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }), pageWidth - 55, y, { align: "right" });
+        doc.text(lineTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }), pageWidth - 20, y, { align: "right" });
         y += 5;
       });
       y += 2;
@@ -95,8 +95,8 @@ export function generateApuOfferPdf(
         equipmentCost += lineTotal;
         doc.text(eq.description, 15, y, { maxWidth: pageWidth - 100 });
         doc.text(eq.quantity.toString(), pageWidth - 90, y, { align: "right" });
-        doc.text(eq.unitCost.toLocaleString(), pageWidth - 55, y, { align: "right" });
-        doc.text(lineTotal.toLocaleString(), pageWidth - 20, y, { align: "right" });
+        doc.text(eq.unitCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }), pageWidth - 55, y, { align: "right" });
+        doc.text(lineTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }), pageWidth - 20, y, { align: "right" });
         y += 5;
       });
       y += 2;
@@ -119,8 +119,8 @@ export function generateApuOfferPdf(
         const label = l.positionName + (l.fsclFactor !== 1 ? " (FSCL x" + l.fsclFactor.toFixed(2) + ")" : "");
         doc.text(label, 15, y, { maxWidth: pageWidth - 110 });
         doc.text(l.days.toString(), pageWidth - 90, y, { align: "right" });
-        doc.text(l.dailyRate.toLocaleString(), pageWidth - 55, y, { align: "right" });
-        doc.text(lineTotal.toLocaleString(), pageWidth - 20, y, { align: "right" });
+        doc.text(l.dailyRate.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }), pageWidth - 55, y, { align: "right" });
+        doc.text(lineTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }), pageWidth - 20, y, { align: "right" });
         y += 5;
       });
       y += 2;
@@ -138,15 +138,15 @@ export function generateApuOfferPdf(
     y += 5;
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
-    doc.text("Costo Directo: " + directCost.toLocaleString(), 15, y);
+    doc.text("Costo Directo: " + directCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }), 15, y);
     y += 5;
-    doc.text("+ Administracion (" + p.adminPercentage + "%): " + admin.toLocaleString(), 15, y);
+    doc.text("+ Administracion (" + p.adminPercentage + "%): " + admin.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }), 15, y);
     y += 5;
-    doc.text("+ Utilidad (" + p.profitPercentage + "%): " + profit.toLocaleString(), 15, y);
+    doc.text("+ Utilidad (" + p.profitPercentage + "%): " + profit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }), 15, y);
     y += 6;
     doc.setFont("helvetica", "bold");
-    doc.text("Precio Unitario: " + unitPrice.toLocaleString(), 15, y);
-    doc.text("Total: " + total.toLocaleString(), pageWidth - 20, y, { align: "right" });
+    doc.text("Precio Unitario: " + unitPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }), 15, y);
+    doc.text("Total: " + total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }), pageWidth - 20, y, { align: "right" });
     y += 14;
   });
 
@@ -156,7 +156,7 @@ export function generateApuOfferPdf(
   y += 8;
   doc.setFontSize(13);
   doc.setFont("helvetica", "bold");
-  doc.text("TOTAL DE LA OFERTA: " + grandTotal.toLocaleString(), 15, y);
+  doc.text("TOTAL DE LA OFERTA: " + grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }), 15, y);
 
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {

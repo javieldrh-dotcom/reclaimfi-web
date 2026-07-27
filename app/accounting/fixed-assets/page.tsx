@@ -210,7 +210,7 @@ export default function FixedAssetsPage() {
                 return (
                   <tr key={a.id} style={{ borderBottom: "1px solid #1F2937" }}>
                     <td style={{ padding: 10, fontSize: 18 }}>{a.asset_name}</td>
-                    <td style={{ padding: 10, fontSize: 18, ...theme.numberStyle }}>{a.acquisition_cost.toLocaleString()}</td>
+                    <td style={{ padding: 10, fontSize: 18, ...theme.numberStyle }}>{a.acquisition_cost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     <td style={{ padding: 10, fontSize: 18, ...theme.numberStyle }}>{d.monthlyDep.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
                     <td style={{ padding: 10, fontSize: 18, ...theme.numberStyle }}>{d.accumulated.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
                     <td style={{ padding: 10, fontWeight: 700, fontSize: 18, ...theme.numberStyle }}>{d.bookValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>

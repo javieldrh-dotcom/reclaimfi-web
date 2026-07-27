@@ -112,7 +112,7 @@ export default function ApuProjectsPage() {
       { journal_entry_id: entry.id, account_id: orderCreditorAccount.id, debit: 0, credit: grandTotal },
     ]);
 
-    setMessage("Proyecto adjudicado. Compromiso contractual por " + grandTotal.toLocaleString() + " registrado en Cuentas de Orden.");
+    setMessage("Proyecto adjudicado. Compromiso contractual por " + grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " registrado en Cuentas de Orden.");
     if (companyId) await loadProjects(companyId);
   }
 

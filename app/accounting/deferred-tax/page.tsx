@@ -113,7 +113,7 @@ export default function DeferredTaxPage() {
           <h2 style={{ fontSize: 26, color: theme.accent, fontWeight: 700 }}>Movimientos Registrados</h2>
           {entries.map((e) => (
             <div key={e.id} style={{ ...theme.cardStyle, marginTop: 12, fontSize: 20 }}>
-              {e.entry_date} - {e.description} ({e.entry_type === "ASSET" ? "Activo" : "Pasivo"}): <span style={theme.numberStyle}>{e.amount.toLocaleString()}</span>
+              {e.entry_date} - {e.description} ({e.entry_type === "ASSET" ? "Activo" : "Pasivo"}): <span style={theme.numberStyle}>{e.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
           ))}
         </div>

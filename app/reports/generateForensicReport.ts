@@ -1,4 +1,4 @@
-import jsPDF from "jspdf";
+﻿import jsPDF from "jspdf";
 
 interface CaseData {
   id: string;
@@ -35,15 +35,15 @@ export function generateForensicReport(
 
   doc.setFontSize(18);
   doc.setFont("helvetica", "bold");
-  doc.text("REPORTE FORENSE — CADENA DE CUSTODIA", pageWidth / 2, y, { align: "center" });
+  doc.text("REPORTE FORENSE â€” CADENA DE CUSTODIA", pageWidth / 2, y, { align: "center" });
   y += 8;
 
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(100);
-  doc.text("Generado por ReclaimFi — Audit Global Intelligence", pageWidth / 2, y, { align: "center" });
+  doc.text("Generado por ReclaimFi â€” Audit Global Intelligence", pageWidth / 2, y, { align: "center" });
   y += 6;
-  doc.text(`Fecha de generación: ${new Date().toLocaleString()}`, pageWidth / 2, y, { align: "center" });
+  doc.text(`Fecha de generaciÃ³n: ${new Date().toLocaleString()}`, pageWidth / 2, y, { align: "center" });
   doc.setTextColor(0);
   y += 12;
 
@@ -53,18 +53,18 @@ export function generateForensicReport(
 
   doc.setFontSize(13);
   doc.setFont("helvetica", "bold");
-  doc.text("1. Información del Caso", 15, y);
+  doc.text("1. InformaciÃ³n del Caso", 15, y);
   y += 8;
 
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
   const caseFields: [string, string][] = [
-    ["Código de caso", caseData.case_code],
-    ["Título", caseData.title ?? "N/D"],
-    ["Descripción", caseData.description ?? "N/D"],
+    ["CÃ³digo de caso", caseData.case_code],
+    ["TÃ­tulo", caseData.title ?? "N/D"],
+    ["DescripciÃ³n", caseData.description ?? "N/D"],
     ["Nivel de riesgo", caseData.risk_level ?? "N/D"],
     ["Estado", caseData.status ?? "N/D"],
-    ["Fecha de creación", new Date(caseData.created_at).toLocaleString()],
+    ["Fecha de creaciÃ³n", new Date(caseData.created_at).toLocaleString()],
   ];
 
   caseFields.forEach(([label, value]) => {
@@ -86,7 +86,7 @@ export function generateForensicReport(
   doc.setFont("helvetica", "normal");
   doc.setTextColor(80);
   doc.text(
-    "Cada evento queda vinculado criptográficamente al anterior mediante hash SHA-256. Cualquier alteración retroactiva de un evento invalidaría todos los hashes posteriores.",
+    "Cada evento queda vinculado criptogrÃ¡ficamente al anterior mediante hash SHA-256. Cualquier alteraciÃ³n retroactiva de un evento invalidarÃ­a todos los hashes posteriores.",
     15,
     y,
     { maxWidth: pageWidth - 30 }
@@ -132,7 +132,7 @@ export function generateForensicReport(
 
   doc.setFontSize(13);
   doc.setFont("helvetica", "bold");
-  doc.text("3. Historial de Auditoría", 15, y);
+  doc.text("3. Historial de AuditorÃ­a", 15, y);
   y += 8;
 
   doc.setFontSize(8);
@@ -140,7 +140,7 @@ export function generateForensicReport(
 
   if (auditEntries.length === 0) {
     doc.setFont("helvetica", "italic");
-    doc.text("No hay registros de auditoría adicionales para este caso.", 15, y);
+    doc.text("No hay registros de auditorÃ­a adicionales para este caso.", 15, y);
   } else {
     auditEntries.forEach((entry) => {
       if (y > 275) {
@@ -149,7 +149,7 @@ export function generateForensicReport(
       }
       doc.setFont("helvetica", "normal");
       doc.text(
-        `${new Date(entry.created_at).toLocaleString()} — ${entry.module} — ${entry.action}`,
+        `${new Date(entry.created_at).toLocaleString()} â€” ${entry.module} â€” ${entry.action}`,
         15,
         y
       );
@@ -163,12 +163,12 @@ export function generateForensicReport(
     doc.setFontSize(7);
     doc.setTextColor(150);
     doc.text(
-      "Este reporte documenta el proceso de investigación y la evidencia recopilada. No constituye garantía de recuperación de fondos.",
+      "Este reporte documenta el proceso de investigaciÃ³n y la evidencia recopilada. No constituye garantÃ­a de recuperaciÃ³n de fondos.",
       pageWidth / 2,
       290,
       { align: "center", maxWidth: pageWidth - 20 }
     );
-    doc.text(`Página ${i} de ${pageCount}`, pageWidth - 20, 290);
+    doc.text(`PÃ¡gina ${i} de ${pageCount}`, pageWidth - 20, 290);
   }
 
   return doc;

@@ -125,7 +125,7 @@ export default function IgtfPage() {
           <h2 style={{ fontSize: 24, color: theme.accent, fontWeight: 700 }}>IGTF Registrados</h2>
           {declarations.map((d) => (
             <div key={d.id} style={{ ...theme.cardStyle, marginTop: 12, fontSize: 16 }}>
-              {d.transaction_date} - {d.description} - Monto: {d.transaction_amount.toLocaleString()} {d.currency} - IGTF ({d.igtf_rate}%): <span style={theme.numberStyle}>{d.igtf_amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+              {d.transaction_date} - {d.description} - Monto: {d.transaction_amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {d.currency} - IGTF ({d.igtf_rate}%): <span style={theme.numberStyle}>{d.igtf_amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
             </div>
           ))}
         </div>

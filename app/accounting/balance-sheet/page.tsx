@@ -119,57 +119,57 @@ export default function BalanceSheetPage() {
         {currentAssets.map((r) => (
           <div key={r.code} style={rowStyle}>
             <span>{presentationMode ? r.name : r.code + " - " + r.name}</span>
-            <span style={theme.numberStyle}>{r.amount.toLocaleString()}</span>
+            <span style={theme.numberStyle}>{r.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
         ))}
-        <div style={totalStyle}><span>Total Activos Corrientes</span><span style={theme.numberStyle}>{totalCurrentAssets.toLocaleString()}</span></div>
+        <div style={totalStyle}><span>Total Activos Corrientes</span><span style={theme.numberStyle}>{totalCurrentAssets.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
 
         <h2 style={{ marginTop: 24, fontSize: 24, color: theme.accent, fontWeight: 700 }}>Activos No Corrientes</h2>
         {nonCurrentAssets.map((r) => (
           <div key={r.code} style={rowStyle}>
             <span>{presentationMode ? r.name : r.code + " - " + r.name}</span>
-            <span style={theme.numberStyle}>{r.amount.toLocaleString()}</span>
+            <span style={theme.numberStyle}>{r.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
         ))}
-        <div style={totalStyle}><span>Total Activos No Corrientes</span><span style={theme.numberStyle}>{totalNonCurrentAssets.toLocaleString()}</span></div>
-        <div style={{ ...totalStyle, marginTop: 8, fontSize: 22, borderTop: "2px solid " + theme.accent }}><span>TOTAL ACTIVOS</span><span style={theme.numberStyle}>{totalAssets.toLocaleString()}</span></div>
+        <div style={totalStyle}><span>Total Activos No Corrientes</span><span style={theme.numberStyle}>{totalNonCurrentAssets.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
+        <div style={{ ...totalStyle, marginTop: 8, fontSize: 22, borderTop: "2px solid " + theme.accent }}><span>TOTAL ACTIVOS</span><span style={theme.numberStyle}>{totalAssets.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
 
         <h2 style={{ marginTop: 30, fontSize: 24, color: "#facc15", fontWeight: 700 }}>Pasivos Corrientes</h2>
         {currentLiabilities.map((r) => (
           <div key={r.code} style={rowStyle}>
             <span>{presentationMode ? r.name : r.code + " - " + r.name}</span>
-            <span style={theme.numberStyle}>{r.amount.toLocaleString()}</span>
+            <span style={theme.numberStyle}>{r.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
         ))}
-        <div style={totalStyle}><span>Total Pasivos Corrientes</span><span style={theme.numberStyle}>{totalCurrentLiabilities.toLocaleString()}</span></div>
+        <div style={totalStyle}><span>Total Pasivos Corrientes</span><span style={theme.numberStyle}>{totalCurrentLiabilities.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
 
         <h2 style={{ marginTop: 24, fontSize: 24, color: "#facc15", fontWeight: 700 }}>Pasivos No Corrientes</h2>
         {nonCurrentLiabilities.map((r) => (
           <div key={r.code} style={rowStyle}>
             <span>{presentationMode ? r.name : r.code + " - " + r.name}</span>
-            <span style={theme.numberStyle}>{r.amount.toLocaleString()}</span>
+            <span style={theme.numberStyle}>{r.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
         ))}
-        <div style={totalStyle}><span>Total Pasivos No Corrientes</span><span style={theme.numberStyle}>{totalNonCurrentLiabilities.toLocaleString()}</span></div>
-        <div style={{ ...totalStyle, marginTop: 8, fontSize: 22, borderTop: "2px solid #facc15" }}><span>TOTAL PASIVOS</span><span style={theme.numberStyle}>{totalLiabilities.toLocaleString()}</span></div>
+        <div style={totalStyle}><span>Total Pasivos No Corrientes</span><span style={theme.numberStyle}>{totalNonCurrentLiabilities.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
+        <div style={{ ...totalStyle, marginTop: 8, fontSize: 22, borderTop: "2px solid #facc15" }}><span>TOTAL PASIVOS</span><span style={theme.numberStyle}>{totalLiabilities.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
 
         <h2 style={{ marginTop: 30, fontSize: 24, color: "#4ade80", fontWeight: 700 }}>Patrimonio</h2>
         {equity.map((r) => (
           <div key={r.code} style={rowStyle}>
             <span>{presentationMode ? r.name : r.code + " - " + r.name}</span>
-            <span style={theme.numberStyle}>{r.amount.toLocaleString()}</span>
+            <span style={theme.numberStyle}>{r.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
         ))}
         <div style={{ ...rowStyle, color: netResult >= 0 ? "#4ade80" : "#f87171" }}>
           <span>Resultado del Ejercicio (no cerrado)</span>
-          <span style={theme.numberStyle}>{netResult.toLocaleString()}</span>
+          <span style={theme.numberStyle}>{netResult.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
         </div>
-        <div style={totalStyle}><span>Total Patrimonio</span><span style={theme.numberStyle}>{totalEquity.toLocaleString()}</span></div>
+        <div style={totalStyle}><span>Total Patrimonio</span><span style={theme.numberStyle}>{totalEquity.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
 
         <div style={{ marginTop: 24, padding: 18, background: "#0B0E14", borderRadius: 12, display: "flex", justifyContent: "space-between", fontSize: 20, fontWeight: 900 }}>
           <span>Activos = Pasivos + Patrimonio</span>
           <span style={{ ...theme.numberStyle, color: totalAssets === totalLiabilities + totalEquity ? "#4ade80" : "#f87171" }}>
-            {totalAssets.toLocaleString()} {totalAssets === (totalLiabilities + totalEquity) ? "= " : "no cuadra "} {(totalLiabilities + totalEquity).toLocaleString()}
+            {totalAssets.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {totalAssets === (totalLiabilities + totalEquity) ? "= " : "no cuadra "} {(totalLiabilities + totalEquity).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
         </div>
       </div>

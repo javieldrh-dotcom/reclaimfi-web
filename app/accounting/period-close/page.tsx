@@ -111,7 +111,7 @@ export default function PeriodClosePage() {
       net_result: netResult,
     }]);
 
-    setMessage("Periodo cerrado correctamente. Resultado: " + netResult.toLocaleString());
+    setMessage("Periodo cerrado correctamente. Resultado: " + netResult.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
     setLoading(false);
     await loadPeriods(companyId);
   }
@@ -135,7 +135,7 @@ export default function PeriodClosePage() {
           <h2 style={{ fontSize: 24, color: theme.accent, fontWeight: 700 }}>Periodos Cerrados</h2>
           {periods.map((p) => (
             <div key={p.id} style={{ padding: 14, borderBottom: "1px solid #1F2937", fontSize: 20 }}>
-              {p.period_start} a {p.period_end} - Resultado: <span style={theme.numberStyle}>{p.net_result?.toLocaleString()}</span> - {p.status}
+              {p.period_start} a {p.period_end} - Resultado: <span style={theme.numberStyle}>{p.net_result?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span> - {p.status}
             </div>
           ))}
         </div>

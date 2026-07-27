@@ -103,8 +103,8 @@ export default function TrialBalancePage() {
                     {r.name}
                   </Link>
                 </td>
-                <td style={{ padding: "16px 20px", textAlign: "right", ...theme.numberStyle, fontSize: 20, lineHeight: 1.6 }}>{r.debit > 0 ? r.debit.toLocaleString() : "—"}</td>
-                <td style={{ padding: "16px 20px", textAlign: "right", ...theme.numberStyle, fontSize: 20, lineHeight: 1.6 }}>{r.credit > 0 ? r.credit.toLocaleString() : "—"}</td>
+                <td style={{ padding: "16px 20px", textAlign: "right", ...theme.numberStyle, fontSize: 20, lineHeight: 1.6 }}>{r.debit > 0 ? r.debit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "—"}</td>
+                <td style={{ padding: "16px 20px", textAlign: "right", ...theme.numberStyle, fontSize: 20, lineHeight: 1.6 }}>{r.credit > 0 ? r.credit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "—"}</td>
               </tr>
             ))}
           </tbody>
@@ -123,7 +123,7 @@ export default function TrialBalancePage() {
         border: "1px solid " + (isBalanced ? "#2DD4BF40" : "#F8717140"),
       }}>
         <div style={{ ...theme.kpiStyle }}>
-          Debe: {totalDebit.toLocaleString()} &nbsp;·&nbsp; Haber: {totalCredit.toLocaleString()}
+          Debe: {totalDebit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} &nbsp;·&nbsp; Haber: {totalCredit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </div>
         <div style={{ fontWeight: 700, color: isBalanced ? "#2DD4BF" : "#F87171", display: "flex", alignItems: "center", gap: 6, fontSize: 15 }}>
           <span>{isBalanced ? "✓" : "!"}</span>

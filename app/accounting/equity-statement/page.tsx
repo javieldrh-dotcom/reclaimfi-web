@@ -107,40 +107,40 @@ export default function EquityStatementPage() {
         {capital.map((r) => (
           <div key={r.code} style={rowStyle}>
             <span>{presentationMode ? r.name : r.code + " - " + r.name}</span>
-            <span style={theme.numberStyle}>{r.amount.toLocaleString()}</span>
+            <span style={theme.numberStyle}>{r.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
         ))}
-        <div style={totalStyle}><span>Total Capital Social</span><span style={theme.numberStyle}>{totalCapital.toLocaleString()}</span></div>
+        <div style={totalStyle}><span>Total Capital Social</span><span style={theme.numberStyle}>{totalCapital.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
 
         <h2 style={{ marginTop: 24, fontSize: 24, color: theme.accent, fontWeight: 700 }}>Reservas</h2>
         {reserves.length === 0 && <p style={{ fontSize: 15, color: "#8B93A7", padding: 8 }}>Sin reservas registradas.</p>}
         {reserves.map((r) => (
           <div key={r.code} style={rowStyle}>
             <span>{presentationMode ? r.name : r.code + " - " + r.name}</span>
-            <span style={theme.numberStyle}>{r.amount.toLocaleString()}</span>
+            <span style={theme.numberStyle}>{r.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
         ))}
-        <div style={totalStyle}><span>Total Reservas</span><span style={theme.numberStyle}>{totalReserves.toLocaleString()}</span></div>
+        <div style={totalStyle}><span>Total Reservas</span><span style={theme.numberStyle}>{totalReserves.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
 
         <h2 style={{ marginTop: 24, fontSize: 24, color: theme.accent, fontWeight: 700 }}>Resultados Acumulados</h2>
         {retainedEarnings.length === 0 && <p style={{ fontSize: 15, color: "#8B93A7", padding: 8 }}>Sin resultados acumulados de ejercicios anteriores.</p>}
         {retainedEarnings.map((r) => (
           <div key={r.code} style={rowStyle}>
             <span>{presentationMode ? r.name : r.code + " - " + r.name}</span>
-            <span style={theme.numberStyle}>{r.amount.toLocaleString()}</span>
+            <span style={theme.numberStyle}>{r.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
         ))}
-        <div style={totalStyle}><span>Total Resultados Acumulados</span><span style={theme.numberStyle}>{totalRetainedEarnings.toLocaleString()}</span></div>
+        <div style={totalStyle}><span>Total Resultados Acumulados</span><span style={theme.numberStyle}>{totalRetainedEarnings.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
 
-        <div style={{ ...totalStyle, marginTop: 8, fontSize: 22, borderTop: "2px solid " + theme.accent }}><span>Subtotal Patrimonio (antes de resultado)</span><span style={theme.numberStyle}>{totalEquityBefore.toLocaleString()}</span></div>
+        <div style={{ ...totalStyle, marginTop: 8, fontSize: 22, borderTop: "2px solid " + theme.accent }}><span>Subtotal Patrimonio (antes de resultado)</span><span style={theme.numberStyle}>{totalEquityBefore.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
 
         <div style={{ display: "flex", justifyContent: "space-between", padding: 8, marginTop: 14, fontSize: 22, color: netResult >= 0 ? "#4ade80" : "#f87171" }}>
           <span>(+/-) Resultado del Ejercicio</span>
-          <span style={theme.numberStyle}>{netResult.toLocaleString()}</span>
+          <span style={theme.numberStyle}>{netResult.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
         </div>
         <div style={{ marginTop: 24, padding: 18, background: "#0B0E14", borderRadius: 12, display: "flex", justifyContent: "space-between", fontSize: 24, fontWeight: 900, color: "#4ade80" }}>
           <span>Patrimonio Final</span>
-          <span style={theme.numberStyle}>{totalEquityAfter.toLocaleString()}</span>
+          <span style={theme.numberStyle}>{totalEquityAfter.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
         </div>
       </div>
     </VerticalPageLayout>

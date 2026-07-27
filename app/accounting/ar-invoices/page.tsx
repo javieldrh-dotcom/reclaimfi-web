@@ -141,7 +141,7 @@ export default function ArInvoicesPage() {
                   <td style={{ padding: 10, fontSize: 20 }}>{inv.invoice_number}</td>
                   <td style={{ padding: 10, fontSize: 20 }}>{inv.customer_name}</td>
                   <td style={{ padding: 10, fontSize: 20 }}>{inv.due_date}</td>
-                  <td style={{ padding: 10, fontSize: 20, ...theme.numberStyle }}>{inv.amount.toLocaleString()}</td>
+                  <td style={{ padding: 10, fontSize: 20, ...theme.numberStyle }}>{inv.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                   <td style={{ padding: 10, fontSize: 20, color: inv.status === "PAID" ? "#4ade80" : "#facc15" }}>{inv.status}</td>
                   <td style={{ padding: 10 }}>
                     {inv.status === "PENDING" && (

@@ -165,9 +165,9 @@ export default function GeneralLedgerPage() {
                     <tr key={idx} style={{ borderBottom: "1px solid #1F2937" }}>
                       <td style={{ padding: 10, fontSize: 22 }}>{m.date}</td>
                       <td style={{ padding: 10, fontSize: 22 }}>{m.description}</td>
-                      <td style={{ padding: 10, textAlign: "right", fontSize: 22, ...theme.numberStyle }}>{m.debit > 0 ? m.debit.toLocaleString() : ""}</td>
-                      <td style={{ padding: 10, textAlign: "right", fontSize: 22, ...theme.numberStyle }}>{m.credit > 0 ? m.credit.toLocaleString() : ""}</td>
-                      <td style={{ padding: 10, textAlign: "right", fontWeight: 700, fontSize: 22, ...theme.numberStyle }}>{m.balance.toLocaleString()}</td>
+                      <td style={{ padding: 10, textAlign: "right", fontSize: 22, ...theme.numberStyle }}>{m.debit > 0 ? m.debit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : ""}</td>
+                      <td style={{ padding: 10, textAlign: "right", fontSize: 22, ...theme.numberStyle }}>{m.credit > 0 ? m.credit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : ""}</td>
+                      <td style={{ padding: 10, textAlign: "right", fontWeight: 700, fontSize: 22, ...theme.numberStyle }}>{m.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     </tr>
                   ))}
                 </tbody>

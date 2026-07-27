@@ -139,7 +139,7 @@ export default function VatSummaryPage() {
           <h2 style={{ fontSize: 26, color: theme.accent, fontWeight: 700 }}>Declaraciones Guardadas</h2>
           {declarations.map((d) => (
             <div key={d.id} style={{ ...theme.cardStyle, marginTop: 12, fontSize: 20 }}>
-              {d.period_start} a {d.period_end} - [90] Total a Pagar: <span style={theme.numberStyle}>{d.vat_payable?.toLocaleString()}</span>
+              {d.period_start} a {d.period_end} - [90] Total a Pagar: <span style={theme.numberStyle}>{d.vat_payable?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
           ))}
         </div>

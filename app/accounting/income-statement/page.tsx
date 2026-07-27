@@ -109,47 +109,47 @@ export default function IncomeStatementPage() {
         {revenue.map((r) => (
           <div key={r.code} style={rowStyle}>
             <span>{presentationMode ? r.name : r.code + " - " + r.name}</span>
-            <span style={theme.numberStyle}>{r.amount.toLocaleString()}</span>
+            <span style={theme.numberStyle}>{r.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
         ))}
-        <div style={totalStyle}><span>Total Ingresos</span><span style={theme.numberStyle}>{totalRevenue.toLocaleString()}</span></div>
+        <div style={totalStyle}><span>Total Ingresos</span><span style={theme.numberStyle}>{totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
 
         <h2 style={{ marginTop: 24, fontSize: 24, color: "#f87171", fontWeight: 700 }}>Costo de Ventas</h2>
         {cogs.length === 0 && <p style={{ fontSize: 15, color: "#8B93A7", padding: 8 }}>Sin costo de ventas registrado.</p>}
         {cogs.map((r) => (
           <div key={r.code} style={rowStyle}>
             <span>{presentationMode ? r.name : r.code + " - " + r.name}</span>
-            <span style={theme.numberStyle}>{r.amount.toLocaleString()}</span>
+            <span style={theme.numberStyle}>{r.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
         ))}
-        <div style={totalStyle}><span>Total Costo de Ventas</span><span style={theme.numberStyle}>{totalCogs.toLocaleString()}</span></div>
+        <div style={totalStyle}><span>Total Costo de Ventas</span><span style={theme.numberStyle}>{totalCogs.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
 
-        <div style={subtotalStyle}><span>Utilidad Bruta</span><span style={theme.numberStyle}>{grossProfit.toLocaleString()}</span></div>
+        <div style={subtotalStyle}><span>Utilidad Bruta</span><span style={theme.numberStyle}>{grossProfit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
 
         <h2 style={{ marginTop: 24, fontSize: 24, color: "#f87171", fontWeight: 700 }}>Gastos Operativos</h2>
         {operatingExpenses.map((r) => (
           <div key={r.code} style={rowStyle}>
             <span>{presentationMode ? r.name : r.code + " - " + r.name}</span>
-            <span style={theme.numberStyle}>{r.amount.toLocaleString()}</span>
+            <span style={theme.numberStyle}>{r.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
         ))}
-        <div style={totalStyle}><span>Total Gastos Operativos</span><span style={theme.numberStyle}>{totalOperatingExpenses.toLocaleString()}</span></div>
+        <div style={totalStyle}><span>Total Gastos Operativos</span><span style={theme.numberStyle}>{totalOperatingExpenses.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
 
-        <div style={subtotalStyle}><span>Utilidad Operativa</span><span style={theme.numberStyle}>{operatingProfit.toLocaleString()}</span></div>
+        <div style={subtotalStyle}><span>Utilidad Operativa</span><span style={theme.numberStyle}>{operatingProfit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
 
         <h2 style={{ marginTop: 24, fontSize: 24, color: "#f87171", fontWeight: 700 }}>Gastos Financieros</h2>
         {financialExpenses.length === 0 && <p style={{ fontSize: 15, color: "#8B93A7", padding: 8 }}>Sin gastos financieros registrados.</p>}
         {financialExpenses.map((r) => (
           <div key={r.code} style={rowStyle}>
             <span>{presentationMode ? r.name : r.code + " - " + r.name}</span>
-            <span style={theme.numberStyle}>{r.amount.toLocaleString()}</span>
+            <span style={theme.numberStyle}>{r.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
         ))}
-        <div style={totalStyle}><span>Total Gastos Financieros</span><span style={theme.numberStyle}>{totalFinancialExpenses.toLocaleString()}</span></div>
+        <div style={totalStyle}><span>Total Gastos Financieros</span><span style={theme.numberStyle}>{totalFinancialExpenses.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
 
         <div style={{ marginTop: 24, padding: 18, background: "#0B0E14", borderRadius: 12, display: "flex", justifyContent: "space-between", fontSize: 24, fontWeight: 900, color: netResult >= 0 ? "#4ade80" : "#f87171" }}>
           <span>{netResult >= 0 ? "Utilidad Neta" : "Perdida Neta"}</span>
-          <span style={theme.numberStyle}>{Math.abs(netResult).toLocaleString()}</span>
+          <span style={theme.numberStyle}>{Math.abs(netResult).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
         </div>
       </div>
     </VerticalPageLayout>

@@ -140,7 +140,7 @@ export default function ApBillsPage() {
                   <td style={{ padding: 10, fontSize: 20 }}>{b.bill_number}</td>
                   <td style={{ padding: 10, fontSize: 20 }}>{b.vendor_name}</td>
                   <td style={{ padding: 10, fontSize: 20 }}>{b.due_date}</td>
-                  <td style={{ padding: 10, fontSize: 20, ...theme.numberStyle }}>{b.amount.toLocaleString()}</td>
+                  <td style={{ padding: 10, fontSize: 20, ...theme.numberStyle }}>{b.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                   <td style={{ padding: 10, fontSize: 20, color: b.status === "PAID" ? "#4ade80" : "#facc15" }}>{b.status}</td>
                   <td style={{ padding: 10 }}>
                     {b.status === "PENDING" && (
