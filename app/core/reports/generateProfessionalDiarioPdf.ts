@@ -48,7 +48,7 @@ export function generateProfessionalDiarioPdf(companyName: string, exerciseYear:
     doc.setFontSize(8);
     doc.text("FECHA", 15, y);
     doc.text("CUENTA", 40, y);
-    doc.text("REF.", pageWidth - 65, y, { align: "center" });
+    doc.text("REF.", pageWidth - 75, y, { align: "center" });
     doc.text("DEBE", pageWidth - 45, y, { align: "right" });
     doc.text("HABER", pageWidth - 20, y, { align: "right" });
     y += 4;
@@ -102,7 +102,7 @@ export function generateProfessionalDiarioPdf(companyName: string, exerciseYear:
         if (showMonth) doc.text(entry.month.toUpperCase(), 15, y + 5);
       }
       doc.text((line.code ? line.code + " - " : "") + line.name, 40, y, { maxWidth: pageWidth - 105 });
-      doc.text(String(line.folio ?? "-"), pageWidth - 65, y, { align: "center" });
+      doc.text(String(line.folio ?? "-"), pageWidth - 75, y, { align: "center" });
       doc.text(line.debit > 0 ? line.debit.toLocaleString(undefined, { minimumFractionDigits: 2 }) : "", pageWidth - 45, y, { align: "right" });
       doc.text(line.credit > 0 ? line.credit.toLocaleString(undefined, { minimumFractionDigits: 2 }) : "", pageWidth - 20, y, { align: "right" });
       pageDebitTotal += line.debit || 0;
