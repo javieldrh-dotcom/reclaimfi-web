@@ -39,8 +39,8 @@ export default function WithholdingSummaryPage() {
     if (!companyId || !periodStart || !periodEnd) return;
     setLoading(true);
 
-    const { data: sales } = await supabase.from("sales_book_entries").select("customer_name, entry_date, withheld_by_customer").eq("company_id", companyId).gte("entry_date", periodStart).lte("entry_date", periodEnd).gt("withheld_by_customer", 0);
-    const { data: purchases } = await supabase.from("purchase_book_entries").select("vendor_name, entry_date, withheld_amount, withholding_receipt_number").eq("company_id", companyId).gte("entry_date", periodStart).lte("entry_date", periodEnd).gt("withheld_amount", 0);
+    const { data: sales } = await supabase.from("sales_book_entries").select("customer_name, entry_date, withheld_by_customer").eq("company_id", companyId).eq("status", "ACTIVE").gte("entry_date", periodStart).lte("entry_date", periodEnd).gt("withheld_by_customer", 0);
+    const { data: purchases } = await supabase.from("purchase_book_entries").select("vendor_name, entry_date, withheld_amount, withholding_receipt_number").eq("company_id", companyId).eq("status", "ACTIVE").gte("entry_date", periodStart).lte("entry_date", periodEnd).gt("withheld_amount", 0);
 
     const casilla34 = (sales ?? []).reduce((s: number, r: any) => s + (r.withheld_by_customer || 0), 0);
     const casilla66_compras = (purchases ?? []).reduce((s: number, r: any) => s + (r.withheld_amount || 0), 0);

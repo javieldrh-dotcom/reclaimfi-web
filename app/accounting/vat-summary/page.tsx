@@ -41,8 +41,8 @@ export default function VatSummaryPage() {
     const lastDay = new Date(parseInt(periodYear), parseInt(periodMonth), 0).getDate();
     const periodEnd = periodYear + "-" + periodMonth + "-" + lastDay.toString().padStart(2, "0");
 
-    const { data: sales } = await supabase.from("sales_book_entries").select("*").eq("company_id", companyId).gte("entry_date", periodStart).lte("entry_date", periodEnd);
-    const { data: purchases } = await supabase.from("purchase_book_entries").select("*").eq("company_id", companyId).gte("entry_date", periodStart).lte("entry_date", periodEnd);
+    const { data: sales } = await supabase.from("sales_book_entries").select("*").eq("company_id", companyId).eq("status", "ACTIVE").gte("entry_date", periodStart).lte("entry_date", periodEnd);
+    const { data: purchases } = await supabase.from("purchase_book_entries").select("*").eq("company_id", companyId).eq("status", "ACTIVE").gte("entry_date", periodStart).lte("entry_date", periodEnd);
 
     const casilla40 = (sales ?? []).reduce((s: number, r: any) => s + (r.non_taxable_amount || 0), 0);
     const casilla41 = (sales ?? []).filter((r: any) => r.is_export).reduce((s: number, r: any) => s + (r.total_including_vat || 0), 0);
