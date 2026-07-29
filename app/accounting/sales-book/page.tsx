@@ -57,10 +57,10 @@ export default function SalesBookPage() {
     }
     load();
   }, []);
-  async function createNewAccount(type: string) {
-    const name = window.prompt("Nombre de la nueva cuenta de " + (type === "REVENUE" ? "Ingreso" : "Activo") + ":");
+  async function createNewAccount(type: string, target: string) {
+    const name = window.prompt("Nombre de la nueva cuenta:");
     if (!name || !companyId) return;
-    const prefix = type === "REVENUE" ? "4199" : "1199";
+    const prefix = type === "REVENUE" ? "4199" : type === "LIABILITY" ? "2199" : "1199";
     const { data: newAcc, error } = await supabase.from("chart_of_accounts").insert([{
       account_code: prefix + "-" + Date.now().toString().slice(-4),
       account_name: name,
@@ -69,8 +69,9 @@ export default function SalesBookPage() {
     }]).select("id, account_code, account_name, account_type").single();
     if (error || !newAcc) { alert("Error al crear cuenta: " + error?.message); return; }
     setAccounts((prev) => [...prev, newAcc]);
-    if (type === "REVENUE") setRevenueAccountId(newAcc.id);
-    if (type === "ASSET") setArAccountId(newAcc.id);
+    if (target === "revenue") setRevenueAccountId(newAcc.id);
+    if (target === "ar") setArAccountId(newAcc.id);
+    if (target === "vatpayable") setVatPayableAccountId(newAcc.id);
   }
 
   async function voidEntry(entryId: string, journalEntryId: string) {
@@ -226,21 +227,27 @@ export default function SalesBookPage() {
           <input type="number" value={withheldByCustomer} onChange={(e) => setWithheldByCustomer(e.target.value)} style={inputStyle} placeholder="IVA Retenido por el Comprador (manual)" />
         </div>
 
-        <select value={arAccountId} onChange={(e) => setArAccountId(e.target.value)} style={{ ...inputStyle, marginTop: 12 }}>
-          <option value="">Cuenta de Cuentas por Cobrar</option>
-          {accounts.filter(a => a.account_type === "ASSET").map((a) => <option key={a.id} value={a.id}>{a.account_code} - {a.account_name}</option>)}
-        </select>
+        <div style={{ display: "flex", gap: 6, marginTop: 12 }}>
+          <select value={arAccountId} onChange={(e) => setArAccountId(e.target.value)} style={inputStyle}>
+            <option value="">Cuenta de Cuentas por Cobrar</option>
+            {accounts.filter(a => a.account_type === "ASSET").map((a) => <option key={a.id} value={a.id}>{a.account_code} - {a.account_name}</option>)}
+          </select>
+          <button onClick={() => createNewAccount("ASSET", "ar")} style={{ padding: "0 16px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 14, whiteSpace: "nowrap" }}>+ Nueva</button>
+        </div>
         <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
           <select value={revenueAccountId} onChange={(e) => setRevenueAccountId(e.target.value)} style={inputStyle}>
             <option value="">Cuenta de Ingreso</option>
             {accounts.filter(a => a.account_type === "REVENUE").map((a) => <option key={a.id} value={a.id}>{a.account_code} - {a.account_name}</option>)}
           </select>
-          <button onClick={() => createNewAccount("REVENUE")} style={{ padding: "0 16px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 14, whiteSpace: "nowrap" }}>+ Nueva</button>
+          <button onClick={() => createNewAccount("REVENUE", "revenue")} style={{ padding: "0 16px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 14, whiteSpace: "nowrap" }}>+ Nueva</button>
         </div>
-        <select value={vatPayableAccountId} onChange={(e) => setVatPayableAccountId(e.target.value)} style={{ ...inputStyle, marginTop: 8 }}>
-          <option value="">Cuenta de IVA Debito Fiscal</option>
-          {accounts.filter(a => a.account_type === "LIABILITY").map((a) => <option key={a.id} value={a.id}>{a.account_code} - {a.account_name}</option>)}
-        </select>
+        <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+          <select value={vatPayableAccountId} onChange={(e) => setVatPayableAccountId(e.target.value)} style={inputStyle}>
+            <option value="">Cuenta de IVA Debito Fiscal</option>
+            {accounts.filter(a => a.account_type === "LIABILITY").map((a) => <option key={a.id} value={a.id}>{a.account_code} - {a.account_name}</option>)}
+          </select>
+          <button onClick={() => createNewAccount("LIABILITY", "vatpayable")} style={{ padding: "0 16px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 14, whiteSpace: "nowrap" }}>+ Nueva</button>
+        </div>
 
         <button onClick={createEntry} style={{ ...theme.buttonStyle, marginTop: 16, fontSize: 18 }}>
           REGISTRAR VENTA
