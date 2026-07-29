@@ -128,12 +128,12 @@ export default function SalesBookPage() {
       customer_name: customerName,
       customer_tax_id: customerTaxId,
       is_export: isExport,
-      non_taxable_amount: nonTaxable,
-      taxable_base_general: isExport ? 0 : base,
+      non_taxable_amount: nonTaxable * fxRate,
+      taxable_base_general: isExport ? 0 : base * fxRate,
       rate_general: rate,
-      fiscal_debit: isExport ? 0 : debit,
-      total_including_vat: totalIncludingVat,
-      withheld_by_customer: withheld,
+      fiscal_debit: isExport ? 0 : debit * fxRate,
+      total_including_vat: totalIncludingVat * fxRate,
+      withheld_by_customer: withheld * fxRate,
       journal_entry_id: entry.id,
     }]);
 
