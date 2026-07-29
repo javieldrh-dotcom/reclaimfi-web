@@ -16,6 +16,9 @@ export default function PurchaseBookPage() {
   const [expenseAccountId, setExpenseAccountId] = useState("");
   const [vatCreditAccountId, setVatCreditAccountId] = useState("");
   const [vatWithholdingAccountId, setVatWithholdingAccountId] = useState("");
+  const [isProfessionalService, setIsProfessionalService] = useState(false);
+  const [islrRate, setIslrRate] = useState("5");
+  const [islrWithholdingAccountId, setIslrWithholdingAccountId] = useState("");
 
   const [entryDate, setEntryDate] = useState(new Date().toISOString().slice(0, 10));
   const [invoiceCurrency, setInvoiceCurrency] = useState("USD");
@@ -94,6 +97,7 @@ export default function PurchaseBookPage() {
     if (target === "vatcredit") setVatCreditAccountId(newAcc.id);
     if (target === "ap") setApAccountId(newAcc.id);
     if (target === "withholding") setVatWithholdingAccountId(newAcc.id);
+    if (target === "islr") setIslrWithholdingAccountId(newAcc.id);
   }
 
   async function voidEntry(entryId: string, journalEntryId: string) {
@@ -118,8 +122,9 @@ export default function PurchaseBookPage() {
     const nonTaxable = parseFloat(nonTaxableAmount) || 0;
     const credit = base * (rate / 100);
     const withheld = parseFloat(withheldAmount) || 0;
+    const islrWithheld = isProfessionalService ? base * (parseFloat(islrRate) / 100) : 0;
     const totalDocument = base + credit + nonTaxable;
-    const netPayable = totalDocument - withheld;
+    const netPayable = totalDocument - withheld - islrWithheld;
     const nextNumber = entries.length > 0 ? Math.max(...entries.map((e) => e.entry_number)) + 1 : 1;
 
     const { data: entry, error: entryError } = await supabase.from("journal_entries").insert([{
@@ -136,6 +141,9 @@ export default function PurchaseBookPage() {
     }
     if (withheld > 0) {
       lines.push({ journal_entry_id: entry.id, account_id: vatWithholdingAccountId, debit: 0, credit: withheld * fxRate });
+    }
+    if (islrWithheld > 0) {
+      lines.push({ journal_entry_id: entry.id, account_id: islrWithholdingAccountId, debit: 0, credit: islrWithheld * fxRate });
     }
     lines.push({ journal_entry_id: entry.id, account_id: apAccountId, debit: 0, credit: netPayable * fxRate });
 
@@ -234,7 +242,16 @@ export default function PurchaseBookPage() {
         {parseFloat(withholdingPercentage) > 0 && (
           <p style={{ marginTop: 6, fontSize: 15, color: theme.accent }}>Monto Retenido Calculado: {parseFloat(withheldAmount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
         )}
-
+        <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, fontSize: 15 }}>
+          <input type="checkbox" checked={isProfessionalService} onChange={(e) => setIsProfessionalService(e.target.checked)} />
+          Es Servicio Profesional (aplica retencion ISLR)
+        </label>
+        {isProfessionalService && (
+          <div style={{ display: "flex", gap: 10, marginTop: 8, alignItems: "center" }}>
+            <input type="number" value={islrRate} onChange={(e) => setIslrRate(e.target.value)} style={{ ...inputStyle, width: 100 }} placeholder="Tasa ISLR %" />
+            <p style={{ fontSize: 15, color: theme.accent }}>ISLR a Retener: {((parseFloat(taxableBaseGeneral) || 0) * (parseFloat(islrRate) / 100)).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+          </div>
+        )}
         <div style={{ display: "flex", gap: 6, marginTop: 12 }}>
           <select value={apAccountId} onChange={(e) => setApAccountId(e.target.value)} style={inputStyle}>
             <option value="">Cuenta de Cuentas por Pagar</option>
@@ -262,6 +279,13 @@ export default function PurchaseBookPage() {
             {accounts.filter(a => a.account_type === "LIABILITY").map((a) => <option key={a.id} value={a.id}>{a.account_code} - {a.account_name}</option>)}
           </select>
           <button onClick={() => createNewAccount("LIABILITY", "withholding")} style={{ padding: "0 16px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 14, whiteSpace: "nowrap" }}>+ Nueva</button>
+        </div>
+        <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+          <select value={islrWithholdingAccountId} onChange={(e) => setIslrWithholdingAccountId(e.target.value)} style={inputStyle}>
+            <option value="">Cuenta de Retencion de ISLR por Enterar (opcional, solo si es Servicio Profesional)</option>
+            {accounts.filter(a => a.account_type === "LIABILITY").map((a) => <option key={a.id} value={a.id}>{a.account_code} - {a.account_name}</option>)}
+          </select>
+          <button onClick={() => createNewAccount("LIABILITY", "islr")} style={{ padding: "0 16px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 14, whiteSpace: "nowrap" }}>+ Nueva</button>
         </div>
 
         <button onClick={createEntry} style={{ ...theme.buttonStyle, marginTop: 16, fontSize: 18 }}>
