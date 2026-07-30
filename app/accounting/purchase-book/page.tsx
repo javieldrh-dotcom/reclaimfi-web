@@ -171,6 +171,8 @@ export default function PurchaseBookPage() {
       total_document_amount: totalDocument * fxRate,
       withholding_receipt_number: withholdingReceiptNumber,
       withheld_amount: withheld * fxRate,
+      islr_withheld: islrWithheld * fxRate,
+      is_professional_service: isProfessionalService,
       journal_entry_id: entry.id,
     }]);
 
