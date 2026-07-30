@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
 import VerticalPageLayout from "@/app/components/VerticalPageLayout";
+import { generateComprobanteIslrPdf } from "@/app/core/reports/generateComprobanteIslrPdf";
 
 export default function WithholdingSummaryPage() {
   const theme = getVerticalTheme("accounting");
@@ -16,6 +17,7 @@ export default function WithholdingSummaryPage() {
   const [history, setHistory] = useState<any[]>([]);
   const [salesWithheld, setSalesWithheld] = useState<any[]>([]);
   const [purchaseWithheld, setPurchaseWithheld] = useState<any[]>([]);
+  const [islrWithheld, setIslrWithheld] = useState<any[]>([]);
 
   useEffect(() => {
     async function load() {
@@ -48,11 +50,43 @@ export default function WithholdingSummaryPage() {
     const casilla38 = casilla34;
     const netPosition = casilla66_compras - casilla34;
 
+    const { data: islr } = await supabase.from("purchase_book_entries").select("*").eq("company_id", companyId).eq("status", "ACTIVE").eq("is_professional_service", true).gte("entry_date", periodStart).lte("entry_date", periodEnd).gt("islr_withheld", 0);
+    setIslrWithheld(islr ?? []);
     setSalesWithheld(sales ?? []);
     setPurchaseWithheld(purchases ?? []);
     setSummary({ casilla34, casilla37, casilla38, totalWithheldByUs: casilla66_compras, netPosition });
     setLoading(false);
   }
+  function generateComprobante(entry: any, seq: number) {
+    const d = new Date(entry.entry_date);
+    const meses = ["ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"];
+    const doc = generateComprobanteIslrPdf({
+      companyName,
+      companyRif: taxAgentRif,
+      companyAddress: "",
+      companyPhone: "",
+      vendorName: entry.vendor_name,
+      vendorRif: entry.vendor_tax_id,
+      vendorAddress: "",
+      vendorPhone: "",
+      fecha: entry.entry_date,
+      periodoAno: String(d.getUTCFullYear()),
+      periodoMes: meses[d.getUTCMonth()],
+      numeroComprobante: entry.withholding_receipt_number || String(seq).padStart(5, "0"),
+      numeroDocumento: entry.invoice_number || "",
+      numeroControl: entry.control_number || "",
+      fechaDocumento: entry.entry_date,
+      codigo: "055",
+      conceptoPago: "SERVICIOS PROFESIONALES",
+      montoFactura: entry.total_document_amount || 0,
+      baseRetencion: entry.taxable_base_general || 0,
+      sustraendoPN: 0,
+      porcentaje: entry.taxable_base_general > 0 ? (entry.islr_withheld / entry.taxable_base_general) * 100 : 0,
+      montoRetenido: entry.islr_withheld || 0,
+    });
+    doc.save("comprobante-islr-" + (entry.vendor_name || "proveedor") + ".pdf");
+  }
+
   function exportTxt() {
     const rows = purchaseWithheld.map((p: any) => {
       const columns = [
@@ -165,6 +199,27 @@ export default function WithholdingSummaryPage() {
             <div key={idx} style={{ display: "flex", justifyContent: "space-between", padding: 8, fontSize: 18, borderBottom: "1px solid #1F2937" }}>
               <span>{p.entry_date} - {p.vendor_name} (Comp. {p.withholding_receipt_number})</span>
               <span style={theme.numberStyle}>{p.withheld_amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {islrWithheld.length > 0 && (
+        <div style={{ marginTop: 32 }}>
+          <h2 style={{ fontSize: 24, color: theme.accent, fontWeight: 700 }}>Retenciones de ISLR (Servicios Profesionales)</h2>
+          <div style={{ ...theme.cardStyle, marginTop: 12, marginBottom: 12 }}>
+            <p style={{ fontSize: 18 }}>Total ISLR Retenido del Periodo:</p>
+            <p style={{ fontSize: 28, fontWeight: 900, color: theme.accent, ...theme.numberStyle }}>{islrWithheld.reduce((s, e) => s + (e.islr_withheld || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+          </div>
+          {islrWithheld.map((e, idx) => (
+            <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: 8, fontSize: 18, borderBottom: "1px solid #1F2937" }}>
+              <span>{e.entry_date} - {e.vendor_name} (Fact. {e.invoice_number})</span>
+              <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                <span style={theme.numberStyle}>{e.islr_withheld.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <button onClick={() => generateComprobante(e, idx + 1)} style={{ background: "none", border: "1px solid " + theme.accent, color: theme.accent, padding: "4px 10px", borderRadius: 6, fontSize: 12, cursor: "pointer" }}>
+                  Comprobante
+                </button>
+              </div>
             </div>
           ))}
         </div>
