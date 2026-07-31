@@ -23,7 +23,7 @@ export default function BankReconciliationPage() {
     const { data: accountsData } = await supabase.from("chart_of_accounts").select("id").eq("company_id", cid).ilike("account_code", "1102%");
     const accountIds = (accountsData ?? []).map((a: any) => a.id);
 
-    const { data: lines } = await supabase.from("journal_lines").select("debit, credit, journal_entries(description, entry_date)").in("account_id", accountIds);
+    const { data: lines } = await supabase.from("journal_lines").select("debit, credit, journal_entries!inner(description, entry_date, status)").in("account_id", accountIds).eq("journal_entries.status", "ACTIVE");
 
     const bookMovements = (lines ?? []).map((l: any) => ({
       description: l.journal_entries?.description ?? "Sin descripcion",
