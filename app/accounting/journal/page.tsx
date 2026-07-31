@@ -166,6 +166,37 @@ export default function JournalPage() {
     await supabase.from("journal_entries").update({ status: "VOIDED", voided_at: new Date().toISOString(), void_reason: reason }).eq("id", entryId);
     if (companyId) await loadEntries(companyId, selectedYear);
   }
+
+  async function reverseEntry(entry: any) {
+    if (!companyId) return;
+    const confirmMsg = "Se creara un asiento nuevo con las cifras invertidas de Nº" + (entry.entry_number ?? "S/N") + ". El asiento original permanecera visible. Confirmar?";
+    if (!window.confirm(confirmMsg)) return;
+
+    const { data: lastEntry } = await supabase.from("journal_entries").select("entry_number").eq("company_id", companyId).order("entry_number", { ascending: false }).limit(1).maybeSingle();
+    const nextNumber = (lastEntry?.entry_number || 0) + 1;
+    const today = new Date().toISOString().slice(0, 10);
+
+    const { data: newEntry, error: entryError } = await supabase.from("journal_entries").insert([{
+      company_id: companyId,
+      description: "Reverso del Asiento Nº" + (entry.entry_number ?? "S/N") + " - " + entry.description,
+      entry_date: today,
+      entry_number: nextNumber,
+      reversal_of_entry_id: entry.id,
+    }]).select("id").single();
+    if (entryError || !newEntry) { alert("Error al crear reverso: " + entryError?.message); return; }
+
+    const reversedLines = (entry.journal_lines ?? []).map((l: any) => ({
+      journal_entry_id: newEntry.id,
+      account_id: l.account_id,
+      debit: l.credit || 0,
+      credit: l.debit || 0,
+    }));
+    await supabase.from("journal_lines").insert(reversedLines);
+
+    await supabase.from("journal_entries").update({ reversed_by_entry_id: newEntry.id }).eq("id", entry.id);
+
+    if (companyId) await loadEntries(companyId, selectedYear);
+  }
   function downloadPdf() {
     const activeEntries = entries.filter((e) => e.status === "ACTIVE");
     const MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
@@ -287,8 +318,8 @@ export default function JournalPage() {
                     <button onClick={() => startEdit(e)} style={{ background: "none", border: "1px solid " + theme.accent, color: theme.accent, padding: "4px 12px", borderRadius: 8, fontSize: 13, cursor: "pointer" }}>
                       Editar
                     </button>
-                    <button onClick={() => voidEntry(e.id)} style={{ background: "none", border: "1px solid #F87171", color: "#F87171", padding: "4px 12px", borderRadius: 8,fontSize: 13, cursor: "pointer" }}>
-                      Anular
+                    <button onClick={() => reverseEntry(e)} style={{ background: "none", border: "1px solid #FB923C", color: "#FB923C", padding: "4px 12px", borderRadius: 8, fontSize: 13, cursor: "pointer" }}>
+                      Reversar
                     </button>
                   </div>
                 )}
