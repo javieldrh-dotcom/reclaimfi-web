@@ -133,7 +133,7 @@ export default function InventoryBookPage() {
     (accountsData ?? []).forEach((a: any) => { accountsMap[a.id] = a; });
     const accountIds = (accountsData ?? []).map((a: any) => a.id);
 
-    const { data: lines } = await supabase.from("journal_lines").select("debit, credit, account_id").in("account_id", accountIds);
+    const { data: lines } = await supabase.from("journal_lines").select("debit, credit, account_id, journal_entries!inner(status)").in("account_id", accountIds).eq("journal_entries.status", "ACTIVE");
     const balances: Record<string, number> = {};
     (lines ?? []).forEach((l: any) => {
       const acc = accountsMap[l.account_id];
@@ -146,7 +146,7 @@ export default function InventoryBookPage() {
       return invert ? -raw : raw;
     }
 
-    const { data: periodEntries } = await supabase.from("journal_entries").select("id").eq("company_id", companyId).gte("entry_date", periodStart).lte("entry_date", periodEnd);
+    const { data: periodEntries } = await supabase.from("journal_entries").select("id").eq("company_id", companyId).eq("status", "ACTIVE").gte("entry_date", periodStart).lte("entry_date", periodEnd);
     const periodEntryIds = (periodEntries ?? []).map((e: any) => e.id);
     const periodLinesResult = periodEntryIds.length > 0
       ? await supabase.from("journal_lines").select("debit, credit, account_id").in("account_id", accountIds).in("journal_entry_id", periodEntryIds)
