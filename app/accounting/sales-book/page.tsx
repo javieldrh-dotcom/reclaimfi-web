@@ -273,6 +273,37 @@ export default function SalesBookPage() {
           <button onClick={() => createNewAccount("LIABILITY", "vatpayable")} style={{ padding: "0 16px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 14, whiteSpace: "nowrap" }}>+ Nueva</button>
         </div>
 
+        {taxableBaseGeneral && revenueAccountId && (() => {
+          const pBase = parseFloat(taxableBaseGeneral) || 0;
+          const pRate = parseFloat(rateGeneral) || 16;
+          const pIva = isExport ? 0 : pBase * (pRate / 100);
+          const pWithheld = parseFloat(withheldByCustomer) || 0;
+          const pNonTaxable = parseFloat(nonTaxableAmount) || 0;
+          const pTotal = pBase + pIva + pNonTaxable;
+          const pNet = pTotal - pWithheld;
+          const nameOf = (id: string) => { const a = accounts.find((x) => x.id === id); return a ? a.account_code + " - " + a.account_name : "(sin seleccionar)"; };
+          const totalDebe = pNet + pWithheld;
+          const totalHaber = pBase + pNonTaxable + pIva;
+          const cuadra = Math.abs(totalDebe - totalHaber) < 0.01;
+          return (
+            <div style={{ ...theme.cardStyle, marginTop: 16, border: "1px solid " + theme.accent }}>
+              <p style={{ fontSize: 15, color: "#B0B8C8", marginBottom: 12, lineHeight: 1.6 }}>
+                Vas a facturar <b style={{ color: theme.accent }}>{pBase.toLocaleString(undefined, { minimumFractionDigits: 2 })}</b> a <b>{customerName || "el cliente"}</b>.
+                {pIva > 0 && <> IVA Debito Fiscal: <b>{pIva.toLocaleString(undefined, { minimumFractionDigits: 2 })}</b>.</>}
+                {pWithheld > 0 && <> El cliente retendra <b>{pWithheld.toLocaleString(undefined, { minimumFractionDigits: 2 })}</b> de IVA.</>}
+                {" "}Neto a cobrar: <b style={{ color: "#4ade80" }}>{pNet.toLocaleString(undefined, { minimumFractionDigits: 2 })}</b>.
+              </p>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: theme.accent, fontWeight: 700, marginBottom: 6 }}>
+                <span>VISTA PREVIA DEL ASIENTO</span>
+                <span style={{ color: cuadra ? "#4ade80" : "#f87171" }}>{cuadra ? "✓ Cuadra" : "✗ No Cuadra"}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, padding: "4px 0" }}><span>{nameOf(arAccountId)}</span><span style={theme.numberStyle}>Debe {pNet.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></div>
+              {pWithheld > 0 && <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, padding: "4px 0" }}><span>Retenciones de IVA Soportadas</span><span style={theme.numberStyle}>Debe {pWithheld.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></div>}
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, padding: "4px 0" }}><span>{nameOf(revenueAccountId)}</span><span style={theme.numberStyle}>Haber {(pBase + pNonTaxable).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></div>
+              {pIva > 0 && <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, padding: "4px 0", borderTop: "1px solid #1F2937", marginTop: 4, paddingTop: 8 }}><span>{nameOf(vatPayableAccountId)}</span><span style={theme.numberStyle}>Haber {pIva.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></div>}
+            </div>
+          );
+        })()}
         <button onClick={createEntry} style={{ ...theme.buttonStyle, marginTop: 16, fontSize: 18 }}>
           REGISTRAR VENTA
         </button>
