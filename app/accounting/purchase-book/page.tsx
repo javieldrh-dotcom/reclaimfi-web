@@ -323,6 +323,38 @@ export default function PurchaseBookPage() {
           </select>
           <button onClick={() => createNewAccount("LIABILITY", "ap")} style={{ padding: "0 16px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 14, whiteSpace: "nowrap" }}>+ Nueva</button>
         </div>
+        {taxableBaseGeneral && expenseAccountId && (() => {
+          const pBase = parseFloat(taxableBaseGeneral) || 0;
+          const pRate = parseFloat(rateGeneral) || 16;
+          const pIva = pBase * (pRate / 100);
+          const pWithheldPct = parseFloat(withholdingPercentage) || 0;
+          const pWithheld = pIva * (pWithheldPct / 100);
+          const pIslr = isProfessionalService ? pBase * (parseFloat(islrRate) / 100) : 0;
+          const pNet = pBase + pIva + (parseFloat(nonTaxableAmount) || 0) - pWithheld - pIslr;
+          const nameOf = (id: string) => { const a = accounts.find((x) => x.id === id); return a ? a.account_code + " - " + a.account_name : "(sin seleccionar)"; };
+          const totalDebe = pBase + pIva;
+          const totalHaber = pWithheld + pIslr + pNet;
+          const cuadra = Math.abs(totalDebe - totalHaber) < 0.01;
+          return (
+            <div style={{ ...theme.cardStyle, marginTop: 16, border: "1px solid " + theme.accent }}>
+              <p style={{ fontSize: 15, color: "#B0B8C8", marginBottom: 12, lineHeight: 1.6 }}>
+                Vas a registrar <b style={{ color: theme.accent }}>{pBase.toLocaleString(undefined, { minimumFractionDigits: 2 })}</b> de {expenseAccountId ? accounts.find(a => a.id === expenseAccountId)?.account_name : "Gasto"} pagado a <b>{vendorName || "el proveedor"}</b>.
+                {pWithheld > 0 && <> Se retendra <b>{pWithheld.toLocaleString(undefined, { minimumFractionDigits: 2 })}</b> de IVA.</>}
+                {pIslr > 0 && <> Se retendra <b>{pIslr.toLocaleString(undefined, { minimumFractionDigits: 2 })}</b> de ISLR.</>}
+                {" "}Neto a pagar: <b style={{ color: "#4ade80" }}>{pNet.toLocaleString(undefined, { minimumFractionDigits: 2 })}</b>.
+              </p>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: theme.accent, fontWeight: 700, marginBottom: 6 }}>
+                <span>VISTA PREVIA DEL ASIENTO</span>
+                <span style={{ color: cuadra ? "#4ade80" : "#f87171" }}>{cuadra ? "✓ Cuadra" : "✗ No Cuadra"}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, padding: "4px 0" }}><span>{nameOf(expenseAccountId)}</span><span style={theme.numberStyle}>Debe {pBase.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></div>
+              {pIva > 0 && <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, padding: "4px 0" }}><span>{nameOf(vatCreditAccountId)}</span><span style={theme.numberStyle}>Debe {pIva.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></div>}
+              {pWithheld > 0 && <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, padding: "4px 0" }}><span>{nameOf(vatWithholdingAccountId)}</span><span style={theme.numberStyle}>Haber {pWithheld.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></div>}
+              {pIslr > 0 && <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, padding: "4px 0" }}><span>{nameOf(islrWithholdingAccountId)}</span><span style={theme.numberStyle}>Haber {pIslr.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></div>}
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, padding: "4px 0", borderTop: "1px solid #1F2937", marginTop: 4, paddingTop: 8, fontWeight: 700 }}><span>{nameOf(apAccountId)}</span><span style={theme.numberStyle}>Haber {pNet.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></div>
+            </div>
+          );
+        })()}
         <button onClick={createEntry} style={{ ...theme.buttonStyle, marginTop: 16, fontSize: 18 }}>
           REGISTRAR COMPRA
         </button>
