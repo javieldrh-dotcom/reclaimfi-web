@@ -4,6 +4,7 @@ import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
 import VerticalPageLayout from "@/app/components/VerticalPageLayout";
 import { generateComprobanteIslrPdf } from "@/app/core/reports/generateComprobanteIslrPdf";
+import { generateIslrXml } from "@/app/core/reports/generateIslrXml";
 
 export default function WithholdingSummaryPage() {
   const theme = getVerticalTheme("accounting");
@@ -57,6 +58,29 @@ export default function WithholdingSummaryPage() {
     setSummary({ casilla34, casilla37, casilla38, totalWithheldByUs: casilla66_compras, netPosition });
     setLoading(false);
   }
+  function exportIslrXml() {
+    const detalles = islrWithheld.map((e: any) => ({
+      rifRetenido: e.vendor_tax_id,
+      numeroFactura: e.invoice_number || "",
+      numeroControl: e.control_number || "na",
+      codigoConcepto: e.islr_concept_code || "001",
+      fechaOperacion: e.entry_date.split("-").reverse().join("/"),
+      montoOperacion: e.taxable_base_general || 0,
+      porcentajeRetencion: e.taxable_base_general > 0 ? (e.islr_withheld / e.taxable_base_general) * 100 : 0,
+      montoRetenido: e.islr_withheld || 0,
+    }));
+    const ejercicio = periodStart.slice(0, 4);
+    const periodo = periodStart.slice(0, 4) + periodStart.slice(5, 7);
+    const xml = generateIslrXml(taxAgentRif, ejercicio, periodo, detalles);
+    const blob = new Blob([xml], { type: "application/xml;charset=iso-8859-1" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "retenciones-islr-" + periodo + ".xml";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   function generateComprobante(entry: any, seq: number) {
     const d = new Date(entry.entry_date);
     const meses = ["ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"];
@@ -206,7 +230,12 @@ export default function WithholdingSummaryPage() {
 
       {islrWithheld.length > 0 && (
         <div style={{ marginTop: 32 }}>
-          <h2 style={{ fontSize: 24, color: theme.accent, fontWeight: 700 }}>Retenciones de ISLR (Servicios Profesionales)</h2>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h2 style={{ fontSize: 24, color: theme.accent, fontWeight: 700 }}>Retenciones de ISLR (Servicios Profesionales)</h2>
+              <button onClick={exportIslrXml} style={{ ...theme.buttonStyle, fontSize: 15, padding: "10px 20px" }}>
+                Exportar XML (SENIAT)
+              </button>
+            </div>
           <div style={{ ...theme.cardStyle, marginTop: 12, marginBottom: 12 }}>
             <p style={{ fontSize: 18 }}>Total ISLR Retenido del Periodo:</p>
             <p style={{ fontSize: 28, fontWeight: 900, color: theme.accent, ...theme.numberStyle }}>{islrWithheld.reduce((s, e) => s + (e.islr_withheld || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
