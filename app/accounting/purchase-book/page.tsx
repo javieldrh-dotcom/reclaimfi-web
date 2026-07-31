@@ -78,6 +78,35 @@ export default function PurchaseBookPage() {
     setWithheldAmount(calculated.toFixed(2));
   }, [taxableBaseGeneral, rateGeneral, withholdingPercentage]);
 
+  async function lookupVendorMemory(rif: string) {
+    if (!companyId || !rif || rif.length < 5) return;
+    const { data } = await supabase.from("vendor_account_memory").select("*").eq("company_id", companyId).eq("vendor_tax_id", rif).maybeSingle();
+    if (data) {
+      if (data.expense_account_id) setExpenseAccountId(data.expense_account_id);
+      if (data.vat_credit_account_id) setVatCreditAccountId(data.vat_credit_account_id);
+      if (data.vat_withholding_account_id) setVatWithholdingAccountId(data.vat_withholding_account_id);
+      if (data.islr_withholding_account_id) setIslrWithholdingAccountId(data.islr_withholding_account_id);
+      if (data.ap_account_id) setApAccountId(data.ap_account_id);
+      setIsProfessionalService(!!data.used_islr);
+      setMessage("Cuentas autocompletadas segun el historial de este proveedor.");
+    }
+  }
+
+  async function saveVendorMemory(rif: string) {
+    if (!companyId || !rif) return;
+    await supabase.from("vendor_account_memory").upsert([{
+      company_id: companyId,
+      vendor_tax_id: rif,
+      expense_account_id: expenseAccountId || null,
+      vat_credit_account_id: vatCreditAccountId || null,
+      vat_withholding_account_id: vatWithholdingAccountId || null,
+      islr_withholding_account_id: islrWithholdingAccountId || null,
+      ap_account_id: apAccountId || null,
+      used_islr: isProfessionalService,
+      updated_at: new Date().toISOString(),
+    }], { onConflict: "company_id,vendor_tax_id" });
+  }
+
   async function createNewAccount(type: string, target: string) {
     const name = window.prompt("Nombre de la nueva cuenta:");
     if (!name || !companyId) return;
@@ -176,6 +205,7 @@ export default function PurchaseBookPage() {
     if (bookError) { setMessage("Error al guardar en Libro de Compras: " + bookError.message); return; }
 
     setMessage("Compra registrada en el Libro de Compras y asiento contable generado automaticamente.");
+    await saveVendorMemory(vendorTaxId);
     setInvoiceNumber(""); setControlNumber(""); setAffectedDocument(""); setVendorName(""); setVendorTaxId(""); setTaxableBaseGeneral(""); setNonTaxableAmount("0"); setIsImport(false); setWithholdingReceiptNumber(""); setWithheldAmount("0");
     await loadEntries(companyId);
   }
@@ -216,7 +246,7 @@ export default function PurchaseBookPage() {
           <input value={affectedDocument} onChange={(e) => setAffectedDocument(e.target.value)} style={inputStyle} placeholder="Nº Factura Afectada (si N/C o N/D)" />
         </div>
         <input value={vendorName} onChange={(e) => setVendorName(e.target.value)} style={{ ...inputStyle, marginTop: 8 }} placeholder="Nombre/Razon Social del Vendedor" />
-        <input value={vendorTaxId} onChange={(e) => setVendorTaxId(e.target.value)} style={{ ...inputStyle, marginTop: 8 }} placeholder="RIF del Vendedor" />
+        <input value={vendorTaxId} onChange={(e) => setVendorTaxId(e.target.value)} onBlur={(e) => lookupVendorMemory(e.target.value)} style={{ ...inputStyle, marginTop: 8 }} placeholder="RIF del Vendedor" />
 
         <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10, fontSize: 16 }}>
           <input type="checkbox" checked={isImport} onChange={(e) => setIsImport(e.target.checked)} />
