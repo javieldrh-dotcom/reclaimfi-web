@@ -251,42 +251,48 @@ export default function PurchaseBookPage() {
             <p style={{ fontSize: 15, color: theme.accent }}>ISLR a Retener: {((parseFloat(taxableBaseGeneral) || 0) * (parseFloat(islrRate) / 100)).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
           </div>
         )}
-        <div style={{ display: "flex", gap: 6, marginTop: 12 }}>
-          <select value={apAccountId} onChange={(e) => setApAccountId(e.target.value)} style={inputStyle}>
-            <option value="">Cuenta de Cuentas por Pagar</option>
-            {accounts.filter(a => a.account_type === "LIABILITY").map((a) => <option key={a.id} value={a.id}>{a.account_code} - {a.account_name}</option>)}
-          </select>
-          <button onClick={() => createNewAccount("LIABILITY", "ap")} style={{ padding: "0 16px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 14, whiteSpace: "nowrap" }}>+ Nueva</button>
-        </div>
-        <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+        <h4 style={{ fontSize: 14, color: "#8B93A7", marginTop: 16, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Gasto</h4>
+        <div style={{ display: "flex", gap: 8 }}>
           <select value={expenseAccountId} onChange={(e) => setExpenseAccountId(e.target.value)} style={inputStyle}>
             <option value="">Cuenta de Gasto</option>
             {accounts.filter(a => a.account_type === "EXPENSE").map((a) => <option key={a.id} value={a.id}>{a.account_code} - {a.account_name}</option>)}
           </select>
           <button onClick={() => createNewAccount("EXPENSE", "expense")} style={{ padding: "0 16px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 14, whiteSpace: "nowrap" }}>+ Nueva</button>
         </div>
-        <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+
+        <h4 style={{ fontSize: 14, color: "#8B93A7", marginTop: 16, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Impuesto</h4>
+        <div style={{ display: "flex", gap: 6 }}>
           <select value={vatCreditAccountId} onChange={(e) => setVatCreditAccountId(e.target.value)} style={inputStyle}>
             <option value="">Cuenta de IVA Credito Fiscal</option>
             {accounts.filter(a => a.account_type === "ASSET").map((a) => <option key={a.id} value={a.id}>{a.account_code} - {a.account_name}</option>)}
           </select>
           <button onClick={() => createNewAccount("ASSET", "vatcredit")} style={{ padding: "0 16px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 14, whiteSpace: "nowrap" }}>+ Nueva</button>
         </div>
-        <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+
+        <h4 style={{ fontSize: 14, color: "#8B93A7", marginTop: 16, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Retenciones (si aplican)</h4>
+        <div style={{ display: "flex", gap: 6 }}>
           <select value={vatWithholdingAccountId} onChange={(e) => setVatWithholdingAccountId(e.target.value)} style={inputStyle}>
-            <option value="">Cuenta de Retencion de IVA por Enterar (opcional, solo si hay retencion)</option>
+            <option value="">Cuenta de Retencion de IVA por Enterar</option>
             {accounts.filter(a => a.account_type === "LIABILITY").map((a) => <option key={a.id} value={a.id}>{a.account_code} - {a.account_name}</option>)}
           </select>
           <button onClick={() => createNewAccount("LIABILITY", "withholding")} style={{ padding: "0 16px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 14, whiteSpace: "nowrap" }}>+ Nueva</button>
         </div>
         <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
           <select value={islrWithholdingAccountId} onChange={(e) => setIslrWithholdingAccountId(e.target.value)} style={inputStyle}>
-            <option value="">Cuenta de Retencion de ISLR por Enterar (opcional, solo si es Servicio Profesional)</option>
+            <option value="">Cuenta de Retencion de ISLR por Enterar</option>
             {accounts.filter(a => a.account_type === "LIABILITY").map((a) => <option key={a.id} value={a.id}>{a.account_code} - {a.account_name}</option>)}
           </select>
           <button onClick={() => createNewAccount("LIABILITY", "islr")} style={{ padding: "0 16px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 14, whiteSpace: "nowrap" }}>+ Nueva</button>
         </div>
 
+        <h4 style={{ fontSize: 14, color: "#8B93A7", marginTop: 16, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Pago (Neto)</h4>
+        <div style={{ display: "flex", gap: 6 }}>
+          <select value={apAccountId} onChange={(e) => setApAccountId(e.target.value)} style={inputStyle}>
+            <option value="">Cuenta de Cuentas por Pagar</option>
+            {accounts.filter(a => a.account_type === "LIABILITY").map((a) => <option key={a.id} value={a.id}>{a.account_code} - {a.account_name}</option>)}
+          </select>
+          <button onClick={() => createNewAccount("LIABILITY", "ap")} style={{ padding: "0 16px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 14, whiteSpace: "nowrap" }}>+ Nueva</button>
+        </div>
         <button onClick={createEntry} style={{ ...theme.buttonStyle, marginTop: 16, fontSize: 18 }}>
           REGISTRAR COMPRA
         </button>
