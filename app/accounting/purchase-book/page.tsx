@@ -58,20 +58,17 @@ export default function PurchaseBookPage() {
         setAccounts(acc ?? []);
         const vatCreditDefault = (acc ?? []).find((a: any) => a.account_name.toLowerCase().includes("credito fiscal"));
         if (vatCreditDefault) setVatCreditAccountId(vatCreditDefault.id);
+        const apDefault = (acc ?? []).find((a: any) => a.account_name.toLowerCase().includes("proveedores nacionales"));
+        if (apDefault) setApAccountId(apDefault.id);
+        const vatWithDefault = (acc ?? []).find((a: any) => a.account_name.toLowerCase().includes("retenciones de iva por enterar"));
+        if (vatWithDefault) setVatWithholdingAccountId(vatWithDefault.id);
+        const islrWithDefault = (acc ?? []).find((a: any) => a.account_name.toLowerCase().includes("retenciones de islr por enterar"));
+        if (islrWithDefault) setIslrWithholdingAccountId(islrWithDefault.id);
         await loadEntries(cid);
       }
     }
     load();
   }, []);
-  useEffect(() => {
-    const base = parseFloat(taxableBaseGeneral) || 0;
-    const rate = parseFloat(rateGeneral) || 16;
-    const pct = parseFloat(withholdingPercentage) || 0;
-    const iva = base * (rate / 100);
-    const calculated = iva * (pct / 100);
-    setWithheldAmount(calculated.toFixed(2));
-  }, [taxableBaseGeneral, rateGeneral, withholdingPercentage]);
-
   useEffect(() => {
     const base = parseFloat(taxableBaseGeneral) || 0;
     const rate = parseFloat(rateGeneral) || 16;
