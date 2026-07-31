@@ -31,11 +31,10 @@ export default function BalanceSheetPage() {
         .in("account_type", ["ASSET", "LIABILITY", "EQUITY", "REVENUE", "EXPENSE"]);
       const accountsMap: Record<string, any> = {};
       (accountsData ?? []).forEach((a: any) => { accountsMap[a.id] = a; });
-      const accountIds = (accountsData ?? []).map((a: any) => a.id);
       const { data: lines } = await supabase
         .from("journal_lines")
-        .select("debit, credit, account_id")
-        .in("account_id", accountIds);
+        .select("debit, credit, account_id, journal_entries!inner(status)")
+        .eq("journal_entries.status", "ACTIVE");
       const grouped: Record<string, any> = {};
       let revenue = 0;
       let expense = 0;
