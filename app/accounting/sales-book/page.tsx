@@ -57,6 +57,29 @@ export default function SalesBookPage() {
     }
     load();
   }, []);
+  async function lookupCustomerMemory(rif: string) {
+    if (!companyId || !rif || rif.length < 5) return;
+    const { data } = await supabase.from("customer_account_memory").select("*").eq("company_id", companyId).eq("customer_tax_id", rif).maybeSingle();
+    if (data) {
+      if (data.revenue_account_id) setRevenueAccountId(data.revenue_account_id);
+      if (data.ar_account_id) setArAccountId(data.ar_account_id);
+      if (data.vat_payable_account_id) setVatPayableAccountId(data.vat_payable_account_id);
+      setMessage("Cuentas autocompletadas segun el historial de este cliente.");
+    }
+  }
+
+  async function saveCustomerMemory(rif: string) {
+    if (!companyId || !rif) return;
+    await supabase.from("customer_account_memory").upsert([{
+      company_id: companyId,
+      customer_tax_id: rif,
+      revenue_account_id: revenueAccountId || null,
+      ar_account_id: arAccountId || null,
+      vat_payable_account_id: vatPayableAccountId || null,
+      updated_at: new Date().toISOString(),
+    }], { onConflict: "company_id,customer_tax_id" });
+  }
+
   async function createNewAccount(type: string, target: string) {
     const name = window.prompt("Nombre de la nueva cuenta:");
     if (!name || !companyId) return;
@@ -141,6 +164,7 @@ export default function SalesBookPage() {
     if (bookError) { setMessage("Error al guardar en Libro de Ventas: " + bookError.message); return; }
 
     setMessage("Venta registrada en el Libro de Ventas y asiento contable generado automaticamente.");
+    await saveCustomerMemory(customerTaxId);
     setInvoiceNumber(""); setControlNumber(""); setAffectedDocument(""); setCustomerName(""); setCustomerTaxId(""); setTaxableBaseGeneral(""); setNonTaxableAmount("0"); setIsExport(false); setWithheldByCustomer("0");
     await loadEntries(companyId);
   }
@@ -205,7 +229,7 @@ export default function SalesBookPage() {
           <input value={affectedDocument} onChange={(e) => setAffectedDocument(e.target.value)} style={inputStyle} placeholder="Nº Factura Afectada (si N/C o N/D)" />
         </div>
         <input value={customerName} onChange={(e) => setCustomerName(e.target.value)} style={{ ...inputStyle, marginTop: 8 }} placeholder="Nombre/Razon Social del Comprador" />
-        <input value={customerTaxId} onChange={(e) => setCustomerTaxId(e.target.value)} style={{ ...inputStyle, marginTop: 8 }} placeholder="RIF del Comprador" />
+        <input value={customerTaxId} onChange={(e) => setCustomerTaxId(e.target.value)} onBlur={(e) => lookupCustomerMemory(e.target.value)} style={{ ...inputStyle, marginTop: 8 }} placeholder="RIF del Comprador" />
 
         <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10, fontSize: 16 }}>
           <input type="checkbox" checked={isExport} onChange={(e) => setIsExport(e.target.checked)} />
