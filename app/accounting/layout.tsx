@@ -41,6 +41,7 @@ const navItems = [
       { href: "/accounting/withholding-summary", label: "Resumen Retenciones" },
       { href: "/accounting/igtf", label: "IGTF" },
       { href: "/accounting/fx-revaluation", label: "Revaluacion Cambiaria" },
+      { href: "/accounting/default-accounts", label: "Cuentas por Defecto" },
       { href: "/accounting/special-taxpayer", label: "Contribuyente Especial" },
       { href: "/accounting/islr", label: "ISLR Anual" },
       { href: "/accounting/islr-estimated", label: "ISLR Declaracion Estimada" },
