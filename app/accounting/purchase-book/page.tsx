@@ -128,6 +128,8 @@ export default function PurchaseBookPage() {
 
   async function reverseEntry(entryId: string, journalEntryId: string, vendorNameLocal: string) {
     if (!companyId || !journalEntryId) return;
+    const { data: checkEntry } = await supabase.from("journal_entries").select("reversed_by_entry_id").eq("id", journalEntryId).single();
+    if (checkEntry?.reversed_by_entry_id) { alert("Este asiento ya fue reversado anteriormente. No se puede reversar dos veces."); return; }
     if (!window.confirm("Se creara un asiento contable de reverso (cifras invertidas). El registro fiscal original permanecera intacto. Confirmar?")) return;
 
     const { data: origEntry } = await supabase.from("journal_entries").select("entry_number, description").eq("id", journalEntryId).single();
