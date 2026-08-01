@@ -126,13 +126,36 @@ export default function PurchaseBookPage() {
     if (target === "islr") setIslrWithholdingAccountId(newAcc.id);
   }
 
-  async function voidEntry(entryId: string, journalEntryId: string) {
-    const reason = window.prompt("Motivo de la anulacion:");
-    if (!reason) return;
-    await supabase.from("purchase_book_entries").update({ status: "VOIDED", voided_at: new Date().toISOString(), void_reason: reason }).eq("id", entryId);
-    if (journalEntryId) {
-      await supabase.from("journal_entries").update({ status: "VOIDED", voided_at: new Date().toISOString(), void_reason: reason }).eq("id", journalEntryId);
-    }
+  async function reverseEntry(entryId: string, journalEntryId: string, vendorNameLocal: string) {
+    if (!companyId || !journalEntryId) return;
+    if (!window.confirm("Se creara un asiento contable de reverso (cifras invertidas). El registro fiscal original permanecera intacto. Confirmar?")) return;
+
+    const { data: origEntry } = await supabase.from("journal_entries").select("entry_number, description").eq("id", journalEntryId).single();
+    const { data: origLines } = await supabase.from("journal_lines").select("account_id, debit, credit").eq("journal_entry_id", journalEntryId);
+
+    const { data: lastEntry } = await supabase.from("journal_entries").select("entry_number").eq("company_id", companyId).order("entry_number", { ascending: false }).limit(1).maybeSingle();
+    const nextNumber = (lastEntry?.entry_number || 0) + 1;
+    const today = new Date().toISOString().slice(0, 10);
+
+    const { data: newEntry, error: entryError } = await supabase.from("journal_entries").insert([{
+      company_id: companyId,
+      description: "Reverso del Asiento Nº" + (origEntry?.entry_number ?? "S/N") + " - " + (origEntry?.description ?? vendorNameLocal),
+      entry_date: today,
+      entry_number: nextNumber,
+      reversal_of_entry_id: journalEntryId,
+    }]).select("id").single();
+    if (entryError || !newEntry) { alert("Error al crear reverso: " + entryError?.message); return; }
+
+    const reversedLines = (origLines ?? []).map((l: any) => ({
+      journal_entry_id: newEntry.id,
+      account_id: l.account_id,
+      debit: l.credit || 0,
+      credit: l.debit || 0,
+    }));
+    await supabase.from("journal_lines").insert(reversedLines);
+    await supabase.from("journal_entries").update({ reversed_by_entry_id: newEntry.id }).eq("id", journalEntryId);
+
+    alert("Reverso creado correctamente (Asiento Nº" + nextNumber + "). El registro fiscal original se mantiene intacto.");
     if (companyId) await loadEntries(companyId);
   }
 
@@ -416,8 +439,8 @@ export default function PurchaseBookPage() {
                     <td style={{ padding: 6 }}>{e.withholding_receipt_number || "-"}</td>
                     <td style={{ padding: 6, textAlign: "right", ...theme.numberStyle }}>{(e.withheld_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     <td style={{ padding: 6 }}>
-                      <button onClick={() => voidEntry(e.id, e.journal_entry_id)} style={{ background: "none", border: "1px solid #F87171", color: "#F87171", padding: "4px 10px", borderRadius: 6, fontSize: 12, cursor: "pointer" }}>
-                        Anular
+                      <button onClick={() => reverseEntry(e.id, e.journal_entry_id, e.vendor_name)} style={{ background: "none", border: "1px solid #FB923C", color: "#FB923C", padding: "4px 10px", borderRadius: 6, fontSize: 12, cursor: "pointer" }}>
+                        Reversar
                       </button>
                     </td>
                   </tr>
