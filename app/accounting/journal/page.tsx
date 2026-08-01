@@ -40,7 +40,7 @@ export default function JournalPage() {
   async function loadEntries(cid: string, year: string) {
     let query = supabase
       .from("journal_entries")
-      .select("id, description, entry_date, status, entry_number")
+      .select("id, description, entry_date, status, entry_number, reversed_by_entry_id, reversal_of_entry_id")
       .eq("company_id", cid)
       .eq("status", "ACTIVE")
       .order("entry_number", { ascending: false });
@@ -169,6 +169,7 @@ export default function JournalPage() {
 
   async function reverseEntry(entry: any) {
     if (!companyId) return;
+    if (entry.reversed_by_entry_id) { alert("Este asiento ya fue reversado anteriormente. No se puede reversar dos veces."); return; }
     const confirmMsg = "Se creara un asiento nuevo con las cifras invertidas de Nº" + (entry.entry_number ?? "S/N") + ". El asiento original permanecera visible. Confirmar?";
     if (!window.confirm(confirmMsg)) return;
 
