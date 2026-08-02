@@ -86,13 +86,33 @@ export default function ArInvoicesPage() {
     if (companyId) await loadInvoices(companyId);
   }
 
-  async function voidInvoice(invoiceId: string, journalEntryId: string | null) {
-    const reason = window.prompt("Motivo de la anulacion:");
-    if (!reason) return;
-    await supabase.from("ar_invoices").update({ status: "VOIDED" }).eq("id", invoiceId);
-    if (journalEntryId) {
-      await supabase.from("journal_entries").update({ status: "VOIDED", voided_at: new Date().toISOString(), void_reason: reason }).eq("id", journalEntryId);
-    }
+  async function reverseInvoice(invoiceId: string, journalEntryId: string | null, customerNameLocal: string) {
+    if (!companyId || !journalEntryId) return;
+    const { data: checkEntry } = await supabase.from("journal_entries").select("reversed_by_entry_id").eq("id", journalEntryId).single();
+    if (checkEntry?.reversed_by_entry_id) { alert("Este asiento ya fue reversado anteriormente."); return; }
+    if (!window.confirm("Se creara un asiento contable de reverso (cifras invertidas). El registro original permanecera intacto. Confirmar?")) return;
+    const { data: origEntry } = await supabase.from("journal_entries").select("entry_number, description").eq("id", journalEntryId).single();
+    const { data: origLines } = await supabase.from("journal_lines").select("account_id, debit, credit").eq("journal_entry_id", journalEntryId);
+    const { data: lastEntry } = await supabase.from("journal_entries").select("entry_number").eq("company_id", companyId).order("entry_number", { ascending: false }).limit(1).maybeSingle();
+    const nextNumber = (lastEntry?.entry_number || 0) + 1;
+    const today = new Date().toISOString().slice(0, 10);
+    const { data: newEntry, error: entryError } = await supabase.from("journal_entries").insert([{
+      company_id: companyId,
+      description: "Reverso del Asiento Nº" + (origEntry?.entry_number ?? "S/N") + " - " + (origEntry?.description ?? customerNameLocal),
+      entry_date: today,
+      entry_number: nextNumber,
+      reversal_of_entry_id: journalEntryId,
+    }]).select("id").single();
+    if (entryError || !newEntry) { alert("Error al crear reverso: " + entryError?.message); return; }
+    const reversedLines = (origLines ?? []).map((l: any) => ({
+      journal_entry_id: newEntry.id,
+      account_id: l.account_id,
+      debit: l.credit || 0,
+      credit: l.debit || 0,
+    }));
+    await supabase.from("journal_lines").insert(reversedLines);
+    await supabase.from("journal_entries").update({ reversed_by_entry_id: newEntry.id }).eq("id", journalEntryId);
+    alert("Reverso creado correctamente (Asiento Nº" + nextNumber + ").");
     if (companyId) await loadInvoices(companyId);
   }
   const inputStyle = { ...theme.inputStyle, fontSize: 20 };
@@ -149,8 +169,8 @@ export default function ArInvoicesPage() {
                         <button onClick={() => markAsPaid(inv.id)} style={{ background: "none", border: "1px solid #4ade80", color: "#4ade80", padding: "6px 14px", borderRadius: 8, fontSize: 15, marginRight: 6 }}>
                           Marcar Pagada
                         </button>
-                        <button onClick={() => voidInvoice(inv.id, inv.journal_entry_id)} style={{ background: "none", border: "1px solid #f87171", color: "#f87171", padding: "6px 14px", borderRadius: 8, fontSize: 15 }}>
-                          Anular
+                        <button onClick={() => reverseInvoice(inv.id, inv.journal_entry_id, inv.customer_name)} style={{ background: "none", border: "1px solid #FB923C", color: "#FB923C", padding: "6px 14px", borderRadius: 8, fontSize: 15 }}>
+                          Reversar
                         </button>
                       </>
                     )}
