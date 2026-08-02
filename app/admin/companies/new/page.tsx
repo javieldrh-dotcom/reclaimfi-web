@@ -119,6 +119,8 @@ export default function NewCompanyPage() {
       await supabase.from("chart_of_accounts").insert(accountsToInsert);
     }
 
+    await supabase.from("user_companies").insert([{ user_id: userData.user.id, company_id: company.id, last_active_at: new Date().toISOString() }]);
+
     const { data: adminRole } = await supabase.from("user_roles").select("id").eq("name", "ADMIN").single();
     if (adminRole) {
       await supabase.from("user_role_assignments").insert([{
