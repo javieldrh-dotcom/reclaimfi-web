@@ -13,6 +13,7 @@ const SECTORS = [
   { code: "AGRICULTURE", label: "Agropecuario" },
   { code: "HEALTHCARE", label: "Salud" },
   { code: "HOSPITALITY", label: "Hoteleria y Turismo" },
+  { code: "RESTAURANT", label: "Restaurantes y Comida" },
   { code: "OIL_GAS", label: "Petroleo y Gas" },
 ];
 
