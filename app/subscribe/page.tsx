@@ -27,7 +27,7 @@ function SubscribePageContent() {
     async function load() {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData?.user) return;
-      const { data: uc } = await supabase.from("user_companies").select("company_id").eq("user_id", userData.user.id).limit(1).single();
+      const { data: uc } = await supabase.from("user_companies").select("company_id").eq("user_id", userData.user.id).order("last_active_at", { ascending: false }).limit(1).single();
       setCompanyId(uc?.company_id ?? null);
 
       const { data: plansData } = await supabase.from("subscription_plans").select("*").order("monthly_price_usd");

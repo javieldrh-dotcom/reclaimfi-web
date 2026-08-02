@@ -16,7 +16,7 @@ export default function TrialBalancePage() {
     async function load() {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData?.user) return;
-      const { data: uc } = await supabase.from("user_companies").select("company_id").eq("user_id", userData.user.id).limit(1).single();
+      const { data: uc } = await supabase.from("user_companies").select("company_id").eq("user_id", userData.user.id).order("last_active_at", { ascending: false }).limit(1).single();
       const cid = uc?.company_id;
       if (!cid) { setLoading(false); return; }
       const { data: companyData } = await supabase.from("companies").select("name, functional_currency").eq("id", cid).single();

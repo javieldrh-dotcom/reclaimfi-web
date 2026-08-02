@@ -17,7 +17,7 @@ export default function BankReconciliationPage() {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData?.user) { setLoading(false); return; }
 
-    const { data: uc } = await supabase.from("user_companies").select("company_id").eq("user_id", userData.user.id).limit(1).single();
+    const { data: uc } = await supabase.from("user_companies").select("company_id").eq("user_id", userData.user.id).order("last_active_at", { ascending: false }).limit(1).single();
     const cid = uc?.company_id;
 
     const { data: accountsData } = await supabase.from("chart_of_accounts").select("id").eq("company_id", cid).ilike("account_code", "1102%");
