@@ -77,6 +77,7 @@ const COUNTRIES = [
 export default function NewCompanyPage() {
   const router = useRouter();
   const [name, setName] = useState("");
+  const [taxId, setTaxId] = useState("");
   const [country, setCountry] = useState("VE");
   const [sector, setSector] = useState("GENERIC");
   const [loading, setLoading] = useState(false);
@@ -91,7 +92,7 @@ export default function NewCompanyPage() {
 
     const { data: company, error: companyError } = await supabase
       .from("companies")
-      .insert([{ name, country, industry_sector: sector, owner_id: userData.user.id }])
+      .insert([{ name, tax_id: taxId, country, industry_sector: sector, owner_id: userData.user.id }])
       .select("id")
       .single();
 
@@ -141,6 +142,11 @@ export default function NewCompanyPage() {
         <div>
           <label style={{ fontSize: 13, color: "#7dd3fc" }}>NOMBRE DE LA EMPRESA</label>
           <input value={name} onChange={(e) => setName(e.target.value)} style={{ ...inputStyle, marginTop: 6 }} placeholder="Ej. Consultora ABC C.A." />
+        </div>
+
+        <div>
+          <label style={{ fontSize: 13, color: "#7dd3fc" }}>RIF</label>
+          <input value={taxId} onChange={(e) => setTaxId(e.target.value)} style={{ ...inputStyle, marginTop: 6 }} placeholder="Ej. J-123456789" />
         </div>
 
         <div>
