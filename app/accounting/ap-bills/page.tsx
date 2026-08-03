@@ -8,6 +8,7 @@ export default function ApBillsPage() {
   const theme = getVerticalTheme("accounting");
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [bills, setBills] = useState<any[]>([]);
+  const [displayLimit, setDisplayLimit] = useState(50);
   const [accounts, setAccounts] = useState<any[]>([]);
   const [apAccountId, setApAccountId] = useState("");
   const [expenseAccountId, setExpenseAccountId] = useState("");
@@ -155,7 +156,7 @@ export default function ApBillsPage() {
               </tr>
             </thead>
             <tbody>
-              {bills.map((b) => (
+              {bills.slice(0, displayLimit).map((b) => (
                 <tr key={b.id} style={{ borderBottom: "1px solid #1F2937" }}>
                   <td style={{ padding: 10, fontSize: 20 }}>{b.bill_number}</td>
                   <td style={{ padding: 10, fontSize: 20 }}>{b.vendor_name}</td>
@@ -178,6 +179,13 @@ export default function ApBillsPage() {
               ))}
             </tbody>
           </table>
+          {bills.length > displayLimit && (
+            <div style={{ textAlign: "center", marginTop: 16 }}>
+              <button onClick={() => setDisplayLimit(displayLimit + 50)} style={{ background: "none", border: "1px solid #f87171", color: "#f87171", padding: "10px 24px", borderRadius: 10, fontSize: 14, cursor: "pointer" }}>
+                Cargar 50 mas (mostrando {displayLimit} de {bills.length})
+              </button>
+            </div>
+          )}
         </div>
       )}
     </VerticalPageLayout>
