@@ -164,6 +164,20 @@ export default function PurchaseBookPage() {
     if (companyId) await loadEntries(companyId);
   }
 
+  async function fetchBcvRate() {
+    setMessage("Consultando tasa BCV...");
+    try {
+      const res = await fetch("/api/bcv-rate");
+      const json = await res.json();
+      if (!json.success) { setMessage("No se pudo consultar la tasa BCV: " + json.error); return; }
+      setInvoiceCurrency("VES");
+      setInvoiceExchangeRate(String(json.rate));
+      setMessage("Tasa BCV de hoy aplicada: " + json.rate + " (" + json.source + ")");
+    } catch (err: any) {
+      setMessage("Error al consultar la tasa: " + err.message);
+    }
+  }
+
   async function handleInvoiceUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -312,6 +326,7 @@ export default function PurchaseBookPage() {
             <option value="VES">VES (Bolivares)</option>
           </select>
           <input type="number" step="0.0001" value={invoiceExchangeRate} onChange={(e) => setInvoiceExchangeRate(e.target.value)} style={inputStyle} placeholder="Tasa de Cambio" />
+          <button onClick={fetchBcvRate} type="button" style={{ padding: "0 14px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap" }}>Tasa BCV Hoy</button>
           <select value={documentType} onChange={(e) => setDocumentType(e.target.value)} style={inputStyle}>
             <option value="FACTURA">Factura</option>
             <option value="NOTA_DEBITO">Nota de Debito</option>
