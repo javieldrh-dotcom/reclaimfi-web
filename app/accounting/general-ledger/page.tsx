@@ -13,6 +13,7 @@ export default function GeneralLedgerPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [movements, setMovements] = useState<any[]>([]);
+  const [displayLimit, setDisplayLimit] = useState(50);
   const [loading, setLoading] = useState(true);
   const [loadingMovements, setLoadingMovements] = useState(false);
   const [continuationFolio, setContinuationFolio] = useState("");
@@ -44,6 +45,8 @@ export default function GeneralLedgerPage() {
 
   async function loadMovements(accountId: string) {
     setSelectedAccountId(accountId);
+    setDisplayLimit(50);
+    setDisplayLimit(50);
     setLoadingMovements(true);
     const acc = accounts.find((a) => a.id === accountId);
     setContinuationFolio(acc?.mayor_folio_continuation ? String(acc.mayor_folio_continuation) : "");
@@ -162,7 +165,7 @@ export default function GeneralLedgerPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {movements.map((m, idx) => (
+                  {movements.slice(0, displayLimit).map((m, idx) => (
                     <tr key={idx} style={{ borderBottom: "1px solid #1F2937" }}>
                       <td style={{ padding: 10, fontSize: 22 }}>{m.date}</td>
                       <td style={{ padding: 10, fontSize: 22 }}>{m.description}</td>
@@ -173,6 +176,13 @@ export default function GeneralLedgerPage() {
                   ))}
                 </tbody>
               </table>
+              {movements.length > displayLimit && (
+                <div style={{ textAlign: "center", marginTop: 16 }}>
+                  <button onClick={() => setDisplayLimit(displayLimit + 50)} style={{ background: "none", border: "1px solid " + theme.accent, color: theme.accent, padding: "10px 24px", borderRadius: 10, fontSize: 14, cursor: "pointer" }}>
+                    Cargar 50 mas (mostrando {displayLimit} de {movements.length})
+                  </button>
+                </div>
+              )}
               {movements.length === 0 && <p style={{ color: "#8B93A7", marginTop: 12, fontSize: 16 }}>Sin movimientos registrados.</p>}
             </>
           )}
