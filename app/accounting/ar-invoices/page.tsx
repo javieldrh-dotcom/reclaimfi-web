@@ -8,6 +8,7 @@ export default function ArInvoicesPage() {
   const theme = getVerticalTheme("accounting");
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [invoices, setInvoices] = useState<any[]>([]);
+  const [displayLimit, setDisplayLimit] = useState(50);
   const [accounts, setAccounts] = useState<any[]>([]);
   const [arAccountId, setArAccountId] = useState("");
   const [revenueAccountId, setRevenueAccountId] = useState("");
@@ -156,7 +157,7 @@ export default function ArInvoicesPage() {
               </tr>
             </thead>
             <tbody>
-              {invoices.map((inv) => (
+              {invoices.slice(0, displayLimit).map((inv) => (
                 <tr key={inv.id} style={{ borderBottom: "1px solid #1F2937" }}>
                   <td style={{ padding: 10, fontSize: 20 }}>{inv.invoice_number}</td>
                   <td style={{ padding: 10, fontSize: 20 }}>{inv.customer_name}</td>
@@ -179,6 +180,13 @@ export default function ArInvoicesPage() {
               ))}
             </tbody>
           </table>
+          {invoices.length > displayLimit && (
+            <div style={{ textAlign: "center", marginTop: 16 }}>
+              <button onClick={() => setDisplayLimit(displayLimit + 50)} style={{ background: "none", border: "1px solid #4ade80", color: "#4ade80", padding: "10px 24px", borderRadius: 10, fontSize: 14, cursor: "pointer" }}>
+                Cargar 50 mas (mostrando {displayLimit} de {invoices.length})
+              </button>
+            </div>
+          )}
         </div>
       )}
     </VerticalPageLayout>
