@@ -11,6 +11,7 @@ export default function PurchaseBookPage() {
   const [companyName, setCompanyName] = useState("");
   const [companyRif, setCompanyRif] = useState("");
   const [entries, setEntries] = useState<any[]>([]);
+  const [displayLimit, setDisplayLimit] = useState(50);
   const [accounts, setAccounts] = useState<any[]>([]);
   const [apAccountId, setApAccountId] = useState("");
   const [expenseAccountId, setExpenseAccountId] = useState("");
@@ -421,7 +422,7 @@ export default function PurchaseBookPage() {
                 </tr>
               </thead>
               <tbody>
-                {entries.map((e) => (
+                {entries.slice(0, displayLimit).map((e) => (
                   <tr key={e.id} style={{ borderBottom: "1px solid #1F2937" }}>
                     <td style={{ padding: 6, textAlign: "center" }}>{e.entry_number}</td>
                     <td style={{ padding: 6 }}>{e.entry_date}</td>
@@ -465,6 +466,13 @@ export default function PurchaseBookPage() {
               </tfoot>
             </table>
           </div>
+          {entries.length > displayLimit && (
+            <div style={{ textAlign: "center", marginTop: 16 }}>
+              <button onClick={() => setDisplayLimit(displayLimit + 50)} style={{ background: "none", border: "1px solid " + theme.accent, color: theme.accent, padding: "10px 24px", borderRadius: 10, fontSize: 14, cursor: "pointer" }}>
+                Cargar 50 mas (mostrando {displayLimit} de {entries.length})
+              </button>
+            </div>
+          )}
 
           <div style={{ ...theme.cardStyle, marginTop: 24, maxWidth: 500 }}>
             <h3 style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginBottom: 12 }}>RESUMEN LIBRO DE COMPRAS</h3>
