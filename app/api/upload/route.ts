@@ -2,9 +2,15 @@
 import { processIntelligence } from "@/app/lib/intelligenceOrchestrator";
 import { calculateRisk } from "@/app/verticals/reclaimfi/riskEngine";
 import { extractEntitiesFromText } from "@/app/core/agents/entityExtractionAgent";
+import { createClient } from "@/app/lib/supabase/server";
 
 export async function POST(request: Request) {
   try {
+    const supabaseAuth = await createClient();
+    const { data: userData } = await supabaseAuth.auth.getUser();
+    if (!userData?.user) {
+      return NextResponse.json({ success: false, error: "No autenticado. Debes iniciar sesion para usar este servicio." }, { status: 401 });
+    }
     const formData = await request.formData();
     const files = formData.getAll("files");
     const amountRaw = formData.get("amount");
