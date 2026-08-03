@@ -2,6 +2,7 @@
 import VerticalSidebar from "@/app/components/VerticalSidebar";
 import NeuralBackground from "@/app/components/NeuralBackground";
 import CompanySwitcher from "@/app/components/CompanySwitcher";
+import AccountingChatWidget from "@/app/components/AccountingChatWidget";
 const navItems = [
   { href: "/accounting", label: "DASHBOARD" },
   {
@@ -64,6 +65,7 @@ export default function AccountingLayout({ children }: { children: React.ReactNo
     <div style={{ display: "flex", position: "relative" }}>
       <NeuralBackground color="#818CF8" particleCount={100} />
       <VerticalSidebar vertical="accounting" brandName="CONTABILIDAD" navItems={navItems} />
+      <AccountingChatWidget />
       <div style={{ marginLeft: 280, flex: 1, position: "relative", zIndex: 1 }}>
         <div style={{ padding: "20px 40px 0" }}>
           <CompanySwitcher />
