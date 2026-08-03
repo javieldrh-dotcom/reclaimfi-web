@@ -105,6 +105,7 @@ export default function NewCompanyPage() {
     const { data: templateAccounts } = await supabase
       .from("chart_of_accounts")
       .select("account_code, account_name, account_type, monetary_type, parent_account_id")
+      .is("company_id", null)
       .eq("industry_sector", sector);
 
     if (templateAccounts && templateAccounts.length > 0) {
