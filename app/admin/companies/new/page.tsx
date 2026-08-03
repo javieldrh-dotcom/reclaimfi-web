@@ -131,7 +131,13 @@ export default function NewCompanyPage() {
       }]);
     }
 
-    setMessage("Empresa creada correctamente con " + (templateAccounts?.length ?? 0) + " cuentas instaladas.");
+    const installedCount = templateAccounts?.length ?? 0;
+    if (installedCount === 0) {
+      setMessage("ADVERTENCIA: La empresa se creo pero NO se instalo ninguna cuenta contable. Contacta soporte antes de usarla - no debes registrar transacciones sin un plan de cuentas.");
+      setLoading(false);
+      return;
+    }
+    setMessage("Empresa creada correctamente con " + installedCount + " cuentas instaladas.");
     setLoading(false);
     setTimeout(() => router.push("/select-module"), 2000);
   }
