@@ -12,6 +12,8 @@ export default function PurchaseBookPage() {
   const [companyRif, setCompanyRif] = useState("");
   const [entries, setEntries] = useState<any[]>([]);
   const [displayLimit, setDisplayLimit] = useState(50);
+  const [extracting, setExtracting] = useState(false);
+  const [extractWarnings, setExtractWarnings] = useState<string[]>([]);
   const [accounts, setAccounts] = useState<any[]>([]);
   const [apAccountId, setApAccountId] = useState("");
   const [expenseAccountId, setExpenseAccountId] = useState("");
@@ -162,6 +164,40 @@ export default function PurchaseBookPage() {
     if (companyId) await loadEntries(companyId);
   }
 
+  async function handleInvoiceUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setExtracting(true);
+    setExtractWarnings([]);
+    setMessage("");
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/extract-invoice", { method: "POST", body: formData });
+      const json = await res.json();
+      if (!json.success) {
+        setMessage("Error al leer la factura: " + json.error);
+        setExtracting(false);
+        return;
+      }
+      const d = json.data;
+      setVendorName(d.vendorName);
+      setVendorTaxId(d.vendorTaxId);
+      if (d.vendorTaxId) await lookupVendorMemory(d.vendorTaxId);
+      setInvoiceNumber(d.invoiceNumber);
+      setControlNumber(d.controlNumber);
+      if (d.invoiceDate) setEntryDate(d.invoiceDate);
+      setTaxableBaseGeneral(d.baseAmount ? String(d.baseAmount) : "");
+      setRateGeneral(d.rate ? String(d.rate) : "16");
+      setExtractWarnings(d.warnings ?? []);
+      setMessage(d.confidence === "LOW" ? "Datos extraidos con baja confianza, revisa cuidadosamente antes de guardar." : "Datos extraidos. Revisa y completa las cuentas contables antes de guardar.");
+    } catch (err: any) {
+      setMessage("Error al procesar la imagen: " + err.message);
+    }
+    setExtracting(false);
+    e.target.value = "";
+  }
+
   async function createEntry() {
     setMessage("");
     if (!companyId || !vendorName || !vendorTaxId || !taxableBaseGeneral || !apAccountId || !expenseAccountId || !vatCreditAccountId) {
@@ -252,6 +288,22 @@ export default function PurchaseBookPage() {
       ) : undefined}
     >
       <div style={{ maxWidth: 900 }}>
+        <div style={{ ...theme.cardStyle, marginBottom: 12, border: "1px dashed " + theme.accent }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: extracting ? "wait" : "pointer" }}>
+            <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleInvoiceUpload} disabled={extracting} style={{ display: "none" }} />
+            <span style={{ ...theme.buttonStyle, fontSize: 14, padding: "10px 20px", opacity: extracting ? 0.6 : 1 }}>
+              {extracting ? "Leyendo factura..." : "Extraer Datos de Foto de Factura"}
+            </span>
+            <span style={{ fontSize: 13, color: "#8B93A7" }}>Sube una foto y prellenamos el formulario automaticamente. Revisa siempre antes de guardar.</span>
+          </label>
+          {extractWarnings.length > 0 && (
+            <div style={{ marginTop: 10 }}>
+              {extractWarnings.map((w, i) => (
+                <p key={i} style={{ fontSize: 13, color: "#FB923C", margin: "2px 0" }}>⚠ {w}</p>
+              ))}
+            </div>
+          )}
+        </div>
         <div style={{ display: "flex", gap: 10 }}>
           <input type="date" value={entryDate} onChange={(e) => setEntryDate(e.target.value)} style={inputStyle} />
           <select value={invoiceCurrency} onChange={(e) => setInvoiceCurrency(e.target.value)} style={inputStyle}>
