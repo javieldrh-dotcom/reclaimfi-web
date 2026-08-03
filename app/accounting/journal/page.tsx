@@ -25,6 +25,7 @@ export default function JournalPage() {
   const [availableYears, setAvailableYears] = useState<string[]>([]);
   const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
   const [presentationMode, setPresentationMode] = useState(false);
+  const [displayLimit, setDisplayLimit] = useState(50);
   const [accountingConvention, setAccountingConvention] = useState("REGIONAL_VE");
 
   async function loadAvailableYears(cid: string) {
@@ -98,6 +99,7 @@ export default function JournalPage() {
 
   async function changeYear(year: string) {
     setSelectedYear(year);
+    setDisplayLimit(50);
     if (companyId) await loadEntries(companyId, year);
   }
 
@@ -307,7 +309,7 @@ export default function JournalPage() {
           <h2 style={{ fontSize: 26, color: theme.accent, fontFamily: theme.titleStyle.fontFamily, fontWeight: 700 }}>
             {selectedYear === "TODOS" ? "Todos los Ejercicios" : "Ejercicio Fiscal " + selectedYear}
           </h2>
-          {entries.map((e) => (
+          {entries.slice(0, displayLimit).map((e) => (
             <div key={e.id} style={{ ...theme.cardStyle, marginTop: 12, opacity: e.status === "VOIDED" ? 0.5 : 1 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontWeight: 700, fontSize: 22 }}>
@@ -333,6 +335,13 @@ export default function JournalPage() {
               ))}
             </div>
           ))}
+          {entries.length > displayLimit && (
+            <div style={{ textAlign: "center", marginTop: 20 }}>
+              <button onClick={() => setDisplayLimit(displayLimit + 50)} style={{ background: "none", border: "1px solid " + theme.accent, color: theme.accent, padding: "10px 24px", borderRadius: 10, fontSize: 15, cursor: "pointer" }}>
+                Cargar 50 mas (mostrando {displayLimit} de {entries.length})
+              </button>
+            </div>
+          )}
         </div>
       )}
     </VerticalPageLayout>
