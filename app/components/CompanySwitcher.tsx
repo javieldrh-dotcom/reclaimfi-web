@@ -34,7 +34,9 @@ export default function CompanySwitcher() {
   async function switchTo(company: any) {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData?.user) return;
-    await supabase.from("user_companies").update({ last_active_at: new Date().toISOString() }).eq("user_id", userData.user.id).eq("company_id", company.id);
+    const { error, data } = await supabase.from("user_companies").update({ last_active_at: new Date().toISOString() }).eq("user_id", userData.user.id).eq("company_id", company.id).select();
+    if (error) { alert("Error al cambiar de empresa: " + error.message); return; }
+    if (!data || data.length === 0) { alert("No se pudo actualizar (0 filas afectadas). Revisa la consola."); return; }
     setCurrent(company);
     setOpen(false);
     window.location.reload();
