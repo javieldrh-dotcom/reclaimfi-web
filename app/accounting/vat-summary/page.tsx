@@ -14,6 +14,7 @@ export default function VatSummaryPage() {
   const [summary, setSummary] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [declarations, setDeclarations] = useState<any[]>([]);
+  const [consistencyCheck, setConsistencyCheck] = useState<any>(null);
 
   useEffect(() => {
     async function load() {
@@ -63,6 +64,27 @@ export default function VatSummaryPage() {
     setSummary({ casilla40, casilla41, casilla46, casilla47, casilla49, casilla30, casilla35, casilla36, casilla39, casilla53, casilla66, casilla90, casilla60, periodStart, periodEnd });
     setLoading(false);
   }
+  async function verifyConsistency() {
+    if (!companyId || !summary) return;
+    const { data: accounts } = await supabase.from("chart_of_accounts").select("id, account_name").eq("company_id", companyId);
+    const creditAcc = (accounts ?? []).filter((a: any) => a.account_name.toLowerCase().includes("credito fiscal") && !a.account_name.toLowerCase().includes("retenci"));
+    const debitAcc = (accounts ?? []).filter((a: any) => (a.account_name.toLowerCase().includes("debito fiscal") || a.account_name.toLowerCase().includes("iva por pagar")) && !a.account_name.toLowerCase().includes("retenci"));
+    const creditIds = creditAcc.map((a: any) => a.id);
+    const debitIds = debitAcc.map((a: any) => a.id);
+    const { data: creditLines } = await supabase.from("journal_lines").select("debit, credit, journal_entries!inner(status, entry_date)").in("account_id", creditIds).eq("journal_entries.status", "ACTIVE").gte("journal_entries.entry_date", summary.periodStart).lte("journal_entries.entry_date", summary.periodEnd);
+    const { data: debitLines } = await supabase.from("journal_lines").select("debit, credit, journal_entries!inner(status, entry_date)").in("account_id", debitIds).eq("journal_entries.status", "ACTIVE").gte("journal_entries.entry_date", summary.periodStart).lte("journal_entries.entry_date", summary.periodEnd);
+    const journalCredit = (creditLines ?? []).reduce((s: number, l: any) => s + (l.debit || 0) - (l.credit || 0), 0);
+    const journalDebit = (debitLines ?? []).reduce((s: number, l: any) => s + (l.credit || 0) - (l.debit || 0), 0);
+    const creditDiff = Math.abs(journalCredit - summary.casilla36);
+    const debitDiff = Math.abs(journalDebit - summary.casilla47);
+    setConsistencyCheck({
+      creditAccountsFound: creditAcc.length,
+      debitAccountsFound: debitAcc.length,
+      journalCredit, bookCredit: summary.casilla36, creditDiff, creditOk: creditDiff < 0.5,
+      journalDebit, bookDebit: summary.casilla47, debitDiff, debitOk: debitDiff < 0.5,
+    });
+  }
+
   async function saveDeclaration() {
     if (!companyId || !summary) return;
     await supabase.from("vat_declarations").insert([{
@@ -127,6 +149,24 @@ export default function VatSummaryPage() {
               <span>[90] Total a Pagar</span>
               <span style={theme.numberStyle}>{summary.casilla90.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
             </div>
+            <button onClick={verifyConsistency} style={{ ...theme.buttonStyle, marginTop: 16, fontSize: 16, width: "100%", background: "none", border: "1px solid " + theme.accent, color: theme.accent }}>
+              VERIFICAR CONSISTENCIA ANTES DE DECLARAR
+            </button>
+
+            {consistencyCheck && (
+              <div style={{ marginTop: 12, padding: 14, borderRadius: 10, background: "#0B0E14" }}>
+                <p style={{ fontSize: 15, fontWeight: 700, color: consistencyCheck.creditOk ? "#4ade80" : "#f87171" }}>
+                  {consistencyCheck.creditOk ? "check" : "x"} IVA Credito Fiscal: Libro {consistencyCheck.bookCredit.toFixed(2)} vs Diario {consistencyCheck.journalCredit.toFixed(2)} {!consistencyCheck.creditOk && "(diferencia: " + consistencyCheck.creditDiff.toFixed(2) + ")"}
+                </p>
+                <p style={{ fontSize: 15, fontWeight: 700, color: consistencyCheck.debitOk ? "#4ade80" : "#f87171", marginTop: 6 }}>
+                  {consistencyCheck.debitOk ? "check" : "x"} IVA Debito Fiscal: Libro {consistencyCheck.bookDebit.toFixed(2)} vs Diario {consistencyCheck.journalDebit.toFixed(2)} {!consistencyCheck.debitOk && "(diferencia: " + consistencyCheck.debitDiff.toFixed(2) + ")"}
+                </p>
+                {(consistencyCheck.creditAccountsFound === 0 || consistencyCheck.debitAccountsFound === 0) && (
+                  <p style={{ fontSize: 13, color: "#FB923C", marginTop: 8 }}>Advertencia: No se encontraron cuentas con nombre "Credito Fiscal" o "Debito Fiscal" / "IVA por Pagar" en tu plan de cuentas. Verifica manualmente.</p>
+                )}
+              </div>
+            )}
+
             <button onClick={saveDeclaration} style={{ ...theme.buttonStyle, marginTop: 16, fontSize: 18, width: "100%" }}>
               GUARDAR DECLARACION
             </button>
