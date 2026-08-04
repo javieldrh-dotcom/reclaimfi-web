@@ -44,6 +44,7 @@ const navItems = [
       { href: "/accounting/igtf", label: "IGTF" },
       { href: "/accounting/fx-revaluation", label: "Revaluacion Cambiaria" },
       { href: "/accounting/default-accounts", label: "Cuentas por Defecto" },
+      { href: "/accounting/fiscal-deadlines", label: "Recordatorios Fiscales" },
       { href: "/accounting/special-taxpayer", label: "Contribuyente Especial" },
       { href: "/accounting/islr", label: "ISLR Anual" },
       { href: "/accounting/islr-estimated", label: "ISLR Declaracion Estimada" },
