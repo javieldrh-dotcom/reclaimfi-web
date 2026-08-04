@@ -86,6 +86,20 @@ export default function PayrollPage() {
     if (companyId) await loadEmployees(companyId);
   }
 
+  async function fetchBcvRate() {
+    setMessage("Consultando tasa BCV...");
+    try {
+      const res = await fetch("/api/bcv-rate");
+      const json = await res.json();
+      if (!json.success) { setMessage("No se pudo consultar la tasa BCV: " + json.error); return; }
+      setPayrollCurrency("VES");
+      setPayrollExchangeRate(String(json.rate));
+      setMessage("Tasa BCV de hoy aplicada: " + json.rate + " (" + json.source + ")");
+    } catch (err: any) {
+      setMessage("Error al consultar la tasa: " + err.message);
+    }
+  }
+
   async function processPayroll() {
     setMessage("");
     if (!companyId || !periodStart || !periodEnd || !salaryExpenseAccount || !cashAccount || !employeeWithholdingAccount || !patronalExpenseAccount || !patronalPayableAccount) {
@@ -217,6 +231,7 @@ export default function PayrollPage() {
               <option value="VES">VES (Bolivares)</option>
             </select>
             <input type="number" step="0.0001" value={payrollExchangeRate} onChange={(e) => setPayrollExchangeRate(e.target.value)} style={inputStyle} placeholder="Tasa de Cambio" />
+              <button onClick={fetchBcvRate} type="button" style={{ padding: "0 14px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap" }}>Tasa BCV Hoy</button>
           </div>
           <button onClick={processPayroll} disabled={processing} style={{ ...theme.buttonStyle, marginTop: 12, fontSize: 16, width: "100%", background: "#f87171" }}>
             {processing ? "PROCESANDO..." : "PROCESAR NOMINA"}
