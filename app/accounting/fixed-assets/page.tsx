@@ -75,6 +75,20 @@ export default function FixedAssetsPage() {
     return { monthlyDep, accumulated, bookValue };
   }
 
+  async function fetchBcvRate() {
+    setMessage("Consultando tasa BCV...");
+    try {
+      const res = await fetch("/api/bcv-rate");
+      const json = await res.json();
+      if (!json.success) { setMessage("No se pudo consultar la tasa BCV: " + json.error); return; }
+      setAcquisitionCurrency("VES");
+      setAcquisitionExchangeRate(String(json.rate));
+      setMessage("Tasa BCV de hoy aplicada: " + json.rate + " (" + json.source + ")");
+    } catch (err: any) {
+      setMessage("Error al consultar la tasa: " + err.message);
+    }
+  }
+
   async function addAsset() {
     setMessage("");
     if (!companyId || !assetName || !acquisitionDate || !acquisitionCost) { setMessage("Completa todos los campos."); return; }
@@ -178,6 +192,7 @@ export default function FixedAssetsPage() {
             <option value="VES">VES (Bolivares)</option>
           </select>
           <input type="number" step="0.0001" value={acquisitionExchangeRate} onChange={(e) => setAcquisitionExchangeRate(e.target.value)} style={inputStyle} placeholder="Tasa de Cambio" />
+            <button onClick={fetchBcvRate} type="button" style={{ padding: "0 14px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap" }}>Tasa BCV Hoy</button>
         </div>
         <input type="number" value={acquisitionCost} onChange={(e) => setAcquisitionCost(e.target.value)} style={{ ...inputStyle, marginTop: 10 }} placeholder="Costo de adquisicion" />
         <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
