@@ -96,11 +96,13 @@ export default function FixedAssetsPage() {
 
     const fxRate = parseFloat(acquisitionExchangeRate) || 1;
     const cost = parseFloat(acquisitionCost) * fxRate;
-
+    const { data: lastJournalEntry } = await supabase.from("journal_entries").select("entry_number").eq("company_id", companyId).order("entry_number", { ascending: false }).limit(1).maybeSingle();
+    const journalNextNumber = (lastJournalEntry?.entry_number || 0) + 1;
     const { data: entry, error: entryError } = await supabase.from("journal_entries").insert([{
       company_id: companyId,
       description: "Adquisicion de Activo Fijo - " + assetName,
       entry_date: acquisitionDate,
+      entry_number: journalNextNumber,
     }]).select("id").single();
 
     if (entryError || !entry) { setMessage("Error al crear asiento: " + entryError?.message); return; }
@@ -138,12 +140,13 @@ export default function FixedAssetsPage() {
       accumulated_depreciation: d.accumulated,
       book_value: d.bookValue,
     }]);
-    if (depError) { alert("Error al registrar depreciacion: " + depError.message); return; }
-
+    const { data: lastJournalEntry2 } = await supabase.from("journal_entries").select("entry_number").eq("company_id", companyId).order("entry_number", { ascending: false }).limit(1).maybeSingle();
+    const journalNextNumber2 = (lastJournalEntry2?.entry_number || 0) + 1;
     const { data: entry, error: entryError } = await supabase.from("journal_entries").insert([{
       company_id: companyId,
       description: "Depreciacion del Mes - " + asset.asset_name,
       entry_date: today,
+      entry_number: journalNextNumber2,
     }]).select("id").single();
     if (entryError || !entry) { alert("Error al crear asiento: " + entryError?.message); return; }
 
