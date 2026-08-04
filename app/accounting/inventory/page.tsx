@@ -96,6 +96,20 @@ export default function InventoryPage() {
     setMovements(data ?? []);
   }
 
+  async function fetchBcvRate() {
+    setMessage("Consultando tasa BCV...");
+    try {
+      const res = await fetch("/api/bcv-rate");
+      const json = await res.json();
+      if (!json.success) { setMessage("No se pudo consultar la tasa BCV: " + json.error); return; }
+      setMovCurrency("VES");
+      setMovExchangeRate(String(json.rate));
+      setMessage("Tasa BCV de hoy aplicada: " + json.rate + " (" + json.source + ")");
+    } catch (err: any) {
+      setMessage("Error al consultar la tasa: " + err.message);
+    }
+  }
+
   async function registerMovement() {
     setMessage("");
     if (!selectedItemId || !movQuantity) { setMessage("Selecciona un producto y la cantidad."); return; }
@@ -261,7 +275,10 @@ export default function InventoryPage() {
                     <input type="number" value={movUnitCost} onChange={(e) => setMovUnitCost(e.target.value)} style={inputStyle} placeholder="Costo Unitario" />
                   )}
                   {movType === "IN" && (
-                    <input type="number" step="0.0001" value={movExchangeRate} onChange={(e) => setMovExchangeRate(e.target.value)} style={inputStyle} placeholder="Tasa de Cambio" />
+                    <>
+                      <input type="number" step="0.0001" value={movExchangeRate} onChange={(e) => setMovExchangeRate(e.target.value)} style={inputStyle} placeholder="Tasa de Cambio" />
+                      <button onClick={fetchBcvRate} type="button" style={{ padding: "0 14px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap" }}>Tasa BCV Hoy</button>
+                    </>
                   )}
                 </div>
                 <input value={movReference} onChange={(e) => setMovReference(e.target.value)} style={{ ...inputStyle, marginTop: 8 }} placeholder="Referencia (opcional)" />
