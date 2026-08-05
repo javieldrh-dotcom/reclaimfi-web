@@ -46,7 +46,7 @@ export default function JournalPage() {
       .select("id, description, entry_date, status, entry_number, reversed_by_entry_id, reversal_of_entry_id")
       .eq("company_id", cid)
       .eq("status", "ACTIVE")
-      .order("entry_number", { ascending: false });
+      .order("entry_number", { ascending: true });
     if (year !== "TODOS") {
       query = query.gte("entry_date", year + "-01-01").lte("entry_date", year + "-12-31");
     }

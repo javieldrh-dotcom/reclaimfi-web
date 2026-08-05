@@ -102,23 +102,9 @@ export default function FixedAssetsPage() {
   }
   async function saveBatch() {
     setMessage("");
-    if (!companyId || !offsetAccountId) { setMessage("Selecciona la Cuenta de Contrapartida (ej. Capital Social)."); return; }
+    if (!companyId) return;
     const validRows = batchRows.filter((r) => r.assetName && r.acquisitionDate && r.acquisitionCost && r.assetAccountId);
     if (validRows.length === 0) { setMessage("Completa al menos una fila con todos sus datos."); return; }
-    const totalCost = validRows.reduce((s, r) => s + (parseFloat(r.acquisitionCost) || 0), 0);
-    const earliestDate = validRows.reduce((min, r) => (r.acquisitionDate < min ? r.acquisitionDate : min), validRows[0].acquisitionDate);
-    const { data: lastJournalEntry } = await supabase.from("journal_entries").select("entry_number").eq("company_id", companyId).order("entry_number", { ascending: false }).limit(1).maybeSingle();
-    const journalNextNumber = (lastJournalEntry?.entry_number || 0) + 1;
-    const { data: entry, error: entryError } = await supabase.from("journal_entries").insert([{
-      company_id: companyId,
-      description: "Registro por Lote de Activos Fijos (" + validRows.length + " activos)",
-      entry_date: earliestDate,
-      entry_number: journalNextNumber,
-    }]).select("id").single();
-    if (entryError || !entry) { setMessage("Error al crear asiento: " + entryError?.message); return; }
-    const debitLines = validRows.map((r) => ({ journal_entry_id: entry.id, account_id: r.assetAccountId, debit: parseFloat(r.acquisitionCost), credit: 0 }));
-    const creditLine = { journal_entry_id: entry.id, account_id: offsetAccountId, debit: 0, credit: totalCost };
-    await supabase.from("journal_lines").insert([...debitLines, creditLine]);
     const assetRows = validRows.map((r) => ({
       company_id: companyId,
       account_id: r.assetAccountId,
@@ -130,7 +116,7 @@ export default function FixedAssetsPage() {
     }));
     const { error: assetsError } = await supabase.from("fixed_assets").insert(assetRows);
     if (assetsError) { setMessage("Error al registrar activos: " + assetsError.message); return; }
-    setMessage(validRows.length + " activos registrados correctamente en un solo asiento (Nº" + journalNextNumber + ").");
+    setMessage(validRows.length + " activos registrados para control de depreciacion. Recuerda registrar el asiento contable correspondiente manualmente en el Diario.");
     setBatchRows([{ id: 1, assetName: "", acquisitionDate: "", acquisitionCost: "", assetAccountId: "", usefulLife: "5", salvageValue: "0" }]);
     if (companyId) await loadAssets(companyId);
   }
@@ -215,11 +201,7 @@ export default function FixedAssetsPage() {
 
       {batchMode && (
         <div style={{ ...theme.cardStyle, marginBottom: 20, maxWidth: 1100 }}>
-          <p style={{ fontSize: 15, color: theme.accent, fontWeight: 700, marginBottom: 10 }}>Carga por Lote — Un solo asiento contable para todos los activos</p>
-          <div style={{ marginBottom: 10 }}>
-            <label style={{ fontSize: 13, color: theme.accent }}>Cuenta de Contrapartida (ej. Capital Social) — aplica a todo el lote</label>
-            <AccountSearchSelect accounts={accounts} value={offsetAccountId} onChange={setOffsetAccountId} placeholder="Cuenta de Contrapartida..." />
-          </div>
+          <p style={{ fontSize: 15, color: theme.accent, fontWeight: 700, marginBottom: 10 }}>Carga por Lote — Solo para control de depreciacion, no genera asiento contable</p>
           {batchRows.map((row) => (
             <div key={row.id} style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "center", flexWrap: "wrap" }}>
               <input value={row.assetName} onChange={(e) => updateBatchRow(row.id, "assetName", e.target.value)} style={{ ...theme.inputStyle, flex: 2, minWidth: 150 }} placeholder="Nombre del activo" />
