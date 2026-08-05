@@ -15,6 +15,8 @@ export default function JournalPage() {
   const [companyName, setCompanyName] = useState("");
   const [currencyDoc, setCurrencyDoc] = useState("USD");
   const [description, setDescription] = useState("");
+  const [workPeriod, setWorkPeriod] = useState(new Date().toISOString().slice(0, 10));
+  const [entryDateInput, setEntryDateInput] = useState(new Date().toISOString().slice(0, 10));
   const [currency, setCurrency] = useState("USD");
   const [exchangeRate, setExchangeRate] = useState("1");
   const [lines, setLines] = useState<Line[]>([{ account_id: "", debit: "", credit: "" }, { account_id: "", debit: "", credit: "" }]);
@@ -151,13 +153,14 @@ export default function JournalPage() {
     }
     const { data: lastEntry } = await supabase.from("journal_entries").select("entry_number").eq("company_id", companyId).order("entry_number", { ascending: false }).limit(1).maybeSingle();
     const nextNumber = (lastEntry?.entry_number || 0) + 1;
-    const { data: entry, error: e1 } = await supabase.from("journal_entries").insert([{ company_id: companyId, description, entry_date: new Date().toISOString().slice(0,10),currency, exchange_rate: rate, entry_number: nextNumber }]).select("id").single();
+    const { data: entry, error: e1 } = await supabase.from("journal_entries").insert([{ company_id: companyId, description, entry_date: entryDateInput, currency, exchange_rate: rate, entry_number: nextNumber }]).select("id").single();
     if (e1 || !entry) { setMessage("Error: " + e1?.message); return; }
     const rows = lines.filter(l => l.account_id).map(l => ({ journal_entry_id: entry.id, account_id: l.account_id, debit: (parseFloat(l.debit) || 0) * rate, credit: (parseFloat(l.credit) || 0) * rate }));
     const { error: e2 } = await supabase.from("journal_lines").insert(rows);
     if (e2) { setMessage("Error: " + e2.message); return; }
     setMessage("Asiento Nº " + nextNumber + " guardado correctamente.");
     setDescription("");
+    setEntryDateInput(workPeriod);
     setLines([{ account_id: "", debit: "", credit: "" }, { account_id: "", debit: "", credit: "" }]);
     await loadAvailableYears(companyId);
     if (companyId) await loadEntries(companyId, selectedYear);
@@ -240,6 +243,10 @@ export default function JournalPage() {
     >
       {accounts.length > 0 && (
         <div style={theme.cardStyle}>
+          <div style={{ marginBottom: 16, padding: 14, background: theme.accent + "15", border: "1px solid " + theme.accent, borderRadius: 10 }}>
+            <label style={{ fontSize: 13, color: theme.accent, fontWeight: 700 }}>PERIODO DE TRABAJO (aplica a los nuevos asientos que crees)</label>
+            <input type="date" value={workPeriod} onChange={(e) => { setWorkPeriod(e.target.value); setEntryDateInput(e.target.value); }} style={{ ...inputStyle, marginTop: 6, maxWidth: 200 }} />
+          </div>
           {editingEntryId && (
             <div style={{ marginBottom: 12, padding: 10, background: "#FB923C20", border: "1px solid #FB923C", borderRadius: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span style={{ fontSize: 16, color: "#FB923C", fontWeight: 700 }}>Editando asiento existente</span>
@@ -257,6 +264,10 @@ export default function JournalPage() {
             <input type="number" step="0.0001" value={exchangeRate} onChange={(e) => setExchangeRate(e.target.value)} style={inputStyle} placeholder="Tasa de cambio" />
           </div>
           <input value={description} onChange={(e) => setDescription(e.target.value)} style={{ ...inputStyle, marginTop: 8 }} placeholder="Descripcion" />
+          <div style={{ marginTop: 8 }}>
+            <label style={{ fontSize: 13, color: theme.accent }}>Fecha del Asiento</label>
+            <input type="date" value={entryDateInput} onChange={(e) => setEntryDateInput(e.target.value)} style={{ ...inputStyle, marginTop: 4 }} />
+          </div>
           {lines.map((line, idx) => (
             <div key={idx} style={{ display: "flex", gap: 8, marginTop: 8 }}>
               <AccountSearchSelect accounts={accounts} value={line.account_id} onChange={(id) => updateLine(idx, "account_id", id)} placeholder="Buscar cuenta..." style={{ flex: 2, minWidth: 320 }} />

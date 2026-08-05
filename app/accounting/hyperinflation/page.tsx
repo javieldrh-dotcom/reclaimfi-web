@@ -34,6 +34,7 @@ export default function HyperinflationPage() {
   }
 
   async function calculateRestatement() {
+    alert("Fecha de Reexpresion que se va a usar: " + reportDate);
     if (!companyId) return;
     setLoading(true);
     setMessage("");
