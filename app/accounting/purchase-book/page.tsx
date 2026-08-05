@@ -228,7 +228,7 @@ export default function PurchaseBookPage() {
     const totalDocument = base + credit + nonTaxable;
     const netPayable = totalDocument - withheld - islrWithheld;
     const nextNumber = entries.length > 0 ? Math.max(...entries.map((e) => e.entry_number)) + 1 : 1;
-    const { data: lastJournalEntry } = await supabase.from("journal_entries").select("entry_number").eq("company_id", companyId).order("entry_number", { ascending: false }).limit(1).maybeSingle();
+    const { data: lastJournalEntry } = await supabase.from("journal_entries").select("entry_number").eq("company_id", companyId).eq("status", "ACTIVE").not("entry_number", "is", null).order("entry_number", { ascending: false }).limit(1).maybeSingle();
     const journalNextNumber = (lastJournalEntry?.entry_number || 0) + 1;
     const { data: entry, error: entryError } = await supabase.from("journal_entries").insert([{
       company_id: companyId,

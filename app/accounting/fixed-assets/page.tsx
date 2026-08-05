@@ -128,7 +128,7 @@ export default function FixedAssetsPage() {
 
     const fxRate = parseFloat(acquisitionExchangeRate) || 1;
     const cost = parseFloat(acquisitionCost) * fxRate;
-    const { data: lastJournalEntry } = await supabase.from("journal_entries").select("entry_number").eq("company_id", companyId).order("entry_number", { ascending: false }).limit(1).maybeSingle();
+    const { data: lastJournalEntry } = await supabase.from("journal_entries").select("entry_number").eq("company_id", companyId).eq("status", "ACTIVE").not("entry_number", "is", null).order("entry_number", { ascending: false }).limit(1).maybeSingle();
     const journalNextNumber = (lastJournalEntry?.entry_number || 0) + 1;
     const { data: entry, error: entryError } = await supabase.from("journal_entries").insert([{
       company_id: companyId,
@@ -172,7 +172,7 @@ export default function FixedAssetsPage() {
       accumulated_depreciation: d.accumulated,
       book_value: d.bookValue,
     }]);
-    const { data: lastJournalEntry2 } = await supabase.from("journal_entries").select("entry_number").eq("company_id", companyId).order("entry_number", { ascending: false }).limit(1).maybeSingle();
+    const { data: lastJournalEntry2 } = await supabase.from("journal_entries").select("entry_number").eq("company_id", companyId).eq("status", "ACTIVE").not("entry_number", "is", null).order("entry_number", { ascending: false }).limit(1).maybeSingle();
     const journalNextNumber2 = (lastJournalEntry2?.entry_number || 0) + 1;
     const { data: entry, error: entryError } = await supabase.from("journal_entries").insert([{
       company_id: companyId,
