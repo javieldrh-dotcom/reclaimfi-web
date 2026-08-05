@@ -14,6 +14,8 @@ export default function FixedAssetsPage() {
   const [accumulatedDepAccountId, setAccumulatedDepAccountId] = useState("");
   const [depExpenseAccountId, setDepExpenseAccountId] = useState("");
   const [offsetAccountId, setOffsetAccountId] = useState("");
+  const [batchMode, setBatchMode] = useState(false);
+  const [batchRows, setBatchRows] = useState<any[]>([{ id: 1, assetName: "", acquisitionDate: "", acquisitionCost: "", assetAccountId: "", usefulLife: "5", salvageValue: "0" }]);
   const [assetName, setAssetName] = useState("");
   const [acquisitionDate, setAcquisitionDate] = useState("");
   const [acquisitionCurrency, setAcquisitionCurrency] = useState("USD");
@@ -87,6 +89,50 @@ export default function FixedAssetsPage() {
     } catch (err: any) {
       setMessage("Error al consultar la tasa: " + err.message);
     }
+  }
+
+  function addBatchRow() {
+    setBatchRows((prev) => [...prev, { id: Date.now(), assetName: "", acquisitionDate: "", acquisitionCost: "", assetAccountId: "", usefulLife: "5", salvageValue: "0" }]);
+  }
+  function removeBatchRow(id: number) {
+    setBatchRows((prev) => prev.filter((r) => r.id !== id));
+  }
+  function updateBatchRow(id: number, field: string, value: string) {
+    setBatchRows((prev) => prev.map((r) => (r.id === id ? { ...r, [field]: value } : r)));
+  }
+  async function saveBatch() {
+    setMessage("");
+    if (!companyId || !offsetAccountId) { setMessage("Selecciona la Cuenta de Contrapartida (ej. Capital Social)."); return; }
+    const validRows = batchRows.filter((r) => r.assetName && r.acquisitionDate && r.acquisitionCost && r.assetAccountId);
+    if (validRows.length === 0) { setMessage("Completa al menos una fila con todos sus datos."); return; }
+    const totalCost = validRows.reduce((s, r) => s + (parseFloat(r.acquisitionCost) || 0), 0);
+    const earliestDate = validRows.reduce((min, r) => (r.acquisitionDate < min ? r.acquisitionDate : min), validRows[0].acquisitionDate);
+    const { data: lastJournalEntry } = await supabase.from("journal_entries").select("entry_number").eq("company_id", companyId).order("entry_number", { ascending: false }).limit(1).maybeSingle();
+    const journalNextNumber = (lastJournalEntry?.entry_number || 0) + 1;
+    const { data: entry, error: entryError } = await supabase.from("journal_entries").insert([{
+      company_id: companyId,
+      description: "Registro por Lote de Activos Fijos (" + validRows.length + " activos)",
+      entry_date: earliestDate,
+      entry_number: journalNextNumber,
+    }]).select("id").single();
+    if (entryError || !entry) { setMessage("Error al crear asiento: " + entryError?.message); return; }
+    const debitLines = validRows.map((r) => ({ journal_entry_id: entry.id, account_id: r.assetAccountId, debit: parseFloat(r.acquisitionCost), credit: 0 }));
+    const creditLine = { journal_entry_id: entry.id, account_id: offsetAccountId, debit: 0, credit: totalCost };
+    await supabase.from("journal_lines").insert([...debitLines, creditLine]);
+    const assetRows = validRows.map((r) => ({
+      company_id: companyId,
+      account_id: r.assetAccountId,
+      asset_name: r.assetName,
+      acquisition_date: r.acquisitionDate,
+      acquisition_cost: parseFloat(r.acquisitionCost),
+      useful_life_years: parseFloat(r.usefulLife),
+      salvage_value: parseFloat(r.salvageValue) || 0,
+    }));
+    const { error: assetsError } = await supabase.from("fixed_assets").insert(assetRows);
+    if (assetsError) { setMessage("Error al registrar activos: " + assetsError.message); return; }
+    setMessage(validRows.length + " activos registrados correctamente en un solo asiento (Nº" + journalNextNumber + ").");
+    setBatchRows([{ id: 1, assetName: "", acquisitionDate: "", acquisitionCost: "", assetAccountId: "", usefulLife: "5", salvageValue: "0" }]);
+    if (companyId) await loadAssets(companyId);
   }
 
   async function addAsset() {
@@ -163,6 +209,34 @@ export default function FixedAssetsPage() {
 
   return (
     <VerticalPageLayout vertical="accounting" title="Activos Fijos y Depreciacion" subtitle="Vinculado a contabilidad - genera asiento en adquisicion y al contabilizar depreciacion" fullWidth>
+      <button onClick={() => setBatchMode(!batchMode)} style={{ ...theme.buttonStyle, marginBottom: 16, background: "none", border: "1px solid " + theme.accent, color: theme.accent }}>
+        {batchMode ? "Cerrar Carga por Lote" : "Cargar Lote de Activos (varios a la vez)"}
+      </button>
+
+      {batchMode && (
+        <div style={{ ...theme.cardStyle, marginBottom: 20, maxWidth: 1100 }}>
+          <p style={{ fontSize: 15, color: theme.accent, fontWeight: 700, marginBottom: 10 }}>Carga por Lote — Un solo asiento contable para todos los activos</p>
+          <div style={{ marginBottom: 10 }}>
+            <label style={{ fontSize: 13, color: theme.accent }}>Cuenta de Contrapartida (ej. Capital Social) — aplica a todo el lote</label>
+            <AccountSearchSelect accounts={accounts} value={offsetAccountId} onChange={setOffsetAccountId} placeholder="Cuenta de Contrapartida..." />
+          </div>
+          {batchRows.map((row) => (
+            <div key={row.id} style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "center", flexWrap: "wrap" }}>
+              <input value={row.assetName} onChange={(e) => updateBatchRow(row.id, "assetName", e.target.value)} style={{ ...theme.inputStyle, flex: 2, minWidth: 150 }} placeholder="Nombre del activo" />
+              <input type="date" value={row.acquisitionDate} onChange={(e) => updateBatchRow(row.id, "acquisitionDate", e.target.value)} style={{ ...theme.inputStyle, flex: 1, minWidth: 130 }} />
+              <input type="number" value={row.acquisitionCost} onChange={(e) => updateBatchRow(row.id, "acquisitionCost", e.target.value)} style={{ ...theme.inputStyle, flex: 1, minWidth: 100 }} placeholder="Costo" />
+              <div style={{ flex: 2, minWidth: 180 }}>
+                <AccountSearchSelect accounts={accounts.filter(a => a.account_type === "ASSET")} value={row.assetAccountId} onChange={(v: string) => updateBatchRow(row.id, "assetAccountId", v)} placeholder="Cuenta de activo..." />
+              </div>
+              <input type="number" value={row.usefulLife} onChange={(e) => updateBatchRow(row.id, "usefulLife", e.target.value)} style={{ ...theme.inputStyle, width: 90 }} placeholder="Vida util (a)" />
+              <button onClick={() => removeBatchRow(row.id)} style={{ background: "none", border: "1px solid #f87171", color: "#f87171", padding: "8px 12px", borderRadius: 8, cursor: "pointer" }}>✕</button>
+            </div>
+          ))}
+          <button onClick={addBatchRow} style={{ marginTop: 12, background: "none", border: "1px dashed " + theme.accent, color: theme.accent, padding: "8px 16px", borderRadius: 8, cursor: "pointer" }}>+ Agregar Fila</button>
+          <button onClick={saveBatch} style={{ ...theme.buttonStyle, marginTop: 16, width: "100%" }}>GUARDAR LOTE COMPLETO</button>
+        </div>
+      )}
+
       <div style={{ ...theme.cardStyle, marginBottom: 20, maxWidth: 900 }}>
         <p style={{ fontSize: 15, color: theme.accent, fontWeight: 700, marginBottom: 10 }}>Cuentas Contables (requeridas)</p>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
