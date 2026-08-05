@@ -49,16 +49,21 @@ export default function HyperinflationPage() {
     allIndices.forEach((r: any) => { indexByMonth[monthKey(r.period_date)] = r.index_value; });
     const sortedMonths = Object.keys(indexByMonth).sort();
 
-    function indexForDate(dateStr: string): number | null {
+    function indexInfoForDate(dateStr: string): { value: number; month: string; exact: boolean } | null {
       const mk = monthKey(dateStr);
-      if (indexByMonth[mk] !== undefined) return indexByMonth[mk];
+      if (indexByMonth[mk] !== undefined) return { value: indexByMonth[mk], month: mk, exact: true };
       let best: string | null = null;
       for (const m of sortedMonths) { if (m <= mk) best = m; else break; }
-      return best ? indexByMonth[best] : null;
+      return best ? { value: indexByMonth[best], month: best, exact: false } : null;
+    }
+    function indexForDate(dateStr: string): number | null {
+      const info = indexInfoForDate(dateStr);
+      return info ? info.value : null;
     }
 
-    const reportIndex = indexForDate(reportDate);
-    if (!reportIndex) { setMessage("No se encontro Indice de Precios para la fecha de reexpresion."); setLoading(false); return; }
+    const reportIndexInfo = indexInfoForDate(reportDate);
+    if (!reportIndexInfo) { setMessage("No se encontro Indice de Precios para la fecha de reexpresion."); setLoading(false); return; }
+    const reportIndex = reportIndexInfo.value;
 
     const { data: accounts } = await supabase.from("chart_of_accounts").select("id, account_code, account_name, account_type, monetary_type").eq("company_id", companyId).not("account_type", "in", "(ORDER_DEBTOR,ORDER_CREDITOR)");
     const accountsMap: Record<string, any> = {};
@@ -127,7 +132,7 @@ export default function HyperinflationPage() {
     const monetaryGainLoss = plugResult - netIncomeRestOperating;
 
     setResult({
-      reportIndex, balanceDetail, incomeDetail,
+      reportIndex, reportIndexInfo, balanceDetail, incomeDetail,
       totalAssetsHist, totalAssetsRest, totalLiabHist, totalLiabRest, totalEquityHist, totalEquityRest,
       totalRevenueHist, totalRevenueRest, totalExpenseHist, totalExpenseRest,
       netIncomeHist, netIncomeRestOperating, plugResult, monetaryGainLoss, missingIndexCount,
@@ -158,6 +163,9 @@ export default function HyperinflationPage() {
 
         {result && (
           <>
+            {!result.reportIndexInfo.exact && (
+              <p style={{ marginTop: 12, fontSize: 13, color: "#FB923C" }}>⚠ No hay Indice de Precios publicado para el mes de la fecha de reexpresion. Se uso el ultimo indice disponible ({result.reportIndexInfo.month}) como aproximacion. Los resultados se ajustaran automaticamente cuando cargues el indice real de ese mes en Indices de Precios.</p>
+            )}
             {result.missingIndexCount > 0 && (
               <p style={{ marginTop: 12, fontSize: 13, color: "#FB923C" }}>⚠ {result.missingIndexCount} transaccion(es) no encontraron indice para su mes y no se reexpresaron.</p>
             )}
