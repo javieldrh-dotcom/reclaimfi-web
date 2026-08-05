@@ -15,6 +15,8 @@ export default function JournalPage() {
   const [companyName, setCompanyName] = useState("");
   const [currencyDoc, setCurrencyDoc] = useState("USD");
   const [description, setDescription] = useState("");
+  const [workPeriod, setWorkPeriod] = useState(new Date().toISOString().slice(0, 10));
+  const [entryDateInput, setEntryDateInput] = useState(new Date().toISOString().slice(0, 10));
   const [currency, setCurrency] = useState("USD");
   const [exchangeRate, setExchangeRate] = useState("1");
   const [lines, setLines] = useState<Line[]>([{ account_id: "", debit: "", credit: "" }, { account_id: "", debit: "", credit: "" }]);
@@ -25,6 +27,7 @@ export default function JournalPage() {
   const [availableYears, setAvailableYears] = useState<string[]>([]);
   const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
   const [presentationMode, setPresentationMode] = useState(false);
+  const [displayLimit, setDisplayLimit] = useState(50);
   const [accountingConvention, setAccountingConvention] = useState("REGIONAL_VE");
 
   async function loadAvailableYears(cid: string) {
@@ -43,7 +46,7 @@ export default function JournalPage() {
       .select("id, description, entry_date, status, entry_number, reversed_by_entry_id, reversal_of_entry_id")
       .eq("company_id", cid)
       .eq("status", "ACTIVE")
-      .order("entry_number", { ascending: false });
+      .order("entry_number", { ascending: true });
     if (year !== "TODOS") {
       query = query.gte("entry_date", year + "-01-01").lte("entry_date", year + "-12-31");
     }
@@ -98,6 +101,7 @@ export default function JournalPage() {
 
   async function changeYear(year: string) {
     setSelectedYear(year);
+    setDisplayLimit(50);
     if (companyId) await loadEntries(companyId, year);
   }
 
@@ -115,6 +119,7 @@ export default function JournalPage() {
   function startEdit(entry: any) {
     setEditingEntryId(entry.id);
     setDescription(entry.description);
+    setEntryDateInput(entry.entry_date);
     setCurrency(currencyDoc);
     setExchangeRate("1");
     setLines((entry.journal_lines ?? []).map((l: any) => ({
@@ -133,10 +138,10 @@ export default function JournalPage() {
     setMessage("");
     if (!companyId) { setMessage("Sin empresa asociada."); return; }
     const d = totalDebit(); const c = totalCredit();
-    if (d !== c || d === 0) { setMessage("El asiento no cuadra."); return; }
+    if (Math.abs(d - c) > 0.01 || d === 0) { setMessage("El asiento no cuadra."); return; }
     const rate = parseFloat(exchangeRate) || 1;
     if (editingEntryId) {
-      const { error: eUpd } = await supabase.from("journal_entries").update({ description }).eq("id", editingEntryId);
+      const { error: eUpd } = await supabase.from("journal_entries").update({ description, entry_date: entryDateInput }).eq("id", editingEntryId);
       if (eUpd) { setMessage("Error: " + eUpd.message); return; }
       await supabase.from("journal_lines").delete().eq("journal_entry_id", editingEntryId);
       const rows = lines.filter(l => l.account_id).map(l => ({ journal_entry_id: editingEntryId, account_id: l.account_id, debit: (parseFloat(l.debit) || 0) * rate, credit: (parseFloat(l.credit) || 0) * rate }));
@@ -147,15 +152,16 @@ export default function JournalPage() {
       if (companyId) await loadEntries(companyId, selectedYear);
       return;
     }
-    const { data: lastEntry } = await supabase.from("journal_entries").select("entry_number").eq("company_id", companyId).order("entry_number", { ascending: false }).limit(1).maybeSingle();
+    const { data: lastEntry } = await supabase.from("journal_entries").select("entry_number").eq("company_id", companyId).eq("status", "ACTIVE").not("entry_number", "is", null).order("entry_number", { ascending: false }).limit(1).maybeSingle();
     const nextNumber = (lastEntry?.entry_number || 0) + 1;
-    const { data: entry, error: e1 } = await supabase.from("journal_entries").insert([{ company_id: companyId, description, entry_date: new Date().toISOString().slice(0,10),currency, exchange_rate: rate, entry_number: nextNumber }]).select("id").single();
+    const { data: entry, error: e1 } = await supabase.from("journal_entries").insert([{ company_id: companyId, description, entry_date: entryDateInput, currency, exchange_rate: rate, entry_number: nextNumber }]).select("id").single();
     if (e1 || !entry) { setMessage("Error: " + e1?.message); return; }
     const rows = lines.filter(l => l.account_id).map(l => ({ journal_entry_id: entry.id, account_id: l.account_id, debit: (parseFloat(l.debit) || 0) * rate, credit: (parseFloat(l.credit) || 0) * rate }));
     const { error: e2 } = await supabase.from("journal_lines").insert(rows);
     if (e2) { setMessage("Error: " + e2.message); return; }
     setMessage("Asiento Nº " + nextNumber + " guardado correctamente.");
     setDescription("");
+    setEntryDateInput(workPeriod);
     setLines([{ account_id: "", debit: "", credit: "" }, { account_id: "", debit: "", credit: "" }]);
     await loadAvailableYears(companyId);
     if (companyId) await loadEntries(companyId, selectedYear);
@@ -173,7 +179,7 @@ export default function JournalPage() {
     const confirmMsg = "Se creara un asiento nuevo con las cifras invertidas de Nº" + (entry.entry_number ?? "S/N") + ". El asiento original permanecera visible. Confirmar?";
     if (!window.confirm(confirmMsg)) return;
 
-    const { data: lastEntry } = await supabase.from("journal_entries").select("entry_number").eq("company_id", companyId).order("entry_number", { ascending: false }).limit(1).maybeSingle();
+    const { data: lastEntry } = await supabase.from("journal_entries").select("entry_number").eq("company_id", companyId).eq("status", "ACTIVE").not("entry_number", "is", null).order("entry_number", { ascending: false }).limit(1).maybeSingle();
     const nextNumber = (lastEntry?.entry_number || 0) + 1;
     const today = new Date().toISOString().slice(0, 10);
 
@@ -238,6 +244,10 @@ export default function JournalPage() {
     >
       {accounts.length > 0 && (
         <div style={theme.cardStyle}>
+          <div style={{ marginBottom: 16, padding: 14, background: theme.accent + "15", border: "1px solid " + theme.accent, borderRadius: 10 }}>
+            <label style={{ fontSize: 13, color: theme.accent, fontWeight: 700 }}>PERIODO DE TRABAJO (aplica a los nuevos asientos que crees)</label>
+            <input type="date" value={workPeriod} onChange={(e) => { setWorkPeriod(e.target.value); setEntryDateInput(e.target.value); }} style={{ ...inputStyle, marginTop: 6, maxWidth: 200 }} />
+          </div>
           {editingEntryId && (
             <div style={{ marginBottom: 12, padding: 10, background: "#FB923C20", border: "1px solid #FB923C", borderRadius: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span style={{ fontSize: 16, color: "#FB923C", fontWeight: 700 }}>Editando asiento existente</span>
@@ -255,6 +265,10 @@ export default function JournalPage() {
             <input type="number" step="0.0001" value={exchangeRate} onChange={(e) => setExchangeRate(e.target.value)} style={inputStyle} placeholder="Tasa de cambio" />
           </div>
           <input value={description} onChange={(e) => setDescription(e.target.value)} style={{ ...inputStyle, marginTop: 8 }} placeholder="Descripcion" />
+          <div style={{ marginTop: 8 }}>
+            <label style={{ fontSize: 13, color: theme.accent }}>Fecha del Asiento</label>
+            <input type="date" value={entryDateInput} onChange={(e) => setEntryDateInput(e.target.value)} style={{ ...inputStyle, marginTop: 4 }} />
+          </div>
           {lines.map((line, idx) => (
             <div key={idx} style={{ display: "flex", gap: 8, marginTop: 8 }}>
               <AccountSearchSelect accounts={accounts} value={line.account_id} onChange={(id) => updateLine(idx, "account_id", id)} placeholder="Buscar cuenta..." style={{ flex: 2, minWidth: 320 }} />
@@ -307,7 +321,7 @@ export default function JournalPage() {
           <h2 style={{ fontSize: 26, color: theme.accent, fontFamily: theme.titleStyle.fontFamily, fontWeight: 700 }}>
             {selectedYear === "TODOS" ? "Todos los Ejercicios" : "Ejercicio Fiscal " + selectedYear}
           </h2>
-          {entries.map((e) => (
+          {entries.slice(0, displayLimit).map((e) => (
             <div key={e.id} style={{ ...theme.cardStyle, marginTop: 12, opacity: e.status === "VOIDED" ? 0.5 : 1 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontWeight: 700, fontSize: 22 }}>
@@ -333,6 +347,13 @@ export default function JournalPage() {
               ))}
             </div>
           ))}
+          {entries.length > displayLimit && (
+            <div style={{ textAlign: "center", marginTop: 20 }}>
+              <button onClick={() => setDisplayLimit(displayLimit + 50)} style={{ background: "none", border: "1px solid " + theme.accent, color: theme.accent, padding: "10px 24px", borderRadius: 10, fontSize: 15, cursor: "pointer" }}>
+                Cargar 50 mas (mostrando {displayLimit} de {entries.length})
+              </button>
+            </div>
+          )}
         </div>
       )}
     </VerticalPageLayout>

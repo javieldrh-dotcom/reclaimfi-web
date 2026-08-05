@@ -138,7 +138,7 @@ export default function JournalPage() {
     setMessage("");
     if (!companyId) { setMessage("Sin empresa asociada."); return; }
     const d = totalDebit(); const c = totalCredit();
-    if (d !== c || d === 0) { setMessage("El asiento no cuadra."); return; }
+    if (Math.abs(d - c) > 0.01 || d === 0) { setMessage("El asiento no cuadra."); return; }
     const rate = parseFloat(exchangeRate) || 1;
     if (editingEntryId) {
       const { error: eUpd } = await supabase.from("journal_entries").update({ description, entry_date: entryDateInput }).eq("id", editingEntryId);
