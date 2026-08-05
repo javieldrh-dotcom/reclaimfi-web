@@ -119,6 +119,7 @@ export default function JournalPage() {
   function startEdit(entry: any) {
     setEditingEntryId(entry.id);
     setDescription(entry.description);
+    setEntryDateInput(entry.entry_date);
     setCurrency(currencyDoc);
     setExchangeRate("1");
     setLines((entry.journal_lines ?? []).map((l: any) => ({
@@ -140,7 +141,7 @@ export default function JournalPage() {
     if (d !== c || d === 0) { setMessage("El asiento no cuadra."); return; }
     const rate = parseFloat(exchangeRate) || 1;
     if (editingEntryId) {
-      const { error: eUpd } = await supabase.from("journal_entries").update({ description }).eq("id", editingEntryId);
+      const { error: eUpd } = await supabase.from("journal_entries").update({ description, entry_date: entryDateInput }).eq("id", editingEntryId);
       if (eUpd) { setMessage("Error: " + eUpd.message); return; }
       await supabase.from("journal_lines").delete().eq("journal_entry_id", editingEntryId);
       const rows = lines.filter(l => l.account_id).map(l => ({ journal_entry_id: editingEntryId, account_id: l.account_id, debit: (parseFloat(l.debit) || 0) * rate, credit: (parseFloat(l.credit) || 0) * rate }));
