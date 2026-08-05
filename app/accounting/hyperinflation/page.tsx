@@ -10,6 +10,9 @@ export default function HyperinflationPage() {
   const [companyName, setCompanyName] = useState("");
   const [baseDate, setBaseDate] = useState(new Date(new Date().getFullYear(), 0, 1).toISOString().slice(0, 10));
   const [reportDate, setReportDate] = useState(new Date().toISOString().slice(0, 10));
+  const [countryCode, setCountryCode] = useState("VE");
+  const [indexName, setIndexName] = useState("INPC_BCV");
+  const [availableIndices, setAvailableIndices] = useState<{ country_code: string; index_name: string }[]>([]);
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -25,6 +28,10 @@ export default function HyperinflationPage() {
         const { data: companyData } = await supabase.from("companies").select("name").eq("id", cid).single();
         setCompanyName(companyData?.name ?? "");
       }
+      const { data: idx } = await supabase.from("price_indices").select("country_code, index_name");
+      const unique = Array.from(new Map((idx ?? []).map((r: any) => [r.country_code + "|" + r.index_name, r])).values()) as { country_code: string; index_name: string }[];
+      setAvailableIndices(unique);
+      if (unique.length > 0) { setCountryCode(unique[0].country_code); setIndexName(unique[0].index_name); }
     }
     load();
   }, []);
@@ -40,7 +47,7 @@ export default function HyperinflationPage() {
     setMessage("");
     setResult(null);
 
-    const { data: allIndices } = await supabase.from("price_indices").select("index_value, period_date").eq("country_code", "VE").eq("index_name", "INPC_BCV").order("period_date", { ascending: true });
+    const { data: allIndices } = await supabase.from("price_indices").select("index_value, period_date").eq("country_code", countryCode).eq("index_name", indexName).order("period_date", { ascending: true });
     if (!allIndices || allIndices.length === 0) {
       setMessage("No hay Indices de Precios cargados.");
       setLoading(false);
@@ -157,6 +164,25 @@ export default function HyperinflationPage() {
             <input type="date" value={reportDate} onChange={(e) => setReportDate(e.target.value)} style={{ ...inputStyle, marginTop: 4 }} />
           </div>
         </div>
+
+        {availableIndices.length > 0 ? (
+          <div style={{ marginTop: 10 }}>
+            <label style={{ fontSize: 13, color: theme.accent }}>Pais / Indice de Precios a Usar</label>
+            <select
+              value={countryCode + "|" + indexName}
+              onChange={(e) => { const parts = e.target.value.split("|"); setCountryCode(parts[0]); setIndexName(parts[1]); }}
+              style={{ ...inputStyle, marginTop: 4, maxWidth: 350 }}
+            >
+              {availableIndices.map((i) => (
+                <option key={i.country_code + "|" + i.index_name} value={i.country_code + "|" + i.index_name}>
+                  {i.country_code} - {i.index_name}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : (
+          <p style={{ marginTop: 10, fontSize: 13, color: "#FB923C" }}>No hay ningun Indice de Precios cargado todavia. Ve a Indices de Precios para cargar el de tu pais antes de usar esta herramienta.</p>
+        )}
         <button onClick={calculateRestatement} style={{ ...theme.buttonStyle, marginTop: 16, fontSize: 18 }}>
           {loading ? "CALCULANDO..." : "CALCULAR REEXPRESION MES A MES"}
         </button>
