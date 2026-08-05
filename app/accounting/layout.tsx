@@ -45,6 +45,7 @@ const navItems = [
       { href: "/accounting/fx-revaluation", label: "Revaluacion Cambiaria" },
       { href: "/accounting/default-accounts", label: "Cuentas por Defecto" },
       { href: "/accounting/fiscal-deadlines", label: "Recordatorios Fiscales" },
+      { href: "/accounting/user-management", label: "Gestion de Usuarios" },
       { href: "/accounting/blockchain-ledger", label: "Libro Verificable (Blockchain)" },
       { href: "/accounting/hyperinflation", label: "Reexpresion por Inflacion (NIC 29)" },
       { href: "/accounting/special-taxpayer", label: "Contribuyente Especial" },
