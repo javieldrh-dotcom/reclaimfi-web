@@ -46,6 +46,7 @@ const navItems = [
       { href: "/accounting/default-accounts", label: "Cuentas por Defecto" },
       { href: "/accounting/fiscal-deadlines", label: "Recordatorios Fiscales" },
       { href: "/accounting/blockchain-ledger", label: "Libro Verificable (Blockchain)" },
+      { href: "/accounting/hyperinflation", label: "Reexpresion por Inflacion (NIC 29)" },
       { href: "/accounting/special-taxpayer", label: "Contribuyente Especial" },
       { href: "/accounting/islr", label: "ISLR Anual" },
       { href: "/accounting/islr-estimated", label: "ISLR Declaracion Estimada" },
