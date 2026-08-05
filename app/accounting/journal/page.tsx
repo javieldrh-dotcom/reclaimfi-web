@@ -152,7 +152,7 @@ export default function JournalPage() {
       if (companyId) await loadEntries(companyId, selectedYear);
       return;
     }
-    const { data: lastEntry } = await supabase.from("journal_entries").select("entry_number").eq("company_id", companyId).eq("status", "ACTIVE").order("entry_number", { ascending: false }).limit(1).maybeSingle();
+    const { data: lastEntry } = await supabase.from("journal_entries").select("entry_number").eq("company_id", companyId).eq("status", "ACTIVE").not("entry_number", "is", null).order("entry_number", { ascending: false }).limit(1).maybeSingle();
     const nextNumber = (lastEntry?.entry_number || 0) + 1;
     const { data: entry, error: e1 } = await supabase.from("journal_entries").insert([{ company_id: companyId, description, entry_date: entryDateInput, currency, exchange_rate: rate, entry_number: nextNumber }]).select("id").single();
     if (e1 || !entry) { setMessage("Error: " + e1?.message); return; }
@@ -179,7 +179,7 @@ export default function JournalPage() {
     const confirmMsg = "Se creara un asiento nuevo con las cifras invertidas de Nº" + (entry.entry_number ?? "S/N") + ". El asiento original permanecera visible. Confirmar?";
     if (!window.confirm(confirmMsg)) return;
 
-    const { data: lastEntry } = await supabase.from("journal_entries").select("entry_number").eq("company_id", companyId).eq("status", "ACTIVE").order("entry_number", { ascending: false }).limit(1).maybeSingle();
+    const { data: lastEntry } = await supabase.from("journal_entries").select("entry_number").eq("company_id", companyId).eq("status", "ACTIVE").not("entry_number", "is", null).order("entry_number", { ascending: false }).limit(1).maybeSingle();
     const nextNumber = (lastEntry?.entry_number || 0) + 1;
     const today = new Date().toISOString().slice(0, 10);
 
