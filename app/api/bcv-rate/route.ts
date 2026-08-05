@@ -9,6 +9,11 @@ export async function GET() {
       return NextResponse.json({ success: false, error: "No autenticado." }, { status: 401 });
     }
 
+    const { data: allowed } = await supabase.rpc("check_rate_limit", { p_endpoint: "bcv-rate", p_max_requests: 30, p_window_seconds: 60 });
+    if (!allowed) {
+      return NextResponse.json({ success: false, error: "Demasiadas solicitudes de tasa BCV. Espera un momento." }, { status: 429 });
+    }
+
     const res = await fetch("https://ve.dolarapi.com/v1/dolares/oficial", { cache: "no-store" });
     if (!res.ok) {
       return NextResponse.json({ success: false, error: "No se pudo consultar la tasa BCV en este momento." }, { status: 502 });

@@ -10,6 +10,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "No autenticado. Debes iniciar sesion para usar este servicio." }, { status: 401 });
     }
 
+    const { data: allowed } = await supabaseAuth.rpc("check_rate_limit", { p_endpoint: "extract-invoice", p_max_requests: 10, p_window_seconds: 60 });
+    if (!allowed) {
+      return NextResponse.json({ success: false, error: "Demasiadas solicitudes. Espera un momento antes de intentar de nuevo (maximo 10 por minuto)." }, { status: 429 });
+    }
+
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
     if (!file) {
