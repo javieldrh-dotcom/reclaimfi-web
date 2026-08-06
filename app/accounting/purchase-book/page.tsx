@@ -160,8 +160,8 @@ export default function PurchaseBookPage() {
     }));
     await supabase.from("journal_lines").insert(reversedLines);
     await supabase.from("journal_entries").update({ reversed_by_entry_id: newEntry.id }).eq("id", journalEntryId);
-
-    alert("Reverso creado correctamente (Asiento Nº" + nextNumber + "). El registro fiscal original se mantiene intacto.");
+    await supabase.from("purchase_book_entries").update({ is_reversed: true }).eq("id", entryId);
+    alert("Reverso creado correctamente (Asiento Nº" + nextNumber + "). El registro fiscal se marco como reversado y se excluira de futuras declaraciones, pero permanece visible en el libro.");
     if (companyId) await loadEntries(companyId);
   }
 
