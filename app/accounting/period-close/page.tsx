@@ -10,6 +10,7 @@ export default function PeriodClosePage() {
   const [revenueAccounts, setRevenueAccounts] = useState<any[]>([]);
   const [expenseAccounts, setExpenseAccounts] = useState<any[]>([]);
   const [retainedEarningsId, setRetainedEarningsId] = useState<string | null>(null);
+  const [profitLossAccountId, setProfitLossAccountId] = useState<string | null>(null);
   const [periods, setPeriods] = useState<any[]>([]);
   const [periodStart, setPeriodStart] = useState("");
   const [periodEnd, setPeriodEnd] = useState("");
@@ -35,6 +36,13 @@ export default function PeriodClosePage() {
         setRevenueAccounts(rev ?? []);
         setExpenseAccounts(exp ?? []);
         setRetainedEarningsId(re?.id ?? null);
+        let { data: pyg } = await supabase.from("chart_of_accounts").select("id").eq("company_id", cid).ilike("account_name", "%Perdidas y Ganancias%").limit(1).maybeSingle();
+        if (!pyg) { const alt = await supabase.from("chart_of_accounts").select("id").eq("company_id", cid).ilike("account_name", "%P%rdidas y Ganancias%").limit(1).maybeSingle(); pyg = alt.data; }
+        if (!pyg) {
+          const { data: created } = await supabase.from("chart_of_accounts").insert([{ company_id: cid, account_code: "3199-01", account_name: "Perdidas y Ganancias (Cuenta Puente de Cierre)", account_type: "EQUITY" }]).select("id").single();
+          pyg = created;
+        }
+        setProfitLossAccountId(pyg?.id ?? null);
         await loadPeriods(cid);
       }
     }
@@ -67,51 +75,77 @@ export default function PeriodClosePage() {
     const totalRevenue = Object.values(revenueByAccount).reduce((s, v) => s + v, 0);
     const totalExpense = Object.values(expenseByAccount).reduce((s, v) => s + v, 0);
     const netResult = totalRevenue - totalExpense;
-
     if (totalRevenue === 0 && totalExpense === 0) {
       setMessage("No hay movimientos de Ingresos/Gastos en este periodo para cerrar.");
       setLoading(false);
       return;
     }
+    if (!profitLossAccountId) { setMessage("No se pudo crear o encontrar la cuenta puente Perdidas y Ganancias."); setLoading(false); return; }
 
-    const { data: entry, error: entryError } = await supabase.from("journal_entries").insert([{
-      company_id: companyId,
-      description: "Asiento de Cierre de Ejercicio " + periodStart + " a " + periodEnd,
-      entry_date: periodEnd,
-    }]).select("id").single();
-
-    if (entryError || !entry) { setMessage("Error: " + entryError?.message); setLoading(false); return; }
-
-    const closingLines: any[] = [];
-
-    Object.entries(revenueByAccount).forEach(([accId, amount]) => {
-      if (amount !== 0) closingLines.push({ journal_entry_id: entry.id, account_id: accId, debit: amount, credit: 0 });
-    });
-
-    Object.entries(expenseByAccount).forEach(([accId, amount]) => {
-      if (amount !== 0) closingLines.push({ journal_entry_id: entry.id, account_id: accId, debit: 0, credit: amount });
-    });
-
-    if (netResult >= 0) {
-      closingLines.push({ journal_entry_id: entry.id, account_id: retainedEarningsId, debit: 0, credit: netResult });
-    } else {
-      closingLines.push({ journal_entry_id: entry.id, account_id: retainedEarningsId, debit: Math.abs(netResult), credit: 0 });
+    async function nextEntryNumber() {
+      const { data: last } = await supabase.from("journal_entries").select("entry_number").eq("company_id", companyId!).eq("status", "ACTIVE").not("entry_number", "is", null).order("entry_number", { ascending: false }).limit(1).maybeSingle();
+      return (last?.entry_number || 0) + 1;
     }
 
-    const { error: linesError } = await supabase.from("journal_lines").insert(closingLines);
-    if (linesError) { setMessage("Error al guardar lineas: " + linesError.message); setLoading(false); return; }
+    const num1 = await nextEntryNumber();
+    const { data: entry1, error: e1 } = await supabase.from("journal_entries").insert([{
+      company_id: companyId,
+      description: "Cierre de Cuentas de Ingresos - " + periodStart + " a " + periodEnd,
+      entry_date: periodEnd,
+      entry_number: num1,
+    }]).select("id").single();
+    if (e1 || !entry1) { setMessage("Error asiento 1: " + e1?.message); setLoading(false); return; }
+    const lines1: any[] = [];
+    Object.entries(revenueByAccount).forEach(([accId, amount]) => {
+      if (amount !== 0) lines1.push({ journal_entry_id: entry1.id, account_id: accId, debit: amount, credit: 0 });
+    });
+    lines1.push({ journal_entry_id: entry1.id, account_id: profitLossAccountId, debit: 0, credit: totalRevenue });
+    await supabase.from("journal_lines").insert(lines1);
+
+    const num2 = num1 + 1;
+    const { data: entry2, error: e2 } = await supabase.from("journal_entries").insert([{
+      company_id: companyId,
+      description: "Cierre de Cuentas de Gastos y Costos - " + periodStart + " a " + periodEnd,
+      entry_date: periodEnd,
+      entry_number: num2,
+    }]).select("id").single();
+    if (e2 || !entry2) { setMessage("Error asiento 2: " + e2?.message); setLoading(false); return; }
+    const lines2: any[] = [];
+    lines2.push({ journal_entry_id: entry2.id, account_id: profitLossAccountId, debit: totalExpense, credit: 0 });
+    Object.entries(expenseByAccount).forEach(([accId, amount]) => {
+      if (amount !== 0) lines2.push({ journal_entry_id: entry2.id, account_id: accId, debit: 0, credit: amount });
+    });
+    await supabase.from("journal_lines").insert(lines2);
+
+    const num3 = num2 + 1;
+    const { data: entry3, error: e3 } = await supabase.from("journal_entries").insert([{
+      company_id: companyId,
+      description: "Traspaso del Resultado Neto a Patrimonio - " + periodStart + " a " + periodEnd,
+      entry_date: periodEnd,
+      entry_number: num3,
+    }]).select("id").single();
+    if (e3 || !entry3) { setMessage("Error asiento 3: " + e3?.message); setLoading(false); return; }
+    const lines3: any[] = [];
+    if (netResult >= 0) {
+      lines3.push({ journal_entry_id: entry3.id, account_id: profitLossAccountId, debit: netResult, credit: 0 });
+      lines3.push({ journal_entry_id: entry3.id, account_id: retainedEarningsId, debit: 0, credit: netResult });
+    } else {
+      lines3.push({ journal_entry_id: entry3.id, account_id: retainedEarningsId, debit: Math.abs(netResult), credit: 0 });
+      lines3.push({ journal_entry_id: entry3.id, account_id: profitLossAccountId, debit: 0, credit: Math.abs(netResult) });
+    }
+    await supabase.from("journal_lines").insert(lines3);
 
     await supabase.from("fiscal_periods").insert([{
       company_id: companyId,
       period_start: periodStart,
       period_end: periodEnd,
       status: "CLOSED",
-      closing_entry_id: entry.id,
+      closing_entry_id: entry3.id,
       closed_at: new Date().toISOString(),
       net_result: netResult,
     }]);
 
-    setMessage("Periodo cerrado correctamente. Resultado: " + netResult.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+    setMessage("Periodo cerrado correctamente con 3 asientos NIIF (Nº" + num1 + ", " + num2 + ", " + num3 + "). Resultado: " + netResult.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
     setLoading(false);
     await loadPeriods(companyId);
   }
