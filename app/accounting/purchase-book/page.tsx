@@ -499,7 +499,7 @@ export default function PurchaseBookPage() {
                     <td style={{ padding: 6, textAlign: "center" }}>{e.entry_number}</td>
                     <td style={{ padding: 6 }}>{e.entry_date}</td>
                     <td style={{ padding: 6 }}>{e.vendor_tax_id}</td>
-                    <td style={{ padding: 6 }}>{e.vendor_name}</td>
+                    <td style={{ padding: 6 }}>{e.vendor_name}{e.is_reversed && <span style={{ marginLeft: 6, fontSize: 11, color: "#FB923C", border: "1px solid #FB923C", borderRadius: 4, padding: "1px 5px" }}>REVERSADO</span>}</td>
                     <td style={{ padding: 6, textAlign: "center" }}>{e.document_type}</td>
                     <td style={{ padding: 6 }}>{e.invoice_number}</td>
                     <td style={{ padding: 6 }}>{e.control_number}</td>
