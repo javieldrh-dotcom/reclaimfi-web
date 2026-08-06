@@ -20,6 +20,7 @@ export default function PurchaseBookPage() {
   const [vatCreditAccountId, setVatCreditAccountId] = useState("");
   const [vatWithholdingAccountId, setVatWithholdingAccountId] = useState("");
   const [isProfessionalService, setIsProfessionalService] = useState(false);
+  const [islrConceptCode, setIslrConceptCode] = useState("");
   const [islrRate, setIslrRate] = useState("5");
   const [islrWithholdingAccountId, setIslrWithholdingAccountId] = useState("");
 
@@ -277,6 +278,7 @@ export default function PurchaseBookPage() {
       withheld_amount: withheld * fxRate,
       islr_withheld: islrWithheld * fxRate,
       is_professional_service: isProfessionalService,
+      islr_concept_code: islrConceptCode,
       journal_entry_id: entry.id,
     }]);
 
@@ -373,6 +375,7 @@ export default function PurchaseBookPage() {
         {isProfessionalService && (
           <div style={{ display: "flex", gap: 10, marginTop: 8, alignItems: "center" }}>
             <input type="number" value={islrRate} onChange={(e) => setIslrRate(e.target.value)} style={{ ...inputStyle, width: 100 }} placeholder="Tasa ISLR %" />
+            <input value={islrConceptCode} onChange={(e) => setIslrConceptCode(e.target.value)} style={{ ...inputStyle, width: 140 }} placeholder="Cod. Concepto (Dec.1808)" />
             <p style={{ fontSize: 15, color: theme.accent }}>ISLR a Retener: {((parseFloat(taxableBaseGeneral) || 0) * (parseFloat(islrRate) / 100)).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
           </div>
         )}
