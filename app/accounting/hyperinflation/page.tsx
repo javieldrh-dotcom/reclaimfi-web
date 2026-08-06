@@ -222,6 +222,24 @@ export default function HyperinflationPage() {
               </div>
             </div>
 
+            <div style={{ ...theme.cardStyle, marginTop: 16 }}>
+              <h3 style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginBottom: 12 }}>ESTADO DE CAMBIOS EN EL PATRIMONIO REEXPRESADO</h3>
+              {result.balanceDetail.filter((d: any) => d.type === "EQUITY").map((d: any, idx: number) => (
+                <div key={idx} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #1F2937" }}>
+                  <span>{d.code} - {d.name}</span>
+                  <span style={theme.numberStyle}>{d.historical.toLocaleString(undefined, { minimumFractionDigits: 2 })} → {d.restated.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                </div>
+              ))}
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #1F2937" }}>
+                <span>Resultado del Ejercicio (Reexpresado, incluye posicion monetaria)</span>
+                <span style={theme.numberStyle}>{result.netIncomeHist.toLocaleString(undefined, { minimumFractionDigits: 2 })} → {result.plugResult.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", marginTop: 4, borderTop: "2px solid " + theme.accent }}>
+                <span style={{ fontWeight: 700 }}>Total Patrimonio Reexpresado (Final)</span>
+                <span style={{ ...theme.numberStyle, fontWeight: 700 }}>{(result.totalEquityRest + result.plugResult).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+              </div>
+            </div>
+
             <div style={{ marginTop: 20 }}>
               <h3 style={{ fontSize: 16, color: theme.accent, fontWeight: 700, marginBottom: 10 }}>Detalle Balance de Situacion</h3>
               <div style={{ overflowX: "auto" }}>

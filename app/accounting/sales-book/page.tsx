@@ -288,6 +288,7 @@ export default function SalesBookPage() {
         </div>
 
         <div style={{ display: "flex", gap: 6, marginTop: 12 }}>
+        <h4 style={{ fontSize: 14, color: "#8B93A7", marginTop: 16, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Cobro (Cuenta por Cobrar)</h4>
           <select value={arAccountId} onChange={(e) => setArAccountId(e.target.value)} style={inputStyle}>
             <option value="">Cuenta de Cuentas por Cobrar</option>
             {accounts.filter(a => a.account_type === "ASSET").map((a) => <option key={a.id} value={a.id}>{a.account_code} - {a.account_name}</option>)}
@@ -295,6 +296,7 @@ export default function SalesBookPage() {
           <button onClick={() => createNewAccount("ASSET", "ar")} style={{ padding: "0 16px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 14, whiteSpace: "nowrap" }}>+ Nueva</button>
         </div>
         <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+        <h4 style={{ fontSize: 14, color: "#8B93A7", marginTop: 16, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Ingreso</h4>
           <select value={revenueAccountId} onChange={(e) => setRevenueAccountId(e.target.value)} style={inputStyle}>
             <option value="">Cuenta de Ingreso</option>
             {accounts.filter(a => a.account_type === "REVENUE").map((a) => <option key={a.id} value={a.id}>{a.account_code} - {a.account_name}</option>)}
@@ -302,6 +304,7 @@ export default function SalesBookPage() {
           <button onClick={() => createNewAccount("REVENUE", "revenue")} style={{ padding: "0 16px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 14, whiteSpace: "nowrap" }}>+ Nueva</button>
         </div>
         <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+        <h4 style={{ fontSize: 14, color: "#8B93A7", marginTop: 16, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Impuesto</h4>
           <select value={vatPayableAccountId} onChange={(e) => setVatPayableAccountId(e.target.value)} style={inputStyle}>
             <option value="">Cuenta de IVA Debito Fiscal</option>
             {accounts.filter(a => a.account_type === "LIABILITY").map((a) => <option key={a.id} value={a.id}>{a.account_code} - {a.account_name}</option>)}
