@@ -1,0 +1,64 @@
+{
+  "nav": {
+    "brand": "Audit Global Intelligence",
+    "servicios": "Dienstleistungen",
+    "tecnologia": "Technologie",
+    "contacto": "Kontakt",
+    "acceso": "Sicherer Zugang"
+  },
+  "home": {
+    "eyebrow": "Eine Plattform, angepasst an Ihre Realitat",
+    "headline": "Uberprufbare finanzielle Wahrheit, auf jedem Kontinent",
+    "subheadline": "Forensische Prufung mit kryptografischer Kette, Buchhaltung, die sich an die Vorschriften und Wirtschaft Ihrer Region anpasst, und Einzelpreisanalyse fur offentliche Ausschreibungen. Alles auf einer einzigen Plattform, die mit Ihnen wachst.",
+    "statLabel": "Ein reales Beispiel regionaler Anpassung",
+    "statDescription": "In Venezuela verwandelte die Inflation innerhalb von 18 Jahren 100 Bolivar in 488.122.054.630.450 Bolivar. Unsere Buchhaltungs-Engine passt jede Zahl automatisch an, egal wie viele Nullen Ihre wirtschaftliche Realitat hat. Dies ist nur einer der Kontexte, fur die wir spezifische Werkzeuge entwickeln.",
+    "pillarsTitle": "Drei Perspektiven auf eine Wahrheit",
+    "pillar1Title": "Forensische Prufung",
+    "pillar1Desc": "Untersuchung digitaler Beweise mit einer durch kryptografischen Hash uberprufbaren Beweiskette. Jeder Datensatz ist verkettet und kann nicht ohne Spuren verandert werden.",
+    "pillar2Title": "Finanzbuchhaltung",
+    "pillar2Desc": "Kontenplan, angepasst nach Branche und Region, IFRS-konformer Periodenabschluss, und die einzige Engine am Markt mit nativer Hyperinflationsanpassung (IAS 29) fur Volkswirtschaften mit hoher Volatilitat.",
+    "pillar3Title": "Ausschreibungen und offentliche Vertrage",
+    "pillar3Desc": "Einzelpreisanalyse fur offentliche Beschaffungsprozesse, mit offiziellem Klassifizierungskatalog und Arbeitskosten-Engine.",
+    "cta": "Zur Plattform"
+  },
+  "servicios": {
+    "eyebrow": "Professionelle Infrastruktur",
+    "headline": "Strategische Dienstleistungen",
+    "subheadline": "Spezialisierte Losungen in digitaler Prufung, regionsubergreifender Buchhaltung und Finanzrisiko-Intelligenz.",
+    "service1Title": "Forensische Prufung",
+    "service1Desc": "Technische Bewertung digitaler Beweise, hash-uberprufbare Dokumentenruckverfolgbarkeit, und strukturierte Risikoanalyse.",
+    "service2Title": "Buchhaltung und Compliance",
+    "service2Desc": "Vollstandige IFRS-Buchhaltung, angepasst an die Steuervorschriften Ihrer Region, mit automatischer Inflationsanpassung, wo Ihre Wirtschaft dies erfordert.",
+    "service3Title": "Blockchain Intelligence",
+    "service3Desc": "Untersuchung von Wallets und Transaktionen sowie Finanzrisikoklassifizierung mit kryptografisch uberprufbaren Beweisen.",
+    "service4Title": "Offentliche Ausschreibungen",
+    "service4Desc": "Einzelpreisanalyse und Angebotsstrukturierung fur offentliche Beschaffungsprozesse.",
+    "service5Title": "AML / KYC",
+    "service5Desc": "Automatisierung regulatorischer Prufungen und kontinuierliches Compliance-Monitoring.",
+    "service6Title": "Regionale Anpassung",
+    "service6Desc": "Wenn wir Nutzer aus neuen Regionen aufnehmen, entwickeln wir die steuerlichen und regulatorischen Werkzeuge, die dieser spezifische Kontext erfordert."
+  },
+  "tecnologia": {
+    "headline": "Technologie",
+    "subheadline": "Infrastruktur, aufgebaut auf Prinzipien der Uberprufbarkeit: Jede Buchung ist kryptografisch verkettet, jede Erklarung wird vor der Einreichung validiert, und jede Region hat ihre eigenen aktiven Regeln, ohne die anderen zu beeinflussen.",
+    "feature1Title": "Blockchain-uberprufbares Hauptbuch",
+    "feature1Desc": "Jede Buchung wird uber einen SHA-256-Hash mit der vorherigen verkettet. Die Anderung eines historischen Datensatzes bricht die Kette auf mathematisch nachweisbare Weise.",
+    "feature2Title": "Inflations-Neubewertungs-Engine",
+    "feature2Desc": "Automatische Anpassung aller 4 Jahresabschlusse (Bilanz, Gewinn- und Verlustrechnung, Eigenkapital, Kapitalflussrechnung) gemass IAS 29, monatlich, unter Verwendung des offiziellen Preisindex jedes Landes.",
+    "feature3Title": "KI-Risiko-Engine",
+    "feature3Desc": "Analysemodelle zur Erkennung verdachtiger Muster und zur pradiktiven Bewertung finanzieller Risiken.",
+    "feature4Title": "Ende-zu-Ende-Sicherheit",
+    "feature4Desc": "Unternehmensweite Datenisolierung auf Datenbankebene, optionale Zwei-Faktor-Authentifizierung, und granulare Zugriffsrollen pro Benutzer."
+  },
+  "contacto": {
+    "headline": "Kontakt",
+    "subheadline": "Fordern Sie Informationen oder eine Bewertung Ihres Falls an.",
+    "namePlaceholder": "Name",
+    "emailPlaceholder": "E-Mail",
+    "messagePlaceholder": "Nachricht",
+    "submitButton": "Anfrage senden",
+    "submitting": "Wird gesendet...",
+    "successMessage": "Nachricht erfolgreich gesendet. Wir melden uns in Kurze bei Ihnen.",
+    "errorMessage": "Nachricht konnte nicht gesendet werden. Bitte versuchen Sie es erneut."
+  }
+}

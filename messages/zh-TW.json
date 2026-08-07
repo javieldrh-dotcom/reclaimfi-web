@@ -1,0 +1,64 @@
+{
+  "nav": {
+    "brand": "Audit Global Intelligence",
+    "servicios": "服務",
+    "tecnologia": "技術",
+    "contacto": "聯絡我們",
+    "acceso": "安全登入"
+  },
+  "home": {
+    "eyebrow": "一個平台，適應您的現實",
+    "headline": "可驗證的財務真相，無論您身處哪個大陸",
+    "subheadline": "具備加密鏈的法務審計，能夠適應您所在地區法規和經濟狀況的會計系統，以及公共招標的單價分析。全部整合在一個與您共同成長的平台中。",
+    "statLabel": "區域適應能力的真實案例",
+    "statDescription": "在委內瑞拉，18年間通貨膨脹使100玻利瓦爾變為488,122,054,630,450玻利瓦爾。我們的會計引擎自動調整每一個數字，無論您的經濟現實有多少個零。這只是我們為特定環境建置專屬工具的一個例子。",
+    "pillarsTitle": "同一真相的三個視角",
+    "pillar1Title": "法務審計",
+    "pillar1Desc": "透過加密雜湊驗證監管鏈的數位證據調查。每筆記錄相互鏈接，任何竄改都無法不留痕跡。",
+    "pillar2Title": "財務會計",
+    "pillar2Desc": "依產業和地區調整的會計科目表，符合國際財務報導準則的期末結算，以及市場上唯一原生支援惡性通膨調整（IAS 29）的引擎，專為高波動性經濟體設計。",
+    "pillar3Title": "招標與公共合約",
+    "pillar3Desc": "面向政府採購流程的單價分析，配備官方分類目錄和人工成本引擎。",
+    "cta": "進入平台"
+  },
+  "servicios": {
+    "eyebrow": "專業基礎設施",
+    "headline": "戰略服務",
+    "subheadline": "數位審計、跨區域會計與金融風險情報方面的專業解決方案。",
+    "service1Title": "法務審計",
+    "service1Desc": "數位證據的技術評估、可透過雜湊驗證的文件可追溯性，以及結構化風險分析。",
+    "service2Title": "會計與合規",
+    "service2Desc": "完整的國際財務報導準則會計體系，適應您所在地區的稅務規定，並在您的經濟需要時自動進行通膨調整。",
+    "service3Title": "區塊鏈情報",
+    "service3Desc": "錢包和交易調查，以及具備加密可驗證證據的金融風險分類。",
+    "service4Title": "公共招標",
+    "service4Desc": "面向政府採購流程的單價分析與投標方案建置。",
+    "service5Title": "反洗錢 / 客戶身分識別",
+    "service5Desc": "監管驗證自動化與持續合規監控。",
+    "service6Title": "區域適應",
+    "service6Desc": "隨著新地區使用者的加入，我們會建置該特定環境所需要的稅務與監管工具。"
+  },
+  "tecnologia": {
+    "headline": "技術",
+    "subheadline": "基於可驗證性原則建置的基礎設施：每一筆會計分錄都透過密碼學方式相互鏈接，每一份申報在提交前都經過驗證，每個地區都擁有各自獨立的規則，互不影響。",
+    "feature1Title": "區塊鏈可驗證帳本",
+    "feature1Desc": "每筆會計分錄都透過SHA-256雜湊與前一筆相鏈接。竄改歷史記錄會以數學方式可偵測的方式打破鏈條。",
+    "feature2Title": "通膨重編引擎",
+    "feature2Desc": "根據IAS 29準則，使用各國官方物價指數，按月自動調整全部4張財務報表（資產負債表、損益表、權益變動表、現金流量表）。",
+    "feature3Title": "人工智慧風險引擎",
+    "feature3Desc": "用於可疑模式偵測和金融風險預測評估的分析模型。",
+    "feature4Title": "端到端安全",
+    "feature4Desc": "資料庫層面的企業級資料隔離、可選的雙重身分驗證，以及按使用者劃分的精細存取權限。"
+  },
+  "contacto": {
+    "headline": "聯絡我們",
+    "subheadline": "取得資訊或對您的案例進行評估。",
+    "namePlaceholder": "姓名",
+    "emailPlaceholder": "電子郵件",
+    "messagePlaceholder": "留言",
+    "submitButton": "傳送請求",
+    "submitting": "傳送中...",
+    "successMessage": "訊息傳送成功，我們會盡快回覆您。",
+    "errorMessage": "訊息傳送失敗，請重試。"
+  }
+}

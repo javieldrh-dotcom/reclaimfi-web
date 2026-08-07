@@ -1,0 +1,64 @@
+{
+  "nav": {
+    "brand": "Audit Global Intelligence",
+    "servicios": "Layanan",
+    "tecnologia": "Teknologi",
+    "contacto": "Kontak",
+    "acceso": "Akses Aman"
+  },
+  "home": {
+    "eyebrow": "Satu platform, disesuaikan dengan realitas Anda",
+    "headline": "Kebenaran finansial yang dapat diverifikasi, di benua mana pun",
+    "subheadline": "Audit forensik dengan rantai kriptografi, akuntansi yang menyesuaikan dengan regulasi dan ekonomi wilayah Anda, dan analisis harga satuan untuk tender publik. Semua dalam satu platform yang tumbuh bersama Anda.",
+    "statLabel": "Contoh nyata adaptasi regional",
+    "statDescription": "Di Venezuela, inflasi mengubah Bs. 100 menjadi Bs. 488.122.054.630.450 dalam 18 tahun. Mesin akuntansi kami menyesuaikan setiap angka secara otomatis, tidak peduli berapa banyak nol yang dimiliki realitas ekonomi Anda. Ini hanyalah salah satu konteks yang kami bangun alat khususnya.",
+    "pillarsTitle": "Tiga sudut pandang atas satu kebenaran",
+    "pillar1Title": "Audit Forensik",
+    "pillar1Desc": "Investigasi bukti digital dengan rantai penyimpanan yang dapat diverifikasi melalui hash kriptografi. Setiap catatan saling terhubung dan tidak dapat diubah tanpa meninggalkan jejak.",
+    "pillar2Title": "Akuntansi Keuangan",
+    "pillar2Desc": "Bagan akun yang disesuaikan berdasarkan sektor dan wilayah, penutupan periode sesuai IFRS, dan satu-satunya mesin di pasar dengan penyesuaian hiperinflasi asli (IAS 29) untuk ekonomi dengan volatilitas tinggi.",
+    "pillar3Title": "Tender dan Kontrak Publik",
+    "pillar3Desc": "Analisis harga satuan untuk proses pengadaan pemerintah, dengan katalog klasifikasi resmi dan mesin biaya tenaga kerja.",
+    "cta": "Akses Platform"
+  },
+  "servicios": {
+    "eyebrow": "Infrastruktur Profesional",
+    "headline": "Layanan Strategis",
+    "subheadline": "Solusi khusus dalam audit digital, akuntansi multi-wilayah, dan intelijen risiko keuangan.",
+    "service1Title": "Audit Forensik",
+    "service1Desc": "Evaluasi teknis bukti digital, ketertelusuran dokumen yang dapat diverifikasi melalui hash, dan analisis risiko terstruktur.",
+    "service2Title": "Akuntansi dan Kepatuhan",
+    "service2Desc": "Akuntansi IFRS lengkap, disesuaikan dengan regulasi pajak wilayah Anda, dengan penyesuaian inflasi otomatis di mana ekonomi Anda membutuhkannya.",
+    "service3Title": "Blockchain Intelligence",
+    "service3Desc": "Investigasi dompet digital dan transaksi, serta klasifikasi risiko keuangan dengan bukti yang dapat diverifikasi secara kriptografi.",
+    "service4Title": "Tender Publik",
+    "service4Desc": "Analisis harga satuan dan penyusunan penawaran untuk proses pengadaan pemerintah.",
+    "service5Title": "AML / KYC",
+    "service5Desc": "Otomatisasi validasi regulasi dan pemantauan kepatuhan berkelanjutan.",
+    "service6Title": "Adaptasi Regional",
+    "service6Desc": "Seiring bertambahnya pengguna dari wilayah baru, kami membangun alat pajak dan regulasi yang secara khusus dibutuhkan konteks tersebut."
+  },
+  "tecnologia": {
+    "headline": "Teknologi",
+    "subheadline": "Infrastruktur yang dibangun berdasarkan prinsip keterverifikasian: setiap entri akuntansi terhubung secara kriptografi, setiap pelaporan divalidasi sebelum diajukan, dan setiap wilayah memiliki aturan aktifnya sendiri tanpa memengaruhi wilayah lain.",
+    "feature1Title": "Buku Besar yang Dapat Diverifikasi Blockchain",
+    "feature1Desc": "Setiap entri jurnal terhubung dengan entri sebelumnya melalui hash SHA-256. Mengubah catatan historis akan memutus rantai dengan cara yang dapat dideteksi secara matematis.",
+    "feature2Title": "Mesin Penyajian Ulang Inflasi",
+    "feature2Desc": "Penyesuaian otomatis dari 4 laporan keuangan (Neraca, Laporan Laba Rugi, Ekuitas, Arus Kas) sesuai IAS 29, bulanan, menggunakan indeks harga resmi setiap negara.",
+    "feature3Title": "Mesin Risiko AI",
+    "feature3Desc": "Model analisis untuk deteksi pola mencurigakan dan penilaian prediktif risiko keuangan.",
+    "feature4Title": "Keamanan End-to-End",
+    "feature4Desc": "Isolasi data tingkat perusahaan di lapisan basis data, autentikasi dua faktor opsional, dan peran akses granular per pengguna."
+  },
+  "contacto": {
+    "headline": "Kontak",
+    "subheadline": "Minta informasi atau evaluasi kasus Anda.",
+    "namePlaceholder": "Nama",
+    "emailPlaceholder": "Email",
+    "messagePlaceholder": "Pesan",
+    "submitButton": "Kirim Permintaan",
+    "submitting": "Mengirim...",
+    "successMessage": "Pesan berhasil dikirim. Kami akan segera menghubungi Anda.",
+    "errorMessage": "Pesan gagal dikirim. Silakan coba lagi."
+  }
+}

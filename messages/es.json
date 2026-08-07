@@ -1,0 +1,64 @@
+{
+  "nav": {
+    "brand": "Audit Global Intelligence",
+    "servicios": "Servicios",
+    "tecnologia": "Tecnologia",
+    "contacto": "Contacto",
+    "acceso": "Acceso Seguro"
+  },
+  "home": {
+    "eyebrow": "Una plataforma, adaptada a tu realidad",
+    "headline": "Verdad financiera verificable, sin importar tu continente",
+    "subheadline": "Auditoria forense con cadena criptografica, contabilidad que se adapta a la normativa y economia de tu region, y analisis de precios para contratacion publica. Todo en una sola plataforma que crece contigo.",
+    "statLabel": "Un ejemplo real de adaptacion regional",
+    "statDescription": "En Venezuela, la inflacion convirtio Bs. 100 en Bs. 488.122.054.630.450 en 18 anos. Nuestro motor de contabilidad ajusta cada cifra automaticamente, sin importar cuantos ceros tenga tu realidad economica. Es solo uno de los contextos para los que construimos herramientas especificas.",
+    "pillarsTitle": "Tres lentes sobre una misma verdad",
+    "pillar1Title": "Auditoria Forense",
+    "pillar1Desc": "Investigacion de evidencia digital con cadena de custodia verificable por hash criptografico. Cada registro, encadenado e imposible de alterar sin dejar rastro.",
+    "pillar2Title": "Contabilidad Financiera",
+    "pillar2Desc": "Plan de cuentas adaptado por sector y region, cierre de ejercicio segun NIIF, y el unico motor del mercado con ajuste nativo por hiperinflacion (NIC 29) para economias de alta volatilidad.",
+    "pillar3Title": "Licitaciones y Contratos Publicos",
+    "pillar3Desc": "Analisis de precios unitarios para procesos de contratacion con el Estado, con catalogo de clasificacion oficial y motor de costo laboral.",
+    "cta": "Acceder a la plataforma"
+  },
+  "servicios": {
+    "eyebrow": "Infraestructura Profesional",
+    "headline": "Servicios Estrategicos",
+    "subheadline": "Soluciones especializadas en auditoria digital, contabilidad multi-region, e inteligencia de riesgo financiero.",
+    "service1Title": "Auditoria Forense",
+    "service1Desc": "Evaluacion tecnica de evidencia digital, trazabilidad documental verificable por hash, y analisis estructurado de riesgo.",
+    "service2Title": "Contabilidad y Cumplimiento",
+    "service2Desc": "Contabilidad NIIF completa, adaptada a la normativa fiscal de tu region, con ajuste automatico por inflacion donde tu economia lo requiera.",
+    "service3Title": "Blockchain Intelligence",
+    "service3Desc": "Investigacion de wallets, transacciones, y clasificacion de riesgo financiero con evidencia criptograficamente verificable.",
+    "service4Title": "Licitaciones Publicas",
+    "service4Desc": "Analisis de precios unitarios y estructuracion de ofertas para procesos de contratacion con el Estado.",
+    "service5Title": "AML / KYC",
+    "service5Desc": "Automatizacion de validaciones regulatorias y monitoreo continuo de cumplimiento.",
+    "service6Title": "Adaptacion Regional",
+    "service6Desc": "A medida que incorporamos usuarios de nuevas regiones, construimos las herramientas fiscales y normativas que ese contexto especifico demanda."
+  },
+  "tecnologia": {
+    "headline": "Tecnologia",
+    "subheadline": "Infraestructura construida sobre principios de verificabilidad: cada registro contable esta encadenado criptograficamente, cada declaracion se valida antes de presentarse, y cada region tiene sus propias reglas activas sin afectar a las demas.",
+    "feature1Title": "Libro Verificable por Blockchain",
+    "feature1Desc": "Cada asiento contable se encadena al anterior mediante hash SHA-256. Alterar un registro historico rompe la cadena de forma detectable matematicamente.",
+    "feature2Title": "Motor de Reexpresion por Inflacion",
+    "feature2Desc": "Ajuste automatico de los 4 estados financieros (Balance, Resultados, Patrimonio, Flujo de Efectivo) segun NIC 29, mes a mes, usando el indice de precios oficial de cada pais.",
+    "feature3Title": "Motor de Riesgo con IA",
+    "feature3Desc": "Modelos de analisis para deteccion de patrones sospechosos y evaluacion predictiva de riesgo financiero.",
+    "feature4Title": "Seguridad de Extremo a Extremo",
+    "feature4Desc": "Aislamiento de datos por empresa a nivel de base de datos, autenticacion de dos factores opcional, y roles de acceso granulares por usuario."
+  },
+  "contacto": {
+    "headline": "Contacto",
+    "subheadline": "Solicita informacion o una evaluacion de tu caso.",
+    "namePlaceholder": "Nombre",
+    "emailPlaceholder": "Correo electronico",
+    "messagePlaceholder": "Mensaje",
+    "submitButton": "Enviar Solicitud",
+    "submitting": "Enviando...",
+    "successMessage": "Mensaje enviado correctamente. Te responderemos pronto.",
+    "errorMessage": "No se pudo enviar el mensaje. Intenta de nuevo."
+  }
+}

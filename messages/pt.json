@@ -1,0 +1,64 @@
+{
+  "nav": {
+    "brand": "Audit Global Intelligence",
+    "servicios": "Servicos",
+    "tecnologia": "Tecnologia",
+    "contacto": "Contato",
+    "acceso": "Acesso Seguro"
+  },
+  "home": {
+    "eyebrow": "Uma plataforma, adaptada a sua realidade",
+    "headline": "Verdade financeira verificavel, em qualquer continente",
+    "subheadline": "Auditoria forense com cadeia criptografica, contabilidade que se adapta a normativa e economia da sua regiao, e analise de precos para licitacoes publicas. Tudo em uma unica plataforma que cresce com voce.",
+    "statLabel": "Um exemplo real de adaptacao regional",
+    "statDescription": "Na Venezuela, a inflacao transformou Bs. 100 em Bs. 488.122.054.630.450 em 18 anos. Nosso motor de contabilidade ajusta cada valor automaticamente, nao importa quantos zeros sua realidade economica tenha. E apenas um dos contextos para os quais construimos ferramentas especificas.",
+    "pillarsTitle": "Tres lentes sobre uma mesma verdade",
+    "pillar1Title": "Auditoria Forense",
+    "pillar1Desc": "Investigacao de evidencia digital com cadeia de custodia verificavel por hash criptografico. Cada registro, encadeado e impossivel de alterar sem deixar rastro.",
+    "pillar2Title": "Contabilidade Financeira",
+    "pillar2Desc": "Plano de contas adaptado por setor e regiao, encerramento de exercicio conforme IFRS, e o unico motor do mercado com ajuste nativo por hiperinflacao (IAS 29) para economias de alta volatilidade.",
+    "pillar3Title": "Licitacoes e Contratos Publicos",
+    "pillar3Desc": "Analise de precos unitarios para processos de contratacao publica, com catalogo de classificacao oficial e motor de custo de mao de obra.",
+    "cta": "Acessar a plataforma"
+  },
+  "servicios": {
+    "eyebrow": "Infraestrutura Profissional",
+    "headline": "Servicos Estrategicos",
+    "subheadline": "Solucoes especializadas em auditoria digital, contabilidade multi-regiao, e inteligencia de risco financeiro.",
+    "service1Title": "Auditoria Forense",
+    "service1Desc": "Avaliacao tecnica de evidencia digital, rastreabilidade documental verificavel por hash, e analise estruturada de risco.",
+    "service2Title": "Contabilidade e Conformidade",
+    "service2Desc": "Contabilidade IFRS completa, adaptada a normativa fiscal da sua regiao, com ajuste automatico por inflacao onde sua economia exigir.",
+    "service3Title": "Blockchain Intelligence",
+    "service3Desc": "Investigacao de carteiras, transacoes, e classificacao de risco financeiro com evidencia criptograficamente verificavel.",
+    "service4Title": "Licitacoes Publicas",
+    "service4Desc": "Analise de precos unitarios e estruturacao de propostas para processos de contratacao publica.",
+    "service5Title": "AML / KYC",
+    "service5Desc": "Automatizacao de validacoes regulatorias e monitoramento continuo de conformidade.",
+    "service6Title": "Adaptacao Regional",
+    "service6Desc": "A medida que incorporamos usuarios de novas regioes, construimos as ferramentas fiscais e regulatorias que aquele contexto especificamente exige."
+  },
+  "tecnologia": {
+    "headline": "Tecnologia",
+    "subheadline": "Infraestrutura construida sobre principios de verificabilidade: cada lancamento contabil esta encadeado criptograficamente, cada declaracao e validada antes de ser enviada, e cada regiao tem suas proprias regras ativas sem afetar as demais.",
+    "feature1Title": "Livro Verificavel por Blockchain",
+    "feature1Desc": "Cada lancamento contabil e encadeado ao anterior por hash SHA-256. Alterar um registro historico quebra a cadeia de forma detectavel matematicamente.",
+    "feature2Title": "Motor de Reexpressao por Inflacao",
+    "feature2Desc": "Ajuste automatico das 4 demonstracoes financeiras (Balanco, Resultado, Patrimonio, Fluxo de Caixa) conforme IAS 29, mes a mes, usando o indice de precos oficial de cada pais.",
+    "feature3Title": "Motor de Risco com IA",
+    "feature3Desc": "Modelos de analise para deteccao de padroes suspeitos e avaliacao preditiva de risco financeiro.",
+    "feature4Title": "Seguranca de Ponta a Ponta",
+    "feature4Desc": "Isolamento de dados por empresa no nivel do banco de dados, autenticacao de dois fatores opcional, e papeis de acesso granulares por usuario."
+  },
+  "contacto": {
+    "headline": "Contato",
+    "subheadline": "Solicite informacoes ou uma avaliacao do seu caso.",
+    "namePlaceholder": "Nome",
+    "emailPlaceholder": "E-mail",
+    "messagePlaceholder": "Mensagem",
+    "submitButton": "Enviar Solicitacao",
+    "submitting": "Enviando...",
+    "successMessage": "Mensagem enviada com sucesso. Retornaremos em breve.",
+    "errorMessage": "Nao foi possivel enviar a mensagem. Tente novamente."
+  }
+}

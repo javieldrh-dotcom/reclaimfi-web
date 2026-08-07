@@ -1,0 +1,64 @@
+{
+  "nav": {
+    "brand": "Audit Global Intelligence",
+    "servicios": "Services",
+    "tecnologia": "Technologie",
+    "contacto": "Contact",
+    "acceso": "Acces Securise"
+  },
+  "home": {
+    "eyebrow": "Une plateforme, adaptee a votre realite",
+    "headline": "Une verite financiere verifiable, sur tous les continents",
+    "subheadline": "Audit forensique avec chaine cryptographique, comptabilite qui s'adapte a la reglementation et a l'economie de votre region, et analyse des prix unitaires pour les appels d'offres publics. Le tout sur une seule plateforme qui grandit avec vous.",
+    "statLabel": "Un exemple reel d'adaptation regionale",
+    "statDescription": "Au Venezuela, l'inflation a transforme 100 bolivars en 488 122 054 630 450 bolivars en 18 ans. Notre moteur comptable ajuste automatiquement chaque chiffre, quel que soit le nombre de zeros de votre realite economique. Ce n'est qu'un des contextes pour lesquels nous construisons des outils specifiques.",
+    "pillarsTitle": "Trois regards sur une meme verite",
+    "pillar1Title": "Audit Forensique",
+    "pillar1Desc": "Investigation de preuves numeriques avec chaine de garde verifiable par hash cryptographique. Chaque enregistrement, enchaine et impossible a modifier sans laisser de trace.",
+    "pillar2Title": "Comptabilite Financiere",
+    "pillar2Desc": "Plan comptable adapte par secteur et region, cloture d'exercice conforme aux IFRS, et le seul moteur du marche avec ajustement natif pour hyperinflation (IAS 29) pour les economies a forte volatilite.",
+    "pillar3Title": "Appels d'Offres et Marches Publics",
+    "pillar3Desc": "Analyse des prix unitaires pour les processus de passation de marches publics, avec catalogue de classification officiel et moteur de cout de main-d'oeuvre.",
+    "cta": "Acceder a la plateforme"
+  },
+  "servicios": {
+    "eyebrow": "Infrastructure Professionnelle",
+    "headline": "Services Strategiques",
+    "subheadline": "Solutions specialisees en audit numerique, comptabilite multi-region, et intelligence de risque financier.",
+    "service1Title": "Audit Forensique",
+    "service1Desc": "Evaluation technique de preuves numeriques, tracabilite documentaire verifiable par hash, et analyse structuree du risque.",
+    "service2Title": "Comptabilite et Conformite",
+    "service2Desc": "Comptabilite IFRS complete, adaptee a la reglementation fiscale de votre region, avec ajustement automatique pour inflation la ou votre economie l'exige.",
+    "service3Title": "Blockchain Intelligence",
+    "service3Desc": "Investigation de portefeuilles, transactions, et classification du risque financier avec preuves verifiables de maniere cryptographique.",
+    "service4Title": "Marches Publics",
+    "service4Desc": "Analyse des prix unitaires et structuration des offres pour les processus de passation de marches publics.",
+    "service5Title": "AML / KYC",
+    "service5Desc": "Automatisation des validations reglementaires et surveillance continue de la conformite.",
+    "service6Title": "Adaptation Regionale",
+    "service6Desc": "A mesure que nous accueillons des utilisateurs de nouvelles regions, nous construisons les outils fiscaux et reglementaires que ce contexte specifique exige."
+  },
+  "tecnologia": {
+    "headline": "Technologie",
+    "subheadline": "Infrastructure construite sur des principes de verifiabilite : chaque ecriture comptable est enchainee de maniere cryptographique, chaque declaration est validee avant d'etre soumise, et chaque region dispose de ses propres regles actives sans affecter les autres.",
+    "feature1Title": "Registre Verifiable par Blockchain",
+    "feature1Desc": "Chaque ecriture comptable est enchainee a la precedente via un hash SHA-256. Modifier un enregistrement historique brise la chaine de maniere mathematiquement detectable.",
+    "feature2Title": "Moteur de Reexpression pour Inflation",
+    "feature2Desc": "Ajustement automatique des 4 etats financiers (Bilan, Compte de Resultat, Capitaux Propres, Flux de Tresorerie) selon l'IAS 29, mois par mois, en utilisant l'indice des prix officiel de chaque pays.",
+    "feature3Title": "Moteur de Risque avec IA",
+    "feature3Desc": "Modeles d'analyse pour la detection de schemas suspects et l'evaluation predictive du risque financier.",
+    "feature4Title": "Securite de Bout en Bout",
+    "feature4Desc": "Isolation des donnees par entreprise au niveau de la base de donnees, authentification a deux facteurs optionnelle, et roles d'acces granulaires par utilisateur."
+  },
+  "contacto": {
+    "headline": "Contact",
+    "subheadline": "Demandez des informations ou une evaluation de votre cas.",
+    "namePlaceholder": "Nom",
+    "emailPlaceholder": "E-mail",
+    "messagePlaceholder": "Message",
+    "submitButton": "Envoyer la Demande",
+    "submitting": "Envoi en cours...",
+    "successMessage": "Message envoye avec succes. Nous vous repondrons bientot.",
+    "errorMessage": "Impossible d'envoyer le message. Veuillez reessayer."
+  }
+}

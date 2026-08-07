@@ -1,0 +1,64 @@
+{
+  "nav": {
+    "brand": "Audit Global Intelligence",
+    "servicios": "Servizi",
+    "tecnologia": "Tecnologia",
+    "contacto": "Contatti",
+    "acceso": "Accesso Sicuro"
+  },
+  "home": {
+    "eyebrow": "Una piattaforma, adattata alla tua realta",
+    "headline": "Verita finanziaria verificabile, su ogni continente",
+    "subheadline": "Revisione forense con catena crittografica, contabilita che si adatta alle normative e all'economia della tua regione, e analisi dei prezzi unitari per gli appalti pubblici. Tutto in un'unica piattaforma che cresce con te.",
+    "statLabel": "Un esempio reale di adattamento regionale",
+    "statDescription": "In Venezuela, l'inflazione ha trasformato 100 bolivar in 488.122.054.630.450 bolivar in 18 anni. Il nostro motore contabile regola automaticamente ogni cifra, indipendentemente dal numero di zeri della tua realta economica. E solo uno dei contesti per cui costruiamo strumenti specifici.",
+    "pillarsTitle": "Tre prospettive su un'unica verita",
+    "pillar1Title": "Revisione Forense",
+    "pillar1Desc": "Indagine su prove digitali con catena di custodia verificabile tramite hash crittografico. Ogni record e concatenato e impossibile da alterare senza lasciare traccia.",
+    "pillar2Title": "Contabilita Finanziaria",
+    "pillar2Desc": "Piano dei conti adattato per settore e regione, chiusura di periodo conforme agli IFRS, e l'unico motore sul mercato con adeguamento nativo per iperinflazione (IAS 29) per economie ad alta volatilita.",
+    "pillar3Title": "Appalti e Contratti Pubblici",
+    "pillar3Desc": "Analisi dei prezzi unitari per i processi di appalto pubblico, con catalogo di classificazione ufficiale e motore per il costo del lavoro.",
+    "cta": "Accedi alla piattaforma"
+  },
+  "servicios": {
+    "eyebrow": "Infrastruttura Professionale",
+    "headline": "Servizi Strategici",
+    "subheadline": "Soluzioni specializzate in revisione digitale, contabilita multi-regione, e intelligence sul rischio finanziario.",
+    "service1Title": "Revisione Forense",
+    "service1Desc": "Valutazione tecnica delle prove digitali, tracciabilita documentale verificabile tramite hash, e analisi strutturata del rischio.",
+    "service2Title": "Contabilita e Conformita",
+    "service2Desc": "Contabilita IFRS completa, adattata alle normative fiscali della tua regione, con adeguamento automatico per inflazione dove la tua economia lo richiede.",
+    "service3Title": "Blockchain Intelligence",
+    "service3Desc": "Indagine su wallet e transazioni, e classificazione del rischio finanziario con prove verificabili crittograficamente.",
+    "service4Title": "Appalti Pubblici",
+    "service4Desc": "Analisi dei prezzi unitari e strutturazione delle offerte per i processi di appalto pubblico.",
+    "service5Title": "AML / KYC",
+    "service5Desc": "Automazione delle verifiche normative e monitoraggio continuo della conformita.",
+    "service6Title": "Adattamento Regionale",
+    "service6Desc": "Man mano che accogliamo utenti da nuove regioni, costruiamo gli strumenti fiscali e normativi che quel contesto specifico richiede."
+  },
+  "tecnologia": {
+    "headline": "Tecnologia",
+    "subheadline": "Infrastruttura costruita su principi di verificabilita: ogni registrazione contabile e concatenata crittograficamente, ogni dichiarazione viene convalidata prima dell'invio, e ogni regione ha le proprie regole attive senza influenzare le altre.",
+    "feature1Title": "Registro Verificabile tramite Blockchain",
+    "feature1Desc": "Ogni registrazione contabile e concatenata alla precedente tramite hash SHA-256. Alterare un record storico rompe la catena in modo matematicamente rilevabile.",
+    "feature2Title": "Motore di Rideterminazione per Inflazione",
+    "feature2Desc": "Adeguamento automatico di tutti e 4 i bilanci (Stato Patrimoniale, Conto Economico, Patrimonio Netto, Rendiconto Finanziario) secondo lo IAS 29, mese per mese, utilizzando l'indice dei prezzi ufficiale di ogni paese.",
+    "feature3Title": "Motore di Rischio con IA",
+    "feature3Desc": "Modelli di analisi per il rilevamento di schemi sospetti e la valutazione predittiva del rischio finanziario.",
+    "feature4Title": "Sicurezza End-to-End",
+    "feature4Desc": "Isolamento dei dati a livello aziendale nel database, autenticazione a due fattori opzionale, e ruoli di accesso granulari per ogni utente."
+  },
+  "contacto": {
+    "headline": "Contatti",
+    "subheadline": "Richiedi informazioni o una valutazione del tuo caso.",
+    "namePlaceholder": "Nome",
+    "emailPlaceholder": "Email",
+    "messagePlaceholder": "Messaggio",
+    "submitButton": "Invia Richiesta",
+    "submitting": "Invio in corso...",
+    "successMessage": "Messaggio inviato con successo. Ti risponderemo presto.",
+    "errorMessage": "Impossibile inviare il messaggio. Riprova."
+  }
+}

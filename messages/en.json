@@ -1,0 +1,64 @@
+{
+  "nav": {
+    "brand": "Audit Global Intelligence",
+    "servicios": "Services",
+    "tecnologia": "Technology",
+    "contacto": "Contact",
+    "acceso": "Secure Access"
+  },
+  "home": {
+    "eyebrow": "One platform, adapted to your reality",
+    "headline": "Verifiable financial truth, wherever you are",
+    "subheadline": "Forensic auditing with cryptographic chain of custody, accounting that adapts to the rules and economy of your region, and unit-price analysis for public tenders. All in one platform that grows with you.",
+    "statLabel": "One real example of regional adaptation",
+    "statDescription": "In Venezuela, inflation turned Bs. 100 into Bs. 488,122,054,630,450 over 18 years. Our accounting engine adjusts every figure automatically, no matter how many zeros your economic reality has. It is just one of the contexts we build specific tools for.",
+    "pillarsTitle": "Three lenses on the same truth",
+    "pillar1Title": "Forensic Auditing",
+    "pillar1Desc": "Digital evidence investigation with chain of custody verifiable by cryptographic hash. Every record, chained and impossible to alter without leaving a trace.",
+    "pillar2Title": "Financial Accounting",
+    "pillar2Desc": "Chart of accounts adapted by sector and region, IFRS-compliant period close, and the only engine on the market with native hyperinflation adjustment (IAS 29) for high-volatility economies.",
+    "pillar3Title": "Tenders and Public Contracts",
+    "pillar3Desc": "Unit-price analysis for government procurement processes, with official classification catalogs and a labor-cost engine.",
+    "cta": "Access the platform"
+  },
+  "servicios": {
+    "eyebrow": "Professional Infrastructure",
+    "headline": "Strategic Services",
+    "subheadline": "Specialized solutions in digital auditing, multi-region accounting, and financial risk intelligence.",
+    "service1Title": "Forensic Auditing",
+    "service1Desc": "Technical evaluation of digital evidence, hash-verifiable documentary traceability, and structured risk analysis.",
+    "service2Title": "Accounting and Compliance",
+    "service2Desc": "Full IFRS accounting, adapted to your region's tax rules, with automatic inflation adjustment where your economy requires it.",
+    "service3Title": "Blockchain Intelligence",
+    "service3Desc": "Wallet and transaction investigation, and financial risk classification with cryptographically verifiable evidence.",
+    "service4Title": "Public Tenders",
+    "service4Desc": "Unit-price analysis and bid structuring for government procurement processes.",
+    "service5Title": "AML / KYC",
+    "service5Desc": "Automated regulatory validations and continuous compliance monitoring.",
+    "service6Title": "Regional Adaptation",
+    "service6Desc": "As we bring on users from new regions, we build the tax and regulatory tools that context specifically demands."
+  },
+  "tecnologia": {
+    "headline": "Technology",
+    "subheadline": "Infrastructure built on verifiability: every accounting entry is cryptographically chained, every filing is validated before submission, and every region has its own active rules without affecting the others.",
+    "feature1Title": "Blockchain-Verifiable Ledger",
+    "feature1Desc": "Every journal entry is chained to the previous one via SHA-256 hash. Altering a historical record breaks the chain in a mathematically detectable way.",
+    "feature2Title": "Inflation Restatement Engine",
+    "feature2Desc": "Automatic adjustment of all 4 financial statements (Balance Sheet, Income Statement, Equity, Cash Flow) per IAS 29, month by month, using each country's official price index.",
+    "feature3Title": "AI Risk Engine",
+    "feature3Desc": "Analysis models for suspicious pattern detection and predictive financial risk assessment.",
+    "feature4Title": "End-to-End Security",
+    "feature4Desc": "Company-level data isolation at the database layer, optional two-factor authentication, and granular per-user access roles."
+  },
+  "contacto": {
+    "headline": "Contact",
+    "subheadline": "Request information or an evaluation of your case.",
+    "namePlaceholder": "Name",
+    "emailPlaceholder": "Email",
+    "messagePlaceholder": "Message",
+    "submitButton": "Send Request",
+    "submitting": "Sending...",
+    "successMessage": "Message sent successfully. We will get back to you soon.",
+    "errorMessage": "Could not send the message. Please try again."
+  }
+}

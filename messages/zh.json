@@ -1,0 +1,64 @@
+{
+  "nav": {
+    "brand": "Audit Global Intelligence",
+    "servicios": "服务",
+    "tecnologia": "技术",
+    "contacto": "联系我们",
+    "acceso": "安全登录"
+  },
+  "home": {
+    "eyebrow": "一个平台，适应您的现实",
+    "headline": "可验证的财务真相，无论您身处哪个大陆",
+    "subheadline": "具备加密链条的法务审计，能够适应您所在地区法规和经济状况的会计系统，以及公共招标的单价分析。全部集成在一个与您共同成长的平台中。",
+    "statLabel": "区域适应能力的真实案例",
+    "statDescription": "在委内瑞拉，18年间通货膨胀使100玻利瓦尔变为488,122,054,630,450玻利瓦尔。我们的会计引擎自动调整每一个数字，无论您的经济现实有多少个零。这只是我们为特定环境构建专属工具的一个例子。",
+    "pillarsTitle": "同一真相的三个视角",
+    "pillar1Title": "法务审计",
+    "pillar1Desc": "通过加密哈希验证监管链的数字证据调查。每条记录相互链接，任何篡改都无法不留痕迹。",
+    "pillar2Title": "财务会计",
+    "pillar2Desc": "按行业和地区调整的会计科目表，符合国际财务报告准则的期末结算，以及市场上唯一原生支持恶性通胀调整（IAS 29）的引擎，专为高波动性经济体设计。",
+    "pillar3Title": "招标与公共合同",
+    "pillar3Desc": "面向政府采购流程的单价分析，配备官方分类目录和人工成本引擎。",
+    "cta": "进入平台"
+  },
+  "servicios": {
+    "eyebrow": "专业基础设施",
+    "headline": "战略服务",
+    "subheadline": "数字审计、跨区域会计与金融风险情报方面的专业解决方案。",
+    "service1Title": "法务审计",
+    "service1Desc": "数字证据的技术评估、可通过哈希验证的文件可追溯性，以及结构化风险分析。",
+    "service2Title": "会计与合规",
+    "service2Desc": "完整的国际财务报告准则会计体系，适应您所在地区的税务规定，并在您的经济需要时自动进行通胀调整。",
+    "service3Title": "区块链情报",
+    "service3Desc": "钱包和交易调查，以及具备加密可验证证据的金融风险分类。",
+    "service4Title": "公共招标",
+    "service4Desc": "面向政府采购流程的单价分析与投标方案构建。",
+    "service5Title": "反洗钱 / 客户身份识别",
+    "service5Desc": "监管验证自动化与持续合规监控。",
+    "service6Title": "区域适应",
+    "service6Desc": "随着新地区用户的加入，我们会构建该特定环境所需要的税务与监管工具。"
+  },
+  "tecnologia": {
+    "headline": "技术",
+    "subheadline": "基于可验证性原则构建的基础设施：每一笔会计分录都通过密码学方式相互链接，每一份申报在提交前都经过验证，每个地区都拥有各自独立的规则，互不影响。",
+    "feature1Title": "区块链可验证账本",
+    "feature1Desc": "每笔会计分录都通过SHA-256哈希与前一笔相链接。篡改历史记录会以数学方式可检测的方式打破链条。",
+    "feature2Title": "通胀重述引擎",
+    "feature2Desc": "根据IAS 29准则，使用各国官方物价指数，按月自动调整全部4张财务报表（资产负债表、损益表、权益变动表、现金流量表）。",
+    "feature3Title": "人工智能风险引擎",
+    "feature3Desc": "用于可疑模式检测和金融风险预测评估的分析模型。",
+    "feature4Title": "端到端安全",
+    "feature4Desc": "数据库层面的企业级数据隔离、可选的双重身份验证，以及按用户划分的精细访问权限。"
+  },
+  "contacto": {
+    "headline": "联系我们",
+    "subheadline": "获取信息或对您的案例进行评估。",
+    "namePlaceholder": "姓名",
+    "emailPlaceholder": "电子邮箱",
+    "messagePlaceholder": "留言",
+    "submitButton": "发送请求",
+    "submitting": "发送中...",
+    "successMessage": "消息发送成功，我们会尽快回复您。",
+    "errorMessage": "消息发送失败，请重试。"
+  }
+}

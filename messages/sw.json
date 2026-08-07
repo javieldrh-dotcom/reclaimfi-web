@@ -1,0 +1,64 @@
+{
+  "nav": {
+    "brand": "Audit Global Intelligence",
+    "servicios": "Huduma",
+    "tecnologia": "Teknolojia",
+    "contacto": "Wasiliana Nasi",
+    "acceso": "Ufikiaji Salama"
+  },
+  "home": {
+    "eyebrow": "Jukwaa moja, lililobadilika kulingana na hali yako",
+    "headline": "Ukweli wa kifedha unaothibitishwa, katika bara lolote",
+    "subheadline": "Ukaguzi wa kiforensiki na mnyororo wa kriptografia, uhasibu unaobadilika kulingana na kanuni na uchumi wa eneo lako, na uchambuzi wa bei za kitengo kwa zabuni za umma. Yote katika jukwaa moja linalokua pamoja nawe.",
+    "statLabel": "Mfano halisi wa kubadilika kikanda",
+    "statDescription": "Nchini Venezuela, mfumko wa bei ulibadilisha Bs. 100 kuwa Bs. 488,122,054,630,450 katika miaka 18. Injini yetu ya uhasibu inarekebisha kila nambari kiotomatiki, bila kujali sifuri ngapi hali yako ya kiuchumi inazo. Huu ni mfano mmoja tu wa mazingira tunayojenga zana maalum kwa ajili yake.",
+    "pillarsTitle": "Mitazamo mitatu juu ya ukweli mmoja",
+    "pillar1Title": "Ukaguzi wa Kiforensiki",
+    "pillar1Desc": "Uchunguzi wa ushahidi wa kidijitali na mnyororo wa ulinzi unaothibitishwa na hashi ya kriptografia. Kila rekodi imeunganishwa na haiwezi kubadilishwa bila kuacha alama.",
+    "pillar2Title": "Uhasibu wa Kifedha",
+    "pillar2Desc": "Chati ya akaunti iliyobadilishwa kulingana na sekta na eneo, ufungaji wa kipindi kulingana na IFRS, na injini pekee sokoni yenye marekebisho asili ya mfumko mkubwa wa bei (IAS 29) kwa uchumi wenye mabadiliko makubwa.",
+    "pillar3Title": "Zabuni na Mikataba ya Umma",
+    "pillar3Desc": "Uchambuzi wa bei za kitengo kwa michakato ya ununuzi wa serikali, ikiwa na katalogi rasmi ya uainishaji na injini ya gharama za wafanyakazi.",
+    "cta": "Ingia Jukwaani"
+  },
+  "servicios": {
+    "eyebrow": "Miundombinu ya Kitaalamu",
+    "headline": "Huduma za Kimkakati",
+    "subheadline": "Suluhisho maalum katika ukaguzi wa kidijitali, uhasibu wa kikanda, na akili ya hatari za kifedha.",
+    "service1Title": "Ukaguzi wa Kiforensiki",
+    "service1Desc": "Tathmini ya kiufundi ya ushahidi wa kidijitali, ufuatiliaji wa hati unaothibitishwa na hashi, na uchambuzi wa hatari uliopangwa.",
+    "service2Title": "Uhasibu na Uzingatiaji",
+    "service2Desc": "Uhasibu kamili wa IFRS, uliobadilishwa kulingana na kanuni za kodi za eneo lako, na marekebisho ya kiotomatiki ya mfumko wa bei pale uchumi wako unapohitaji.",
+    "service3Title": "Akili ya Blockchain",
+    "service3Desc": "Uchunguzi wa pochi na miamala, na uainishaji wa hatari za kifedha na ushahidi unaothibitishwa kwa njia ya kriptografia.",
+    "service4Title": "Zabuni za Umma",
+    "service4Desc": "Uchambuzi wa bei za kitengo na upangaji wa zabuni kwa michakato ya ununuzi wa serikali.",
+    "service5Title": "AML / KYC",
+    "service5Desc": "Uwekaji otomatiki wa uthibitishaji wa kikanuni na ufuatiliaji endelevu wa uzingatiaji.",
+    "service6Title": "Kubadilika Kikanda",
+    "service6Desc": "Tunapowaunganisha watumiaji kutoka maeneo mapya, tunajenga zana za kikodi na kikanuni ambazo mazingira hayo mahususi yanahitaji."
+  },
+  "tecnologia": {
+    "headline": "Teknolojia",
+    "subheadline": "Miundombinu iliyojengwa juu ya kanuni za uthibitishaji: kila rekodi ya uhasibu imeunganishwa kwa njia ya kriptografia, kila tamko linathibitishwa kabla ya kuwasilishwa, na kila eneo lina kanuni zake za kazi bila kuathiri mengine.",
+    "feature1Title": "Kitabu Kinachothibitishwa na Blockchain",
+    "feature1Desc": "Kila rekodi ya jarida imeunganishwa na iliyotangulia kupitia hashi ya SHA-256. Kubadilisha rekodi ya kihistoria hukatiza mnyororo kwa njia inayoweza kugunduliwa kihisabati.",
+    "feature2Title": "Injini ya Kurekebisha Mfumko wa Bei",
+    "feature2Desc": "Marekebisho ya kiotomatiki ya taarifa zote 4 za kifedha (Mizania, Taarifa ya Mapato, Hisa, Mtiririko wa Fedha) kulingana na IAS 29, kila mwezi, kwa kutumia kielezo rasmi cha bei cha kila nchi.",
+    "feature3Title": "Injini ya Hatari ya AI",
+    "feature3Desc": "Miundo ya uchambuzi kwa ugunduzi wa mifumo ya kutiliwa shaka na tathmini ya utabiri wa hatari za kifedha.",
+    "feature4Title": "Usalama wa Mwanzo Hadi Mwisho",
+    "feature4Desc": "Utengano wa data kwa kiwango cha kampuni katika hifadhidata, uthibitishaji wa hiari wa hatua mbili, na majukumu ya ufikiaji ya kina kwa kila mtumiaji."
+  },
+  "contacto": {
+    "headline": "Wasiliana Nasi",
+    "subheadline": "Omba taarifa au tathmini ya kesi yako.",
+    "namePlaceholder": "Jina",
+    "emailPlaceholder": "Barua pepe",
+    "messagePlaceholder": "Ujumbe",
+    "submitButton": "Tuma Ombi",
+    "submitting": "Inatuma...",
+    "successMessage": "Ujumbe umetumwa kwa mafanikio. Tutakujibu hivi karibuni.",
+    "errorMessage": "Imeshindwa kutuma ujumbe. Tafadhali jaribu tena."
+  }
+}

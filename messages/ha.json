@@ -1,0 +1,64 @@
+{
+  "nav": {
+    "brand": "Audit Global Intelligence",
+    "servicios": "Ayyuka",
+    "tecnologia": "Fasaha",
+    "contacto": "Tuntube Mu",
+    "acceso": "Shiga Mai Tsaro"
+  },
+  "home": {
+    "eyebrow": "Dandali daya, wanda ya dace da halin da kake ciki",
+    "headline": "Gaskiyar kudi da za a iya tabbatarwa, a kowace nahiya",
+    "subheadline": "Bincike na shari'a tare da sarkar kriftography, lissafin kudi wanda ya dace da dokoki da tattalin arzikin yankinka, da nazarin farashin naúra don gasa na gwamnati. Duk a cikin dandali daya wanda ke girma tare da kai.",
+    "statLabel": "Misali na gaskiya na daidaitawa da yanki",
+    "statDescription": "A Venezuela, hauhawar farashi ta canza Bs. 100 zuwa Bs. 488,122,054,630,450 cikin shekaru 18. Injin lissafin kudinmu yana daidaita kowane lamba ta atomatik, ko da yaushe halin tattalin arzikinka yana da sifili nawa. Wannan misali daya ne kawai na yanayin da muke gina kayan aiki na musamman a gare shi.",
+    "pillarsTitle": "Ra'ayoyi guda uku akan gaskiya daya",
+    "pillar1Title": "Bincike na Shari'a",
+    "pillar1Desc": "Bincike na shaidar dijital tare da sarkar kiyayewa da za a iya tabbatarwa ta hanyar hash na kriftography. Kowace rikodi tana da alaka kuma ba za a iya canza ta ba tare da barin alama.",
+    "pillar2Title": "Lissafin Kudi",
+    "pillar2Desc": "Jadawalin asusun da aka daidaita bisa ga sashe da yanki, rufe lokaci bisa ga IFRS, da injin kadai a kasuwa tare da daidaitawar hauhawar farashi na asali (IAS 29) don tattalin arzikin da ke da sauyi mai yawa.",
+    "pillar3Title": "Gasa da Kwangilar Gwamnati",
+    "pillar3Desc": "Nazarin farashin naúra don matakan sayayya na gwamnati, tare da jerin rarrabuwa na hukuma da injin kudin aiki.",
+    "cta": "Shiga Dandali"
+  },
+  "servicios": {
+    "eyebrow": "Kayan Aikin Kwarewa",
+    "headline": "Ayyuka na Dabaru",
+    "subheadline": "Mafita na musamman a cikin bincike na dijital, lissafin kudi na yankuna da yawa, da hankalin hadarin kudi.",
+    "service1Title": "Bincike na Shari'a",
+    "service1Desc": "Kimanta fasaha na shaidar dijital, bin diddigin takardu da za a iya tabbatarwa ta hash, da nazarin hadari da aka tsara.",
+    "service2Title": "Lissafin Kudi da Bin Doka",
+    "service2Desc": "Cikakken lissafin kudi na IFRS, wanda aka daidaita don dokokin haraji na yankinka, tare da daidaitawar hauhawar farashi ta atomatik inda tattalin arzikinka ke bukata.",
+    "service3Title": "Hankalin Blockchain",
+    "service3Desc": "Bincike na jakunkuna da mu'amaloli, da rarraba hadarin kudi tare da shaida da za a iya tabbatarwa ta hanyar kriftography.",
+    "service4Title": "Gasa na Gwamnati",
+    "service4Desc": "Nazarin farashin naúra da tsara tayin don matakan sayayya na gwamnati.",
+    "service5Title": "AML / KYC",
+    "service5Desc": "Atomatik na tabbatarwar doka da lura da bin doka akai-akai.",
+    "service6Title": "Daidaitawa da Yanki",
+    "service6Desc": "Yayin da muke karban masu amfani daga sabbin yankuna, muna gina kayan aikin haraji da doka wanda wannan yanayin musamman ke bukata."
+  },
+  "tecnologia": {
+    "headline": "Fasaha",
+    "subheadline": "Kayan aiki da aka gina akan ka'idojin tabbatarwa: kowace rikodin lissafin kudi tana da alaka ta hanyar kriftography, ana tabbatar da kowace sanarwa kafin a mika ta, kuma kowane yanki yana da dokokinsa masu aiki ba tare da tasiri ga wasu ba.",
+    "feature1Title": "Littafi Mai Tabbatarwa ta Blockchain",
+    "feature1Desc": "Kowace rikodin jarida tana da alaka da wacce ta gabata ta hanyar hash na SHA-256. Canza rikodin tarihi yana karya sarkar ta hanyar da za a iya ganowa ta lissafi.",
+    "feature2Title": "Injin Sake Bayyanawa don Hauhawar Farashi",
+    "feature2Desc": "Daidaitawa ta atomatik na dukkanin bayanan kudi 4 (Ma'auni, Bayanin Ribar-Asara, Jarin Kamfani, Kudaden Shiga) bisa ga IAS 29, kowane wata, ta amfani da alamar farashin hukuma na kowace kasa.",
+    "feature3Title": "Injin Hadari na AI",
+    "feature3Desc": "Samfuran nazari don gano tsari mai shakku da kimanta hasashe na hadarin kudi.",
+    "feature4Title": "Tsaro daga Karshe zuwa Karshe",
+    "feature4Desc": "Rabuwar bayanai a matakin kamfani a cikin database, tabbatarwa ta hanyoyi biyu na zabi, da matsayin shiga daki-daki ga kowane mai amfani."
+  },
+  "contacto": {
+    "headline": "Tuntube Mu",
+    "subheadline": "Nemi bayani ko kimantawa na batun ka.",
+    "namePlaceholder": "Suna",
+    "emailPlaceholder": "Imel",
+    "messagePlaceholder": "Sako",
+    "submitButton": "Aika Bukata",
+    "submitting": "Ana Turawa...",
+    "successMessage": "An aika sako cikin nasara. Za mu tuntube ka nan ba da jimawa ba.",
+    "errorMessage": "Ba a iya aika sako ba. Da fatan za a sake gwadawa."
+  }
+}
