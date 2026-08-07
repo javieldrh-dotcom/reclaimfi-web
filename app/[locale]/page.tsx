@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import LanguageSwitcher from "./_components/LanguageSwitcher";
@@ -7,82 +7,167 @@ export default function HomePage() {
   const t = useTranslations("home");
   const tNav = useTranslations("nav");
 
-  const ink = "#0F1B2D";
-  const inkLight = "#16233A";
-  const parchment = "#F6F1E7";
-  const verified = "#1F9D6C";
-  const inflationRed = "#C4432E";
-  const textInk = "#C9D3E0";
+  const bg = "#FAFAF7";
+  const ink = "#14181F";
+  const inkSoft = "#565F73";
+  const cyan = "#0891B2";
+  const indigo = "#6366F1";
+  const amber = "#D97706";
+  const green = "#16A34A";
+  const cardBorder = "#E7E3D9";
+
+  const sectionTitleStyle: React.CSSProperties = {
+    fontSize: 38,
+    fontWeight: 800,
+    fontFamily: "'IBM Plex Serif', serif",
+    color: ink,
+    textAlign: "center" as const,
+  };
+
+  const labelStyle = (color: string): React.CSSProperties => ({
+    display: "inline-block",
+    padding: "8px 20px",
+    background: color + "15",
+    color: color,
+    borderRadius: 999,
+    fontSize: 15,
+    fontWeight: 700,
+    marginBottom: 20,
+  });
 
   return (
-    <div style={{ background: ink, minHeight: "100vh", color: textInk, fontFamily: "'IBM Plex Sans', sans-serif" }}>
-      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "24px 40px", borderBottom: "1px solid #1F2937", flexWrap: "wrap", gap: 16 }}>
-        <div style={{ fontSize: 20, fontWeight: 700, color: verified, fontFamily: "'IBM Plex Serif', serif" }}>
+    <div style={{ background: bg, minHeight: "100vh", color: ink, fontFamily: "'IBM Plex Sans', sans-serif" }}>
+      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "22px 48px", borderBottom: "1px solid " + cardBorder, flexWrap: "wrap", gap: 16, background: "#FFFFFF" }}>
+        <div style={{ fontSize: 22, fontWeight: 800, color: indigo, fontFamily: "'IBM Plex Serif', serif" }}>
           {tNav("brand")}
         </div>
-        <nav style={{ display: "flex", alignItems: "center", gap: 24, flexWrap: "wrap" }}>
-          <Link href="./servicios" style={{ color: textInk, textDecoration: "none", fontSize: 15 }}>{tNav("servicios")}</Link>
-          <Link href="./tecnologia" style={{ color: textInk, textDecoration: "none", fontSize: 15 }}>{tNav("tecnologia")}</Link>
-          <Link href="./contacto" style={{ color: textInk, textDecoration: "none", fontSize: 15 }}>{tNav("contacto")}</Link>
+        <nav style={{ display: "flex", alignItems: "center", gap: 28, flexWrap: "wrap" }}>
+          <Link href="./servicios" style={{ color: ink, textDecoration: "none", fontSize: 17, fontWeight: 600 }}>{tNav("servicios")}</Link>
+          <Link href="./tecnologia" style={{ color: ink, textDecoration: "none", fontSize: 17, fontWeight: 600 }}>{tNav("tecnologia")}</Link>
+          <Link href="./contacto" style={{ color: ink, textDecoration: "none", fontSize: 17, fontWeight: 600 }}>{tNav("contacto")}</Link>
           <LanguageSwitcher />
-          <Link href="/login" style={{ padding: "10px 20px", border: "1px solid " + verified, borderRadius: 8, color: verified, textDecoration: "none", fontSize: 14, fontWeight: 700 }}>
+          <Link href="/login" style={{ padding: "12px 26px", background: indigo, borderRadius: 10, color: "white", textDecoration: "none", fontSize: 16, fontWeight: 700 }}>
             {tNav("acceso")}
           </Link>
         </nav>
       </header>
 
-      <section style={{ padding: "80px 40px 60px", textAlign: "center", maxWidth: 900, margin: "0 auto" }}>
-        <div style={{ display: "inline-block", padding: "8px 18px", border: "1px solid " + verified + "60", borderRadius: 999, fontSize: 14, color: verified, marginBottom: 26, fontWeight: 600 }}>
-          {t("eyebrow")}
-        </div>
-        <h1 style={{ fontSize: 48, fontWeight: 700, lineHeight: 1.25, fontFamily: "'IBM Plex Serif', serif", color: "#FFFFFF" }}>
+      {/* HERO */}
+      <section style={{ padding: "90px 40px 70px", textAlign: "center", maxWidth: 980, margin: "0 auto" }}>
+        <div style={labelStyle(indigo)}>{t("eyebrow")}</div>
+        <h1 style={{ fontSize: 58, fontWeight: 800, lineHeight: 1.2, fontFamily: "'IBM Plex Serif', serif", color: ink }}>
           {t("headline")}
         </h1>
-        <p style={{ marginTop: 22, fontSize: 19, color: "#8B93A7", maxWidth: 700, margin: "22px auto 0", lineHeight: 1.7 }}>
+        <p style={{ marginTop: 26, fontSize: 22, color: inkSoft, maxWidth: 760, margin: "26px auto 0", lineHeight: 1.7 }}>
           {t("subheadline")}
         </p>
-      </section>
-
-      <section style={{ padding: "0 40px 60px", maxWidth: 900, margin: "0 auto" }}>
-        <div style={{ background: parchment, borderRadius: 16, padding: "32px 36px", color: ink }}>
-          <p style={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: inflationRed }}>
-            {t("statLabel")}
-          </p>
-          <p style={{ marginTop: 12, fontSize: 16, lineHeight: 1.7, fontFamily: "'IBM Plex Mono', monospace" }}>
-            {t("statDescription")}
-          </p>
-        </div>
-      </section>
-
-      <section style={{ padding: "20px 40px 100px", maxWidth: 1150, margin: "0 auto" }}>
-        <h2 style={{ fontSize: 28, fontWeight: 700, fontFamily: "'IBM Plex Serif', serif", textAlign: "center", color: "#FFFFFF", marginBottom: 40 }}>
-          {t("pillarsTitle")}
-        </h2>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 32 }}>
-          <div style={{ padding: 32, background: inkLight, border: "1px solid #2A3A52", borderRadius: 16 }}>
-            <div style={{ width: 40, height: 4, background: verified, borderRadius: 2, marginBottom: 20 }} />
-            <h3 style={{ fontSize: 22, fontWeight: 700, color: verified, fontFamily: "'IBM Plex Serif', serif" }}>{t("pillar1Title")}</h3>
-            <p style={{ marginTop: 12, fontSize: 15, color: "#8B93A7", lineHeight: 1.7 }}>{t("pillar1Desc")}</p>
-          </div>
-          <div style={{ padding: 32, background: inkLight, border: "1px solid #2A3A52", borderRadius: 16 }}>
-            <div style={{ width: 40, height: 4, background: "#818CF8", borderRadius: 2, marginBottom: 20 }} />
-            <h3 style={{ fontSize: 22, fontWeight: 700, color: "#818CF8", fontFamily: "'IBM Plex Serif', serif" }}>{t("pillar2Title")}</h3>
-            <p style={{ marginTop: 12, fontSize: 15, color: "#8B93A7", lineHeight: 1.7 }}>{t("pillar2Desc")}</p>
-          </div>
-          <div style={{ padding: 32, background: inkLight, border: "1px solid #2A3A52", borderRadius: 16 }}>
-            <div style={{ width: 40, height: 4, background: inflationRed, borderRadius: 2, marginBottom: 20 }} />
-            <h3 style={{ fontSize: 22, fontWeight: 700, color: inflationRed, fontFamily: "'IBM Plex Serif', serif" }}>{t("pillar3Title")}</h3>
-            <p style={{ marginTop: 12, fontSize: 15, color: "#8B93A7", lineHeight: 1.7 }}>{t("pillar3Desc")}</p>
-          </div>
-        </div>
-        <div style={{ textAlign: "center", marginTop: 48 }}>
-          <Link href="/login" style={{ padding: "16px 36px", background: verified, color: ink, borderRadius: 10, textDecoration: "none", fontSize: 16, fontWeight: 700 }}>
+        <div style={{ marginTop: 36, display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" }}>
+          <Link href="/login" style={{ padding: "18px 40px", background: indigo, color: "white", borderRadius: 12, textDecoration: "none", fontSize: 18, fontWeight: 700 }}>
             {t("cta")}
           </Link>
         </div>
       </section>
 
-      <footer style={{ padding: "28px 40px", borderTop: "1px solid #1F2937", textAlign: "center", fontSize: 13, color: "#8B93A7" }}>
+      {/* DIFFERENTIATOR STAT */}
+      <section style={{ padding: "0 40px 70px", maxWidth: 980, margin: "0 auto" }}>
+        <div style={{ background: amber + "12", border: "1px solid " + amber + "40", borderRadius: 20, padding: "36px 40px" }}>
+          <p style={{ fontSize: 14, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1, color: amber }}>
+            {t("statLabel")}
+          </p>
+          <p style={{ marginTop: 14, fontSize: 19, lineHeight: 1.8, color: ink, fontFamily: "'IBM Plex Mono', monospace" }}>
+            {t("statDescription")}
+          </p>
+        </div>
+      </section>
+
+      {/* DIFFERENTIATOR MESSAGE */}
+      <section style={{ padding: "60px 40px", background: "#FFFFFF", borderTop: "1px solid " + cardBorder, borderBottom: "1px solid " + cardBorder }}>
+        <div style={{ maxWidth: 900, margin: "0 auto", textAlign: "center" }}>
+          <div style={labelStyle(green)}>{t("differentiatorLabel")}</div>
+          <h2 style={{ ...sectionTitleStyle, fontSize: 34 }}>{t("differentiatorTitle")}</h2>
+          <p style={{ marginTop: 20, fontSize: 19, color: inkSoft, lineHeight: 1.8 }}>{t("differentiatorDesc")}</p>
+        </div>
+      </section>
+
+      {/* 3 PILLARS */}
+      <section style={{ padding: "90px 40px", maxWidth: 1200, margin: "0 auto" }}>
+        <h2 style={sectionTitleStyle}>{t("pillarsTitle")}</h2>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 32, marginTop: 50 }}>
+          <div style={{ padding: 38, background: "#FFFFFF", border: "2px solid " + cyan + "30", borderRadius: 20, boxShadow: "0 10px 30px " + cyan + "12" }}>
+            <div style={{ width: 56, height: 56, background: cyan + "18", borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, marginBottom: 22 }}>🔍</div>
+            <h3 style={{ fontSize: 25, fontWeight: 800, color: cyan, fontFamily: "'IBM Plex Serif', serif" }}>{t("pillar1Title")}</h3>
+            <p style={{ marginTop: 14, fontSize: 17, color: inkSoft, lineHeight: 1.8 }}>{t("pillar1Desc")}</p>
+          </div>
+          <div style={{ padding: 38, background: "#FFFFFF", border: "2px solid " + indigo + "30", borderRadius: 20, boxShadow: "0 10px 30px " + indigo + "12" }}>
+            <div style={{ width: 56, height: 56, background: indigo + "18", borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, marginBottom: 22 }}>📊</div>
+            <h3 style={{ fontSize: 25, fontWeight: 800, color: indigo, fontFamily: "'IBM Plex Serif', serif" }}>{t("pillar2Title")}</h3>
+            <p style={{ marginTop: 14, fontSize: 17, color: inkSoft, lineHeight: 1.8 }}>{t("pillar2Desc")}</p>
+          </div>
+          <div style={{ padding: 38, background: "#FFFFFF", border: "2px solid " + amber + "30", borderRadius: 20, boxShadow: "0 10px 30px " + amber + "12" }}>
+            <div style={{ width: 56, height: 56, background: amber + "18", borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, marginBottom: 22 }}>📋</div>
+            <h3 style={{ fontSize: 25, fontWeight: 800, color: amber, fontFamily: "'IBM Plex Serif', serif" }}>{t("pillar3Title")}</h3>
+            <p style={{ marginTop: 14, fontSize: 17, color: inkSoft, lineHeight: 1.8 }}>{t("pillar3Desc")}</p>
+          </div>
+        </div>
+      </section>
+
+      {/* SECURITY */}
+      <section style={{ padding: "80px 40px", background: green + "08" }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+          <div style={{ textAlign: "center" }}>
+            <div style={labelStyle(green)}>{t("securityLabel")}</div>
+            <h2 style={sectionTitleStyle}>{t("securityTitle")}</h2>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28, marginTop: 50 }}>
+            <div style={{ padding: 28, background: "#FFFFFF", borderRadius: 16, border: "1px solid " + cardBorder }}>
+              <h3 style={{ fontSize: 19, fontWeight: 700, color: green }}>✓ {t("security1Title")}</h3>
+              <p style={{ marginTop: 10, fontSize: 16, color: inkSoft, lineHeight: 1.7 }}>{t("security1Desc")}</p>
+            </div>
+            <div style={{ padding: 28, background: "#FFFFFF", borderRadius: 16, border: "1px solid " + cardBorder }}>
+              <h3 style={{ fontSize: 19, fontWeight: 700, color: green }}>✓ {t("security2Title")}</h3>
+              <p style={{ marginTop: 10, fontSize: 16, color: inkSoft, lineHeight: 1.7 }}>{t("security2Desc")}</p>
+            </div>
+            <div style={{ padding: 28, background: "#FFFFFF", borderRadius: 16, border: "1px solid " + cardBorder }}>
+              <h3 style={{ fontSize: 19, fontWeight: 700, color: green }}>✓ {t("security3Title")}</h3>
+              <p style={{ marginTop: 10, fontSize: 16, color: inkSoft, lineHeight: 1.7 }}>{t("security3Desc")}</p>
+            </div>
+            <div style={{ padding: 28, background: "#FFFFFF", borderRadius: 16, border: "1px solid " + cardBorder }}>
+              <h3 style={{ fontSize: 19, fontWeight: 700, color: green }}>✓ {t("security4Title")}</h3>
+              <p style={{ marginTop: 10, fontSize: 16, color: inkSoft, lineHeight: 1.7 }}>{t("security4Desc")}</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* PLANS TEASER */}
+      <section style={{ padding: "80px 40px", textAlign: "center" }}>
+        <div style={labelStyle(indigo)}>{t("plansLabel")}</div>
+        <h2 style={sectionTitleStyle}>{t("plansTitle")}</h2>
+        <p style={{ marginTop: 16, fontSize: 19, color: inkSoft, maxWidth: 600, margin: "16px auto 0" }}>{t("plansDesc")}</p>
+        <Link href="./servicios" style={{ display: "inline-block", marginTop: 30, padding: "16px 36px", background: indigo, color: "white", borderRadius: 12, textDecoration: "none", fontSize: 17, fontWeight: 700 }}>
+          {t("plansCta")}
+        </Link>
+      </section>
+
+      {/* FAQ */}
+      <section style={{ padding: "80px 40px", background: "#FFFFFF", borderTop: "1px solid " + cardBorder }}>
+        <div style={{ maxWidth: 800, margin: "0 auto" }}>
+          <div style={{ textAlign: "center" }}>
+            <div style={labelStyle(cyan)}>{t("faqLabel")}</div>
+            <h2 style={sectionTitleStyle}>{t("faqTitle")}</h2>
+          </div>
+          <div style={{ marginTop: 40, display: "flex", flexDirection: "column", gap: 20 }}>
+            {[1, 2, 3, 4].map((n) => (
+              <div key={n} style={{ padding: 26, background: bg, borderRadius: 14, border: "1px solid " + cardBorder }}>
+                <h3 style={{ fontSize: 18, fontWeight: 700, color: ink }}>{t(`faq${n}Q` as any)}</h3>
+                <p style={{ marginTop: 10, fontSize: 16, color: inkSoft, lineHeight: 1.7 }}>{t(`faq${n}A` as any)}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <footer style={{ padding: "32px 40px", borderTop: "1px solid " + cardBorder, textAlign: "center", fontSize: 14, color: inkSoft, background: "#FFFFFF" }}>
         {tNav("brand")}
       </footer>
     </div>
