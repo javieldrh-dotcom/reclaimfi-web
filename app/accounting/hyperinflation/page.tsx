@@ -139,11 +139,42 @@ export default function HyperinflationPage() {
     const plugResult = totalAssetsRest - totalLiabRest - totalEquityRest;
     const monetaryGainLoss = plugResult - netIncomeRestOperating;
 
+    const { data: depEntries } = await supabase.from("depreciation_entries").select("monthly_depreciation, period_date, fixed_assets!inner(company_id, acquisition_date)").eq("fixed_assets.company_id", companyId).gte("period_date", baseDate).lte("period_date", reportDate);
+    let depHist = 0;
+    let depRest = 0;
+    (depEntries ?? []).forEach((d: any) => {
+      const amt = d.monthly_depreciation || 0;
+      depHist += amt;
+      const acqDate = (d.fixed_assets as any)?.acquisition_date;
+      const acqIndex = acqDate ? indexForDate(acqDate) : null;
+      depRest += acqIndex ? amt * (reportIndex / acqIndex) : amt;
+    });
+
+    const { data: cfAccounts } = await supabase.from("chart_of_accounts").select("id, account_name, account_type, cash_flow_category").eq("company_id", companyId);
+    const cfAccMap: Record<string, any> = {};
+    (cfAccounts ?? []).forEach((a: any) => { cfAccMap[a.id] = a; });
+    const { data: cfLines } = await supabase.from("journal_lines").select("debit, credit, account_id, journal_entries!inner(status, entry_date)").in("account_id", (cfAccounts ?? []).map((a: any) => a.id)).eq("journal_entries.status", "ACTIVE").gte("journal_entries.entry_date", baseDate).lte("journal_entries.entry_date", reportDate);
+    let arDelta = 0, apDelta = 0, investingDelta = 0, financingDelta = 0;
+    (cfLines ?? []).forEach((l: any) => {
+      const acc = cfAccMap[l.account_id];
+      if (!acc) return;
+      const netMove = (l.debit || 0) - (l.credit || 0);
+      if (acc.cash_flow_category === "OPERATING" && acc.account_name.toLowerCase().includes("cliente")) arDelta += netMove;
+      else if (acc.cash_flow_category === "OPERATING" && acc.account_name.toLowerCase().includes("proveedor")) apDelta += -netMove;
+      else if (acc.cash_flow_category === "INVESTING") investingDelta += netMove;
+      else if (acc.cash_flow_category === "FINANCING") financingDelta += -netMove;
+    });
+    const operatingCFRest = plugResult - monetaryGainLoss + depRest + arDelta + apDelta;
+    const investingCFRest = -investingDelta;
+    const financingCFRest = financingDelta;
+    const netCashChangeRest = operatingCFRest + investingCFRest + financingCFRest;
+
     setResult({
       reportIndex, reportIndexInfo, balanceDetail, incomeDetail,
       totalAssetsHist, totalAssetsRest, totalLiabHist, totalLiabRest, totalEquityHist, totalEquityRest,
       totalRevenueHist, totalRevenueRest, totalExpenseHist, totalExpenseRest,
       netIncomeHist, netIncomeRestOperating, plugResult, monetaryGainLoss, missingIndexCount,
+      depHist, depRest, arDelta, apDelta, operatingCFRest, investingCFRest, financingCFRest, netCashChangeRest,
     });
     setLoading(false);
   }
@@ -238,6 +269,20 @@ export default function HyperinflationPage() {
                 <span style={{ fontWeight: 700 }}>Total Patrimonio Reexpresado (Final)</span>
                 <span style={{ ...theme.numberStyle, fontWeight: 700 }}>{(result.totalEquityRest + result.plugResult).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
               </div>
+            </div>
+
+            <div style={{ ...theme.cardStyle, marginTop: 16 }}>
+              <h3 style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginBottom: 12 }}>FLUJO DE EFECTIVO REEXPRESADO (Metodo Indirecto - NIC 7 + NIC 29)</h3>
+              <p style={{ fontSize: 12, color: "#8B93A7", marginBottom: 10 }}>La depreciacion se recalcula sobre el costo reexpresado de cada activo. Cuentas por Cobrar/Pagar se mantienen en terminos nominales por ser partidas monetarias.</p>
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #1F2937" }}><span>Utilidad Neta Reexpresada</span><span style={theme.numberStyle}>{result.plugResult.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></div>
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #1F2937" }}><span>Menos: Ganancia/Perdida por Posicion Monetaria (no efectivo)</span><span style={theme.numberStyle}>{(-result.monetaryGainLoss).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></div>
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #1F2937" }}><span>Depreciacion Reexpresada</span><span style={theme.numberStyle}>{result.depHist.toLocaleString(undefined, { minimumFractionDigits: 2 })} -&gt; {result.depRest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></div>
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #1F2937" }}><span>Variacion en Cuentas por Cobrar (nominal)</span><span style={theme.numberStyle}>{result.arDelta.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></div>
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #1F2937" }}><span>Variacion en Cuentas por Pagar (nominal)</span><span style={theme.numberStyle}>{result.apDelta.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></div>
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", marginTop: 4, borderTop: "1px solid #1F2937" }}><span style={{ fontWeight: 700 }}>Efectivo Neto de Operacion</span><span style={{ ...theme.numberStyle, fontWeight: 700 }}>{result.operatingCFRest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></div>
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0" }}><span>Efectivo Neto de Inversion</span><span style={theme.numberStyle}>{result.investingCFRest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></div>
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0" }}><span>Efectivo Neto de Financiamiento</span><span style={theme.numberStyle}>{result.financingCFRest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></div>
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", marginTop: 4, borderTop: "2px solid " + theme.accent }}><span style={{ fontWeight: 700 }}>Variacion Neta de Efectivo Reexpresada</span><span style={{ ...theme.numberStyle, fontWeight: 900, color: result.netCashChangeRest >= 0 ? "#4ade80" : "#f87171" }}>{result.netCashChangeRest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></div>
             </div>
 
             <div style={{ marginTop: 20 }}>
