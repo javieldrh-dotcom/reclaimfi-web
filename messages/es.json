@@ -22,7 +22,7 @@
     "cta": "Acceder a la plataforma",
     "differentiatorLabel": "Por que somos distintos",
     "differentiatorTitle": "El software generico trata cada region igual. Nosotros no.",
-    "differentiatorDesc": "QuickBooks y Xero tratan a una panaderia y a una empresa exportadora exactamente igual: mismo plan de cuentas, mismos reportes. Nosotros construimos herramientas especificas segun tu contexto real - normativa fiscal, moneda, nivel de inflacion - en vez de forzar una plantilla unica sobre toda la plataforma.",
+    "differentiatorDesc": "El software contable tradicional trata a una panaderia y a una empresa exportadora exactamente igual: mismo plan de cuentas, mismos reportes. Nosotros construimos herramientas especificas segun tu contexto real - normativa fiscal, moneda, nivel de inflacion - en vez de forzar una plantilla unica sobre toda la plataforma.",
     "securityLabel": "Seguridad Verificable",
     "securityTitle": "No solo prometemos seguridad. La puedes verificar.",
     "security1Title": "Aislamiento Total por Empresa",
@@ -43,7 +43,7 @@
     "faq1A": "Si. La contabilidad base (NIIF, libros legales, reportes) funciona en cualquier region. Las herramientas especificas (como el ajuste por hiperinflacion) se activan cuando tu region las necesita.",
     "faq2Q": "Mis datos financieros estan seguros?",
     "faq2A": "Cada empresa esta completamente aislada a nivel de base de datos, con cadena blockchain verificable en cada asiento contable y autenticacion de dos factores disponible.",
-    "faq3Q": "Puedo migrar desde QuickBooks o Xero?",
+    "faq3Q": "Puedo migrar desde mi sistema contable actual?",
     "faq3A": "Si, apoyamos la migracion de tu plan de cuentas y saldos de apertura. Contactanos para evaluar tu caso especifico.",
     "faq4Q": "El precio incluye soporte?",
     "faq4A": "Si, todos los planes incluyen soporte. Los detalles varian por plan, revisa la seccion de Servicios."
