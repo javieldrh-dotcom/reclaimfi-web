@@ -94,21 +94,24 @@ export default function HomePage() {
           50% { transform: translate(-3%, 2%) scale(1.08); }
           100% { transform: translate(0, 0) scale(1); }
         }
-        .mesh-anim {
-          animation: meshMove 14s ease-in-out infinite;
-        }
         @media (max-width: 768px) {
           section { padding-left: 20px !important; padding-right: 20px !important; }
-          .hero-title { font-size: 40px !important; }
+          header { padding-left: 20px !important; padding-right: 20px !important; }
           .responsive-grid-2 { grid-template-columns: 1fr !important; }
           .responsive-grid-3 { grid-template-columns: 1fr !important; }
           .bento-card { padding: 20px !important; box-sizing: border-box; max-width: 100%; overflow: hidden; }
-          .bento-card p { font-size: 22px !important; }
-          h2 { font-size: 30px !important; }
-          h3 { font-size: 20px !important; }
-          header { padding-left: 20px !important; padding-right: 20px !important; }
+          .hero-title { font-size: 34px !important; }
+          .hero-subtitle { font-size: 17px !important; }
+          h2 { font-size: 26px !important; }
+          h3 { font-size: 18px !important; }
+          .bento-card p { font-size: 15px !important; }
+          section p { font-size: 15px !important; }
+          .label-badge { font-size: 12px !important; padding: 6px 14px !important; }
+          .cta-button { font-size: 15px !important; padding: 14px 28px !important; }
         }
         @media (max-width: 480px) {
+          .hero-title { font-size: 28px !important; }
+        }
           .hero-title { font-size: 32px !important; }
         }
       `}</style>
@@ -139,7 +142,7 @@ export default function HomePage() {
         <div className="mesh-anim" style={{ position: "absolute", top: "-15%", left: "-5%", width: "60%", height: "130%", background: "radial-gradient(circle, " + indigo + "30, transparent 60%)", filter: "blur(60px)", zIndex: 0, pointerEvents: "none" }} />
         <div className="mesh-anim" style={{ position: "absolute", top: "-5%", right: "-5%", width: "55%", height: "110%", background: "radial-gradient(circle, " + cyan + "25, transparent 60%)", filter: "blur(60px)", zIndex: 0, pointerEvents: "none", animationDelay: "-7s" }} />
         <div style={{ position: "relative", zIndex: 1, maxWidth: 1100, margin: "0 auto" }}>
-        <div style={labelStyle(indigo)}>{t("eyebrow")}</div>
+        <div className="label-badge" style={labelStyle(indigo)}>{t("eyebrow")}</div>
         <h1 className="hero-title" style={{ fontSize: 76, fontWeight: 800, lineHeight: 1.08, fontFamily: "'IBM Plex Serif', serif", color: ink, letterSpacing: "-0.02em" }}>
           {t("headline")}
         </h1>
@@ -147,7 +150,7 @@ export default function HomePage() {
           {t("subheadline")}
         </p>
         <div style={{ marginTop: 44, display: "flex", gap: 18, justifyContent: "center", flexWrap: "wrap" }}>
-          <Link href="/login" style={{ padding: "20px 48px", background: indigo, color: "white", borderRadius: 14, textDecoration: "none", fontSize: 20, fontWeight: 700, boxShadow: "0 10px 30px " + indigo + "45" }}>
+          <Link href="/login" className="cta-button" style={{ padding: "20px 48px", background: indigo, color: "white", borderRadius: 14, textDecoration: "none", fontSize: 20, fontWeight: 700, boxShadow: "0 10px 30px " + indigo + "45" }}>
             {t("cta")}
           </Link>
         </div>
@@ -222,7 +225,7 @@ export default function HomePage() {
       {/* DIFFERENTIATOR MESSAGE */}
       <section style={{ padding: "70px 40px", background: bgCard, borderTop: "1px solid " + cardBorder, borderBottom: "1px solid " + cardBorder }}>
         <div style={{ maxWidth: 900, margin: "0 auto", textAlign: "center" }}>
-          <div style={labelStyle(green)}>{t("differentiatorLabel")}</div>
+          <div className="label-badge" style={labelStyle(green)}>{t("differentiatorLabel")}</div>
           <h2 style={{ ...sectionTitleStyle, fontSize: 38 }}>{t("differentiatorTitle")}</h2>
           <p style={{ marginTop: 22, fontSize: 20, color: inkSoft, lineHeight: 1.8 }}>{t("differentiatorDesc")}</p>
         </div>
@@ -266,7 +269,7 @@ export default function HomePage() {
       <section style={{ padding: "90px 40px", background: green + "08" }}>
         <div style={{ maxWidth: 1100, margin: "0 auto" }}>
           <div style={{ textAlign: "center" }}>
-            <div style={labelStyle(green)}>{t("securityLabel")}</div>
+            <div className="label-badge" style={labelStyle(green)}>{t("securityLabel")}</div>
             <h2 style={sectionTitleStyle}>{t("securityTitle")}</h2>
           </div>
           <div className="responsive-grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28, marginTop: 56 }}>
@@ -292,7 +295,7 @@ export default function HomePage() {
 
       {/* PLANS TEASER */}
       <section style={{ padding: "90px 40px", textAlign: "center" }}>
-        <div style={labelStyle(indigo)}>{t("plansLabel")}</div>
+        <div className="label-badge" style={labelStyle(indigo)}>{t("plansLabel")}</div>
         <h2 style={sectionTitleStyle}>{t("plansTitle")}</h2>
         <p style={{ marginTop: 18, fontSize: 20, color: inkSoft, maxWidth: 600, margin: "18px auto 0" }}>{t("plansDesc")}</p>
         <Link href="./servicios" style={{ display: "inline-block", marginTop: 34, padding: "18px 42px", background: indigo, color: "white", borderRadius: 14, textDecoration: "none", fontSize: 19, fontWeight: 700, boxShadow: "0 10px 26px " + indigo + "40" }}>
@@ -304,7 +307,7 @@ export default function HomePage() {
       <section style={{ padding: "90px 40px", background: bgCard, borderTop: "1px solid " + cardBorder }}>
         <div style={{ maxWidth: 820, margin: "0 auto" }}>
           <div style={{ textAlign: "center" }}>
-            <div style={labelStyle(cyan)}>{t("faqLabel")}</div>
+            <div className="label-badge" style={labelStyle(cyan)}>{t("faqLabel")}</div>
             <h2 style={sectionTitleStyle}>{t("faqTitle")}</h2>
           </div>
           <div style={{ marginTop: 46, display: "flex", flexDirection: "column", gap: 22 }}>
