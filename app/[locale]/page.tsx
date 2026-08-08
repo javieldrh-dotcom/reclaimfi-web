@@ -24,7 +24,7 @@ export default function HomePage() {
     fontFamily: "'IBM Plex Serif', serif",
     color: ink,
     textAlign: "center" as const,
-    lineHeight: 1.15,
+    lineHeight: 1.2, maxWidth: 720, margin: "0 auto", textWrap: "balance" as any,
   };
 
   const labelStyle = (color: string): React.CSSProperties => ({
