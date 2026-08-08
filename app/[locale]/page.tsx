@@ -29,9 +29,9 @@ export default function HomePage() {
   const bgCard2 = "#161B26";
   const ink = "#F1F5F9";
   const inkSoft = "#94A3B8";
-  const cyan = "#22D3EE";
+  const cyan = "#10B981";
   const indigo = "#818CF8";
-  const amber = "#FBBF24";
+  const amber = "#F59E0B";
   const green = "#34D399";
   const cardBorder = "#232937";
 
