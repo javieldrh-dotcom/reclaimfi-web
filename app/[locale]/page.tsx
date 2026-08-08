@@ -101,7 +101,7 @@ export default function HomePage() {
       <section style={{ padding: "20px 40px 100px", maxWidth: 1200, margin: "0 auto" }}>
         <div style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr", gap: 24 }}>
           {/* Diario mockup - large */}
-          <div className="hover-lift fade-in-up" style={{ background: bgCard, borderRadius: 24, padding: 32, border: "1px solid " + cardBorder, boxShadow: "0 20px 50px rgba(20,24,31,0.08)" }}>
+          <div className="hover-lift fade-in-up" style={{ background: bgCard, borderRadius: 24, padding: 32, border: "1px solid " + cardBorder, boxShadow: "0 20px 50px rgba(0,0,0,0.5)" }}>
             <p style={{ fontSize: 13, fontWeight: 800, color: indigo, textTransform: "uppercase", letterSpacing: 1 }}>Libro Diario</p>
             <div style={{ marginTop: 16, background: bg, borderRadius: 14, padding: 20, fontFamily: "'IBM Plex Mono', monospace", fontSize: 13 }}>
               <div style={{ display: "grid", gridTemplateColumns: "70px 1fr 80px 80px", gap: 8, color: inkSoft, fontWeight: 700, paddingBottom: 8, borderBottom: "1px solid " + cardBorder }}>
@@ -121,7 +121,7 @@ export default function HomePage() {
           </div>
 
           {/* Blockchain mockup */}
-          <div className="hover-lift fade-in-up" style={{ background: bgCard, borderRadius: 24, padding: 32, border: "1px solid " + cardBorder, boxShadow: "0 20px 50px rgba(20,24,31,0.08)" }}>
+          <div className="hover-lift fade-in-up" style={{ background: bgCard, borderRadius: 24, padding: 32, border: "1px solid " + cardBorder, boxShadow: "0 20px 50px rgba(0,0,0,0.5)" }}>
             <p style={{ fontSize: 13, fontWeight: 800, color: cyan, textTransform: "uppercase", letterSpacing: 1 }}>Cadena Verificable</p>
             <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 10 }}>
               {[1, 2, 3, 4].map((n) => (
@@ -138,7 +138,7 @@ export default function HomePage() {
           </div>
 
           {/* Hyperinflation mockup */}
-          <div className="hover-lift fade-in-up" style={{ background: bgCard, borderRadius: 24, padding: 32, border: "1px solid " + cardBorder, boxShadow: "0 20px 50px rgba(20,24,31,0.08)", gridColumn: "span 1" }}>
+          <div className="hover-lift fade-in-up" style={{ background: bgCard, borderRadius: 24, padding: 32, border: "1px solid " + cardBorder, boxShadow: "0 20px 50px rgba(0,0,0,0.5)", gridColumn: "span 1" }}>
             <p style={{ fontSize: 13, fontWeight: 800, color: amber, textTransform: "uppercase", letterSpacing: 1 }}>Reexpresion Automatica</p>
             <div style={{ marginTop: 20, display: "flex", alignItems: "center", justifyContent: "space-between", fontFamily: "'IBM Plex Mono', monospace" }}>
               <div>
@@ -154,7 +154,7 @@ export default function HomePage() {
           </div>
 
           {/* Multi-region mockup */}
-          <div className="hover-lift fade-in-up" style={{ background: indigo, borderRadius: 24, padding: 32, color: "white", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+          <div className="hover-lift fade-in-up" style={{ background: "linear-gradient(135deg, " + indigo + ", " + cyan + ")", borderRadius: 24, padding: 32, color: bg, display: "flex", flexDirection: "column", justifyContent: "center", boxShadow: "0 20px 60px " + indigo + "45" }}>
             <p style={{ fontSize: 13, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1, opacity: 0.8 }}>17 idiomas</p>
             <p style={{ fontSize: 28, fontWeight: 800, marginTop: 10, fontFamily: "'IBM Plex Serif', serif" }}>5 continentes</p>
             <p style={{ fontSize: 15, marginTop: 10, opacity: 0.85, lineHeight: 1.6 }}>Una plataforma que se adapta a cada region, no al reves.</p>
