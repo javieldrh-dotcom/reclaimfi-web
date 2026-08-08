@@ -97,6 +97,16 @@ export default function HomePage() {
         .mesh-anim {
           animation: meshMove 14s ease-in-out infinite;
         }
+        @media (max-width: 768px) {
+          section { padding-left: 20px !important; padding-right: 20px !important; }
+          .hero-title { font-size: 40px !important; }
+          .responsive-grid-2 { grid-template-columns: 1fr !important; }
+          .responsive-grid-3 { grid-template-columns: 1fr !important; }
+          header { padding-left: 20px !important; padding-right: 20px !important; }
+        }
+        @media (max-width: 480px) {
+          .hero-title { font-size: 32px !important; }
+        }
       `}</style>
       <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "24px 56px", borderBottom: "1px solid " + cardBorder, flexWrap: "wrap", gap: 16, background: "rgba(10,14,22,0.85)", backdropFilter: "blur(12px)", position: "sticky", top: 0, zIndex: 50 }}>
         <div style={{ fontSize: 24, fontWeight: 800, color: indigo, fontFamily: "'IBM Plex Serif', serif" }}>
@@ -126,7 +136,7 @@ export default function HomePage() {
         <div className="mesh-anim" style={{ position: "absolute", top: "-5%", right: "-5%", width: "55%", height: "110%", background: "radial-gradient(circle, " + cyan + "25, transparent 60%)", filter: "blur(60px)", zIndex: 0, pointerEvents: "none", animationDelay: "-7s" }} />
         <div style={{ position: "relative", zIndex: 1, maxWidth: 1100, margin: "0 auto" }}>
         <div style={labelStyle(indigo)}>{t("eyebrow")}</div>
-        <h1 style={{ fontSize: 76, fontWeight: 800, lineHeight: 1.08, fontFamily: "'IBM Plex Serif', serif", color: ink, letterSpacing: "-0.02em" }}>
+        <h1 className="hero-title" style={{ fontSize: 76, fontWeight: 800, lineHeight: 1.08, fontFamily: "'IBM Plex Serif', serif", color: ink, letterSpacing: "-0.02em" }}>
           {t("headline")}
         </h1>
         <p style={{ marginTop: 30, fontSize: 25, color: inkSoft, maxWidth: 820, margin: "30px auto 0", lineHeight: 1.6 }}>
@@ -142,7 +152,7 @@ export default function HomePage() {
 
       {/* BENTO GRID - product mockups */}
       <section style={{ padding: "20px 40px 100px", maxWidth: 1200, margin: "0 auto" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr", gap: 24 }}>
+        <div className="responsive-grid-2" style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr", gap: 24 }}>
           {/* Diario mockup - large */}
           <div className="hover-lift fade-in-up" style={{ background: bgCard, borderRadius: 24, padding: 32, border: "1px solid " + cardBorder, boxShadow: "0 20px 50px rgba(0,0,0,0.5)" }}>
             <p style={{ fontSize: 13, fontWeight: 800, color: indigo, textTransform: "uppercase", letterSpacing: 1 }}>Libro Diario</p>
@@ -229,7 +239,7 @@ export default function HomePage() {
       {/* 3 PILLARS */}
       <section style={{ padding: "70px 40px 100px", maxWidth: 1200, margin: "0 auto" }}>
         <h2 style={sectionTitleStyle}>{t("pillarsTitle")}</h2>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 32, marginTop: 56 }}>
+        <div className="responsive-grid-3" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 32, marginTop: 56 }}>
           <div className="hover-lift fade-in-up" style={{ padding: 40, background: bgCard, border: "2px solid " + cyan + "30", borderRadius: 22, boxShadow: "0 14px 34px " + cyan + "14" }}>
             <div style={{ width: 60, height: 60, background: cyan + "18", borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 24 }}><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={cyan} strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg></div>
             <h3 style={{ fontSize: 27, fontWeight: 800, color: cyan, fontFamily: "'IBM Plex Serif', serif" }}>{t("pillar1Title")}</h3>
@@ -255,7 +265,7 @@ export default function HomePage() {
             <div style={labelStyle(green)}>{t("securityLabel")}</div>
             <h2 style={sectionTitleStyle}>{t("securityTitle")}</h2>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28, marginTop: 56 }}>
+          <div className="responsive-grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28, marginTop: 56 }}>
             <div style={{ padding: 30, background: bgCard, borderRadius: 18, border: "1px solid " + cardBorder }}>
               <h3 style={{ fontSize: 21, fontWeight: 700, color: green, display: "flex", alignItems: "center", gap: 8 }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={green} strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>{t("security1Title")}</h3>
               <p style={{ marginTop: 12, fontSize: 17, color: inkSoft, lineHeight: 1.7 }}>{t("security1Desc")}</p>
