@@ -124,7 +124,7 @@ export default function HomePage() {
             <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 10 }}>
               {[1, 2, 3, 4].map((n) => (
                 <div key={n} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: 8, background: green + "18", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, color: green, fontWeight: 800 }}>ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ</div>
+                  <div style={{ width: 32, height: 32, borderRadius: 8, background: green + "18", display: "flex", alignItems: "center", justifyContent: "center" }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={green} strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg></div>
                   <div style={{ flex: 1, height: 10, background: bg, borderRadius: 6, overflow: "hidden" }}>
                     <div style={{ width: "100%", height: "100%", background: cyan + "30" }} />
                   </div>
@@ -143,7 +143,7 @@ export default function HomePage() {
                 <p style={{ fontSize: 11, color: inkSoft }}>Historico</p>
                 <p style={{ fontSize: 20, fontWeight: 700, color: inkSoft, textDecoration: "line-through" }}>100.00</p>
               </div>
-              <span style={{ fontSize: 22, color: amber }}>ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢</span>
+              <span style={{ display: "inline-flex", alignItems: "center" }}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={amber} strokeWidth="2.5"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg></span>
               <div>
                 <p style={{ fontSize: 11, color: inkSoft }}>Reexpresado</p>
                 <p style={{ fontSize: 20, fontWeight: 800, color: amber }}>488.122...</p>
@@ -186,17 +186,17 @@ export default function HomePage() {
         <h2 style={sectionTitleStyle}>{t("pillarsTitle")}</h2>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 32, marginTop: 56 }}>
           <div className="hover-lift fade-in-up" style={{ padding: 40, background: "#FFFFFF", border: "2px solid " + cyan + "30", borderRadius: 22, boxShadow: "0 14px 34px " + cyan + "14" }}>
-            <div style={{ width: 60, height: 60, background: cyan + "18", borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, marginBottom: 24 }}>ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒâ€šÃ‚Â</div>
+            <div style={{ width: 60, height: 60, background: cyan + "18", borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 24 }}><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={cyan} strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg></div>
             <h3 style={{ fontSize: 27, fontWeight: 800, color: cyan, fontFamily: "'IBM Plex Serif', serif" }}>{t("pillar1Title")}</h3>
             <p style={{ marginTop: 16, fontSize: 18, color: inkSoft, lineHeight: 1.8 }}>{t("pillar1Desc")}</p>
           </div>
           <div className="hover-lift fade-in-up" style={{ padding: 40, background: "#FFFFFF", border: "2px solid " + indigo + "30", borderRadius: 22, boxShadow: "0 14px 34px " + indigo + "14" }}>
-            <div style={{ width: 60, height: 60, background: indigo + "18", borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, marginBottom: 24 }}>ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒâ€¦Ã‚Â </div>
+            <div style={{ width: 60, height: 60, background: indigo + "18", borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 24 }}><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={indigo} strokeWidth="2"><line x1="12" y1="20" x2="12" y2="10" /><line x1="18" y1="20" x2="18" y2="4" /><line x1="6" y1="20" x2="6" y2="16" /></svg></div>
             <h3 style={{ fontSize: 27, fontWeight: 800, color: indigo, fontFamily: "'IBM Plex Serif', serif" }}>{t("pillar2Title")}</h3>
             <p style={{ marginTop: 16, fontSize: 18, color: inkSoft, lineHeight: 1.8 }}>{t("pillar2Desc")}</p>
           </div>
           <div className="hover-lift fade-in-up" style={{ padding: 40, background: "#FFFFFF", border: "2px solid " + amber + "30", borderRadius: 22, boxShadow: "0 14px 34px " + amber + "14" }}>
-            <div style={{ width: 60, height: 60, background: amber + "18", borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, marginBottom: 24 }}>ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹</div>
+            <div style={{ width: 60, height: 60, background: amber + "18", borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 24 }}><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={amber} strokeWidth="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" /><rect x="9" y="3" width="6" height="4" rx="1" /></svg></div>
             <h3 style={{ fontSize: 27, fontWeight: 800, color: amber, fontFamily: "'IBM Plex Serif', serif" }}>{t("pillar3Title")}</h3>
             <p style={{ marginTop: 16, fontSize: 18, color: inkSoft, lineHeight: 1.8 }}>{t("pillar3Desc")}</p>
           </div>
@@ -212,19 +212,19 @@ export default function HomePage() {
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28, marginTop: 56 }}>
             <div style={{ padding: 30, background: "#FFFFFF", borderRadius: 18, border: "1px solid " + cardBorder }}>
-              <h3 style={{ fontSize: 21, fontWeight: 700, color: green }}>ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ {t("security1Title")}</h3>
+              <h3 style={{ fontSize: 21, fontWeight: 700, color: green, display: "flex", alignItems: "center", gap: 8 }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={green} strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>{t("security1Title")}</h3>
               <p style={{ marginTop: 12, fontSize: 17, color: inkSoft, lineHeight: 1.7 }}>{t("security1Desc")}</p>
             </div>
             <div style={{ padding: 30, background: "#FFFFFF", borderRadius: 18, border: "1px solid " + cardBorder }}>
-              <h3 style={{ fontSize: 21, fontWeight: 700, color: green }}>ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ {t("security2Title")}</h3>
+              <h3 style={{ fontSize: 21, fontWeight: 700, color: green, display: "flex", alignItems: "center", gap: 8 }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={green} strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>{t("security2Title")}</h3>
               <p style={{ marginTop: 12, fontSize: 17, color: inkSoft, lineHeight: 1.7 }}>{t("security2Desc")}</p>
             </div>
             <div style={{ padding: 30, background: "#FFFFFF", borderRadius: 18, border: "1px solid " + cardBorder }}>
-              <h3 style={{ fontSize: 21, fontWeight: 700, color: green }}>ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ {t("security3Title")}</h3>
+              <h3 style={{ fontSize: 21, fontWeight: 700, color: green, display: "flex", alignItems: "center", gap: 8 }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={green} strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>{t("security3Title")}</h3>
               <p style={{ marginTop: 12, fontSize: 17, color: inkSoft, lineHeight: 1.7 }}>{t("security3Desc")}</p>
             </div>
             <div style={{ padding: 30, background: "#FFFFFF", borderRadius: 18, border: "1px solid " + cardBorder }}>
-              <h3 style={{ fontSize: 21, fontWeight: 700, color: green }}>ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ {t("security4Title")}</h3>
+              <h3 style={{ fontSize: 21, fontWeight: 700, color: green, display: "flex", alignItems: "center", gap: 8 }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={green} strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>{t("security4Title")}</h3>
               <p style={{ marginTop: 12, fontSize: 17, color: inkSoft, lineHeight: 1.7 }}>{t("security4Desc")}</p>
             </div>
           </div>
