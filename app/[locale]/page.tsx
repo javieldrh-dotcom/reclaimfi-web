@@ -59,6 +59,21 @@ export default function HomePage() {
         .fade-in-up {
           animation: fadeInUp 0.7s ease both;
         }
+        @keyframes pulseGlow {
+          0%, 100% { opacity: 0.5; }
+          50% { opacity: 1; }
+        }
+        .pulse-glow {
+          animation: pulseGlow 2.4s ease-in-out infinite;
+        }
+        @keyframes meshMove {
+          0% { transform: translate(0, 0) scale(1); }
+          50% { transform: translate(-3%, 2%) scale(1.08); }
+          100% { transform: translate(0, 0) scale(1); }
+        }
+        .mesh-anim {
+          animation: meshMove 14s ease-in-out infinite;
+        }
       `}</style>
       <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "24px 56px", borderBottom: "1px solid " + cardBorder, flexWrap: "wrap", gap: 16, background: "rgba(10,14,22,0.85)", backdropFilter: "blur(12px)", position: "sticky", top: 0, zIndex: 50 }}>
         <div style={{ fontSize: 24, fontWeight: 800, color: indigo, fontFamily: "'IBM Plex Serif', serif" }}>
@@ -77,12 +92,16 @@ export default function HomePage() {
 
       {/* HERO with gradient */}
       <section style={{
+        position: "relative", overflow: "hidden",
         padding: "110px 40px 90px",
         textAlign: "center",
         maxWidth: 1100,
         margin: "0 auto",
         background: "radial-gradient(ellipse 80% 60% at 50% 0%, " + indigo + "12, transparent), radial-gradient(ellipse 60% 50% at 80% 20%, " + cyan + "10, transparent)",
       }}>
+        <div className="mesh-anim" style={{ position: "absolute", top: "-15%", left: "-5%", width: "60%", height: "130%", background: "radial-gradient(circle, " + indigo + "30, transparent 60%)", filter: "blur(60px)", zIndex: 0, pointerEvents: "none" }} />
+        <div className="mesh-anim" style={{ position: "absolute", top: "-5%", right: "-5%", width: "55%", height: "110%", background: "radial-gradient(circle, " + cyan + "25, transparent 60%)", filter: "blur(60px)", zIndex: 0, pointerEvents: "none", animationDelay: "-7s" }} />
+        <div style={{ position: "relative", zIndex: 1, maxWidth: 1100, margin: "0 auto" }}>
         <div style={labelStyle(indigo)}>{t("eyebrow")}</div>
         <h1 style={{ fontSize: 76, fontWeight: 800, lineHeight: 1.08, fontFamily: "'IBM Plex Serif', serif", color: ink, letterSpacing: "-0.02em" }}>
           {t("headline")}
@@ -94,6 +113,7 @@ export default function HomePage() {
           <Link href="/login" style={{ padding: "20px 48px", background: indigo, color: "white", borderRadius: 14, textDecoration: "none", fontSize: 20, fontWeight: 700, boxShadow: "0 10px 30px " + indigo + "45" }}>
             {t("cta")}
           </Link>
+        </div>
         </div>
       </section>
 
