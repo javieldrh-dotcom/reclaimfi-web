@@ -7,7 +7,7 @@ export default function ServiciosPage() {
   const t = useTranslations("servicios");
   const tNav = useTranslations("nav");
 
-  const bg = "#FAFAF7";
+  const bg = "#FBF3E3";
   const ink = "#14181F";
   const inkSoft = "#565F73";
   const cyan = "#0891B2";
@@ -41,7 +41,7 @@ export default function ServiciosPage() {
         </nav>
       </header>
 
-      <section style={{ padding: "70px 40px 50px", textAlign: "center", maxWidth: 900, margin: "0 auto" }}>
+      <section style={{ padding: "70px 40px 50px", textAlign: "center", maxWidth: 1100, margin: "0 auto", background: "radial-gradient(ellipse 70% 60% at 50% 0%, " + indigo + "18, transparent), radial-gradient(ellipse 60% 50% at 85% 30%, " + amber + "15, transparent)" }}>
         <div style={{ display: "inline-block", padding: "8px 20px", background: indigo + "12", color: indigo, borderRadius: 999, fontSize: 14, fontWeight: 700, marginBottom: 20 }}>
           {t("eyebrow")}
         </div>
