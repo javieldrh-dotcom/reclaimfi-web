@@ -108,6 +108,8 @@ export default function HomePage() {
           section p { font-size: 15px !important; }
           .label-badge { font-size: 12px !important; padding: 6px 14px !important; }
           .cta-button { font-size: 15px !important; padding: 14px 28px !important; }
+          .diario-table { padding: 10px !important; font-size: 9px !important; }
+          .diario-table > div { grid-template-columns: 40px 1fr 42px 42px !important; gap: 3px !important; }
         }
         @media (max-width: 480px) {
           .hero-title { font-size: 28px !important; }
@@ -163,7 +165,7 @@ export default function HomePage() {
           {/* Diario mockup - large */}
           <div className="hover-lift fade-in-up bento-card" style={{ background: bgCard, borderRadius: 24, padding: 32, border: "1px solid " + cardBorder, boxShadow: "0 20px 50px rgba(0,0,0,0.5)" }}>
             <p style={{ fontSize: 13, fontWeight: 800, color: indigo, textTransform: "uppercase", letterSpacing: 1 }}>Libro Diario</p>
-            <div style={{ marginTop: 16, background: bg, borderRadius: 14, padding: 20, fontFamily: "'IBM Plex Mono', monospace", fontSize: 13 }}>
+            <div className="diario-table" style={{ marginTop: 16, background: bg, borderRadius: 14, padding: 20, fontFamily: "'IBM Plex Mono', monospace", fontSize: 13 }}>
               <div style={{ display: "grid", gridTemplateColumns: "70px 1fr 80px 80px", gap: 8, color: inkSoft, fontWeight: 700, paddingBottom: 8, borderBottom: "1px solid " + cardBorder }}>
                 <span>Fecha</span><span>Cuenta</span><span>Debe</span><span>Haber</span>
               </div>
