@@ -102,6 +102,10 @@ export default function HomePage() {
           .hero-title { font-size: 40px !important; }
           .responsive-grid-2 { grid-template-columns: 1fr !important; }
           .responsive-grid-3 { grid-template-columns: 1fr !important; }
+          .bento-card { padding: 20px !important; box-sizing: border-box; max-width: 100%; overflow: hidden; }
+          .bento-card p { font-size: 22px !important; }
+          h2 { font-size: 30px !important; }
+          h3 { font-size: 20px !important; }
           header { padding-left: 20px !important; padding-right: 20px !important; }
         }
         @media (max-width: 480px) {
@@ -154,7 +158,7 @@ export default function HomePage() {
       <section style={{ padding: "20px 40px 100px", maxWidth: 1200, margin: "0 auto" }}>
         <div className="responsive-grid-2" style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr", gap: 24 }}>
           {/* Diario mockup - large */}
-          <div className="hover-lift fade-in-up" style={{ background: bgCard, borderRadius: 24, padding: 32, border: "1px solid " + cardBorder, boxShadow: "0 20px 50px rgba(0,0,0,0.5)" }}>
+          <div className="hover-lift fade-in-up bento-card" style={{ background: bgCard, borderRadius: 24, padding: 32, border: "1px solid " + cardBorder, boxShadow: "0 20px 50px rgba(0,0,0,0.5)" }}>
             <p style={{ fontSize: 13, fontWeight: 800, color: indigo, textTransform: "uppercase", letterSpacing: 1 }}>Libro Diario</p>
             <div style={{ marginTop: 16, background: bg, borderRadius: 14, padding: 20, fontFamily: "'IBM Plex Mono', monospace", fontSize: 13 }}>
               <div style={{ display: "grid", gridTemplateColumns: "70px 1fr 80px 80px", gap: 8, color: inkSoft, fontWeight: 700, paddingBottom: 8, borderBottom: "1px solid " + cardBorder }}>
@@ -174,7 +178,7 @@ export default function HomePage() {
           </div>
 
           {/* Blockchain mockup */}
-          <div className="hover-lift fade-in-up" style={{ background: bgCard, borderRadius: 24, padding: 32, border: "1px solid " + cardBorder, boxShadow: "0 20px 50px rgba(0,0,0,0.5)" }}>
+          <div className="hover-lift fade-in-up bento-card" style={{ background: bgCard, borderRadius: 24, padding: 32, border: "1px solid " + cardBorder, boxShadow: "0 20px 50px rgba(0,0,0,0.5)" }}>
             <p style={{ fontSize: 13, fontWeight: 800, color: cyan, textTransform: "uppercase", letterSpacing: 1 }}>Cadena Verificable</p>
             <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 10 }}>
               {[1, 2, 3, 4].map((n) => (
@@ -191,7 +195,7 @@ export default function HomePage() {
           </div>
 
           {/* Hyperinflation mockup */}
-          <div className="hover-lift fade-in-up" style={{ background: bgCard, borderRadius: 24, padding: 32, border: "1px solid " + cardBorder, boxShadow: "0 20px 50px rgba(0,0,0,0.5)", gridColumn: "span 1" }}>
+          <div className="hover-lift fade-in-up bento-card" style={{ background: bgCard, borderRadius: 24, padding: 32, border: "1px solid " + cardBorder, boxShadow: "0 20px 50px rgba(0,0,0,0.5)", gridColumn: "span 1" }}>
             <p style={{ fontSize: 13, fontWeight: 800, color: amber, textTransform: "uppercase", letterSpacing: 1 }}>Reexpresion Automatica</p>
             <div style={{ marginTop: 20, display: "flex", alignItems: "center", justifyContent: "space-between", fontFamily: "'IBM Plex Mono', monospace" }}>
               <div>
@@ -207,7 +211,7 @@ export default function HomePage() {
           </div>
 
           {/* Multi-region mockup */}
-          <div className="hover-lift fade-in-up" style={{ background: "linear-gradient(135deg, " + indigo + ", " + cyan + ")", borderRadius: 24, padding: 32, color: bg, display: "flex", flexDirection: "column", justifyContent: "center", boxShadow: "0 20px 60px " + indigo + "45" }}>
+          <div className="hover-lift fade-in-up bento-card" style={{ background: "linear-gradient(135deg, " + indigo + ", " + cyan + ")", borderRadius: 24, padding: 32, color: bg, display: "flex", flexDirection: "column", justifyContent: "center", boxShadow: "0 20px 60px " + indigo + "45" }}>
             <p style={{ fontSize: 13, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1, opacity: 0.8 }}>17 idiomas</p>
             <p style={{ fontSize: 28, fontWeight: 800, marginTop: 10, fontFamily: "'IBM Plex Serif', serif" }}>5 continentes</p>
             <p style={{ fontSize: 15, marginTop: 10, opacity: 0.85, lineHeight: 1.6 }}>Una plataforma que se adapta a cada region, no al reves.</p>
@@ -240,17 +244,17 @@ export default function HomePage() {
       <section style={{ padding: "70px 40px 100px", maxWidth: 1200, margin: "0 auto" }}>
         <h2 style={sectionTitleStyle}>{t("pillarsTitle")}</h2>
         <div className="responsive-grid-3" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 32, marginTop: 56 }}>
-          <div className="hover-lift fade-in-up" style={{ padding: 40, background: bgCard, border: "2px solid " + cyan + "30", borderRadius: 22, boxShadow: "0 14px 34px " + cyan + "14" }}>
+          <div className="hover-lift fade-in-up" style={{ padding: 40, background: "linear-gradient(160deg, " + cyan + "14, " + bgCard + " 55%)", border: "2px solid " + cyan + "35", borderRadius: 22, boxShadow: "0 14px 34px " + cyan + "14" }}>
             <div style={{ width: 60, height: 60, background: cyan + "18", borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 24 }}><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={cyan} strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg></div>
             <h3 style={{ fontSize: 27, fontWeight: 800, color: cyan, fontFamily: "'IBM Plex Serif', serif" }}>{t("pillar1Title")}</h3>
             <p style={{ marginTop: 16, fontSize: 18, color: inkSoft, lineHeight: 1.8 }}>{t("pillar1Desc")}</p>
           </div>
-          <div className="hover-lift fade-in-up" style={{ padding: 40, background: bgCard, border: "2px solid " + indigo + "30", borderRadius: 22, boxShadow: "0 14px 34px " + indigo + "14" }}>
+          <div className="hover-lift fade-in-up" style={{ padding: 40, background: "linear-gradient(160deg, " + indigo + "14, " + bgCard + " 55%)", border: "2px solid " + indigo + "35", borderRadius: 22, boxShadow: "0 14px 34px " + indigo + "14" }}>
             <div style={{ width: 60, height: 60, background: indigo + "18", borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 24 }}><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={indigo} strokeWidth="2"><line x1="12" y1="20" x2="12" y2="10" /><line x1="18" y1="20" x2="18" y2="4" /><line x1="6" y1="20" x2="6" y2="16" /></svg></div>
             <h3 style={{ fontSize: 27, fontWeight: 800, color: indigo, fontFamily: "'IBM Plex Serif', serif" }}>{t("pillar2Title")}</h3>
             <p style={{ marginTop: 16, fontSize: 18, color: inkSoft, lineHeight: 1.8 }}>{t("pillar2Desc")}</p>
           </div>
-          <div className="hover-lift fade-in-up" style={{ padding: 40, background: bgCard, border: "2px solid " + amber + "30", borderRadius: 22, boxShadow: "0 14px 34px " + amber + "14" }}>
+          <div className="hover-lift fade-in-up" style={{ padding: 40, background: "linear-gradient(160deg, " + amber + "14, " + bgCard + " 55%)", border: "2px solid " + amber + "35", borderRadius: 22, boxShadow: "0 14px 34px " + amber + "14" }}>
             <div style={{ width: 60, height: 60, background: amber + "18", borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 24 }}><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={amber} strokeWidth="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" /><rect x="9" y="3" width="6" height="4" rx="1" /></svg></div>
             <h3 style={{ fontSize: 27, fontWeight: 800, color: amber, fontFamily: "'IBM Plex Serif', serif" }}>{t("pillar3Title")}</h3>
             <p style={{ marginTop: 16, fontSize: 18, color: inkSoft, lineHeight: 1.8 }}>{t("pillar3Desc")}</p>
