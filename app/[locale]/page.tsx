@@ -1,4 +1,5 @@
 "use client";
+import { useEffect } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import LanguageSwitcher from "./_components/LanguageSwitcher";
@@ -6,6 +7,22 @@ import LanguageSwitcher from "./_components/LanguageSwitcher";
 export default function HomePage() {
   const t = useTranslations("home");
   const tNav = useTranslations("nav");
+
+  useEffect(() => {
+    const els = document.querySelectorAll(".fade-in-up");
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("in-view");
+          }
+        });
+      },
+      { threshold: 0.15 }
+    );
+    els.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
 
   const bg = "#0A0E16";
   const bgCard = "#12161F";
@@ -57,7 +74,13 @@ export default function HomePage() {
           to { opacity: 1; transform: translateY(0); }
         }
         .fade-in-up {
-          animation: fadeInUp 0.7s ease both;
+          opacity: 0;
+          transform: translateY(28px);
+          transition: opacity 0.8s ease, transform 0.8s ease;
+        }
+        .fade-in-up.in-view {
+          opacity: 1;
+          transform: translateY(0);
         }
         @keyframes pulseGlow {
           0%, 100% { opacity: 0.5; }
