@@ -249,20 +249,20 @@ export default function HomePage() {
       <section style={{ padding: "70px 40px 100px", maxWidth: 1200, margin: "0 auto" }}>
         <h2 style={sectionTitleStyle}>{t("pillarsTitle")}</h2>
         <div className="responsive-grid-3" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 32, marginTop: 56 }}>
-          <div className="hover-lift fade-in-up" style={{ padding: 40, background: "linear-gradient(160deg, " + cyan + "14, " + bgCard + " 55%)", border: "2px solid " + cyan + "35", borderRadius: 22, boxShadow: "0 14px 34px " + cyan + "14" }}>
-            <div style={{ width: 60, height: 60, background: cyan + "18", borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 24 }}><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={cyan} strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg></div>
-            <h3 style={{ fontSize: 27, fontWeight: 800, color: cyan, fontFamily: "'IBM Plex Serif', serif" }}>{t("pillar1Title")}</h3>
-            <p style={{ marginTop: 16, fontSize: 18, color: inkSoft, lineHeight: 1.8 }}>{t("pillar1Desc")}</p>
+          <div className="hover-lift fade-in-up" style={{ padding: 40, background: "linear-gradient(160deg, " + cyan + ", #065F46)", border: "2px solid " + cyan + "60", borderRadius: 22, boxShadow: "0 20px 44px " + cyan + "35" }}>
+            <div style={{ width: 60, height: 60, background: "rgba(255,255,255,0.2)", borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 24 }}><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg></div>
+            <h3 style={{ fontSize: 27, fontWeight: 800, color: "white", fontFamily: "'IBM Plex Serif', serif" }}>{t("pillar1Title")}</h3>
+            <p style={{ marginTop: 16, fontSize: 18, color: "rgba(255,255,255,0.82)", lineHeight: 1.8 }}>{t("pillar1Desc")}</p>
           </div>
-          <div className="hover-lift fade-in-up" style={{ padding: 40, background: "linear-gradient(160deg, " + indigo + "14, " + bgCard + " 55%)", border: "2px solid " + indigo + "35", borderRadius: 22, boxShadow: "0 14px 34px " + indigo + "14" }}>
-            <div style={{ width: 60, height: 60, background: indigo + "18", borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 24 }}><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={indigo} strokeWidth="2"><line x1="12" y1="20" x2="12" y2="10" /><line x1="18" y1="20" x2="18" y2="4" /><line x1="6" y1="20" x2="6" y2="16" /></svg></div>
-            <h3 style={{ fontSize: 27, fontWeight: 800, color: indigo, fontFamily: "'IBM Plex Serif', serif" }}>{t("pillar2Title")}</h3>
-            <p style={{ marginTop: 16, fontSize: 18, color: inkSoft, lineHeight: 1.8 }}>{t("pillar2Desc")}</p>
+          <div className="hover-lift fade-in-up" style={{ padding: 40, background: "linear-gradient(160deg, " + indigo + ", #312E81)", border: "2px solid " + indigo + "60", borderRadius: 22, boxShadow: "0 20px 44px " + indigo + "35" }}>
+            <div style={{ width: 60, height: 60, background: "rgba(255,255,255,0.2)", borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 24 }}><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><line x1="12" y1="20" x2="12" y2="10" /><line x1="18" y1="20" x2="18" y2="4" /><line x1="6" y1="20" x2="6" y2="16" /></svg></div>
+            <h3 style={{ fontSize: 27, fontWeight: 800, color: "white", fontFamily: "'IBM Plex Serif', serif" }}>{t("pillar2Title")}</h3>
+            <p style={{ marginTop: 16, fontSize: 18, color: "rgba(255,255,255,0.82)", lineHeight: 1.8 }}>{t("pillar2Desc")}</p>
           </div>
-          <div className="hover-lift fade-in-up" style={{ padding: 40, background: "linear-gradient(160deg, " + amber + "14, " + bgCard + " 55%)", border: "2px solid " + amber + "35", borderRadius: 22, boxShadow: "0 14px 34px " + amber + "14" }}>
-            <div style={{ width: 60, height: 60, background: amber + "18", borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 24 }}><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={amber} strokeWidth="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" /><rect x="9" y="3" width="6" height="4" rx="1" /></svg></div>
-            <h3 style={{ fontSize: 27, fontWeight: 800, color: amber, fontFamily: "'IBM Plex Serif', serif" }}>{t("pillar3Title")}</h3>
-            <p style={{ marginTop: 16, fontSize: 18, color: inkSoft, lineHeight: 1.8 }}>{t("pillar3Desc")}</p>
+          <div className="hover-lift fade-in-up" style={{ padding: 40, background: "linear-gradient(160deg, " + amber + ", #92400E)", border: "2px solid " + amber + "60", borderRadius: 22, boxShadow: "0 20px 44px " + amber + "35" }}>
+            <div style={{ width: 60, height: 60, background: "rgba(255,255,255,0.2)", borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 24 }}><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" /><rect x="9" y="3" width="6" height="4" rx="1" /></svg></div>
+            <h3 style={{ fontSize: 27, fontWeight: 800, color: "white", fontFamily: "'IBM Plex Serif', serif" }}>{t("pillar3Title")}</h3>
+            <p style={{ marginTop: 16, fontSize: 18, color: "rgba(255,255,255,0.82)", lineHeight: 1.8 }}>{t("pillar3Desc")}</p>
           </div>
         </div>
       </section>
