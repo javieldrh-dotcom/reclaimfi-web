@@ -7,14 +7,16 @@ export default function HomePage() {
   const t = useTranslations("home");
   const tNav = useTranslations("nav");
 
-  const bg = "#FAFAF7";
-  const ink = "#14181F";
-  const inkSoft = "#565F73";
-  const cyan = "#0891B2";
-  const indigo = "#6366F1";
-  const amber = "#D97706";
-  const green = "#16A34A";
-  const cardBorder = "#E7E3D9";
+  const bg = "#0A0E16";
+  const bgCard = "#12161F";
+  const bgCard2 = "#161B26";
+  const ink = "#F1F5F9";
+  const inkSoft = "#94A3B8";
+  const cyan = "#22D3EE";
+  const indigo = "#818CF8";
+  const amber = "#FBBF24";
+  const green = "#34D399";
+  const cardBorder = "#232937";
 
   const sectionTitleStyle: React.CSSProperties = {
     fontSize: 44,
@@ -37,7 +39,7 @@ export default function HomePage() {
   });
 
   return (
-    <div style={{ background: "radial-gradient(ellipse 90% 50% at 50% -10%, #FFFFFF 0%, " + bg + " 55%, #EEEAE0 100%)", minHeight: "100vh", color: ink, fontFamily: "'IBM Plex Sans', sans-serif", boxShadow: "inset 0 0 120px rgba(20,24,31,0.06)" }}>
+    <div style={{ background: "radial-gradient(ellipse 90% 50% at 50% -10%, " + bgCard + " 0%, " + bg + " 60%, #050709 100%)", minHeight: "100vh", color: ink, fontFamily: "'IBM Plex Sans', sans-serif", overflow: "hidden" }}>
       <style>{`
         @keyframes heroGradientShift {
           0% { background-position: 0% 0%; }
@@ -58,7 +60,7 @@ export default function HomePage() {
           animation: fadeInUp 0.7s ease both;
         }
       `}</style>
-      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "24px 56px", borderBottom: "1px solid " + cardBorder, flexWrap: "wrap", gap: 16, background: "#FFFFFF", position: "sticky", top: 0, zIndex: 50 }}>
+      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "24px 56px", borderBottom: "1px solid " + cardBorder, flexWrap: "wrap", gap: 16, background: "rgba(10,14,22,0.85)", backdropFilter: "blur(12px)", position: "sticky", top: 0, zIndex: 50 }}>
         <div style={{ fontSize: 24, fontWeight: 800, color: indigo, fontFamily: "'IBM Plex Serif', serif" }}>
           {tNav("brand")}
         </div>
@@ -99,7 +101,7 @@ export default function HomePage() {
       <section style={{ padding: "20px 40px 100px", maxWidth: 1200, margin: "0 auto" }}>
         <div style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr", gap: 24 }}>
           {/* Diario mockup - large */}
-          <div className="hover-lift fade-in-up" style={{ background: "#FFFFFF", borderRadius: 24, padding: 32, border: "1px solid " + cardBorder, boxShadow: "0 20px 50px rgba(20,24,31,0.08)" }}>
+          <div className="hover-lift fade-in-up" style={{ background: bgCard, borderRadius: 24, padding: 32, border: "1px solid " + cardBorder, boxShadow: "0 20px 50px rgba(20,24,31,0.08)" }}>
             <p style={{ fontSize: 13, fontWeight: 800, color: indigo, textTransform: "uppercase", letterSpacing: 1 }}>Libro Diario</p>
             <div style={{ marginTop: 16, background: bg, borderRadius: 14, padding: 20, fontFamily: "'IBM Plex Mono', monospace", fontSize: 13 }}>
               <div style={{ display: "grid", gridTemplateColumns: "70px 1fr 80px 80px", gap: 8, color: inkSoft, fontWeight: 700, paddingBottom: 8, borderBottom: "1px solid " + cardBorder }}>
@@ -119,7 +121,7 @@ export default function HomePage() {
           </div>
 
           {/* Blockchain mockup */}
-          <div className="hover-lift fade-in-up" style={{ background: "#FFFFFF", borderRadius: 24, padding: 32, border: "1px solid " + cardBorder, boxShadow: "0 20px 50px rgba(20,24,31,0.08)" }}>
+          <div className="hover-lift fade-in-up" style={{ background: bgCard, borderRadius: 24, padding: 32, border: "1px solid " + cardBorder, boxShadow: "0 20px 50px rgba(20,24,31,0.08)" }}>
             <p style={{ fontSize: 13, fontWeight: 800, color: cyan, textTransform: "uppercase", letterSpacing: 1 }}>Cadena Verificable</p>
             <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 10 }}>
               {[1, 2, 3, 4].map((n) => (
@@ -136,7 +138,7 @@ export default function HomePage() {
           </div>
 
           {/* Hyperinflation mockup */}
-          <div className="hover-lift fade-in-up" style={{ background: "#FFFFFF", borderRadius: 24, padding: 32, border: "1px solid " + cardBorder, boxShadow: "0 20px 50px rgba(20,24,31,0.08)", gridColumn: "span 1" }}>
+          <div className="hover-lift fade-in-up" style={{ background: bgCard, borderRadius: 24, padding: 32, border: "1px solid " + cardBorder, boxShadow: "0 20px 50px rgba(20,24,31,0.08)", gridColumn: "span 1" }}>
             <p style={{ fontSize: 13, fontWeight: 800, color: amber, textTransform: "uppercase", letterSpacing: 1 }}>Reexpresion Automatica</p>
             <div style={{ marginTop: 20, display: "flex", alignItems: "center", justifyContent: "space-between", fontFamily: "'IBM Plex Mono', monospace" }}>
               <div>
@@ -161,7 +163,7 @@ export default function HomePage() {
       </section>
 
       {/* DIFFERENTIATOR MESSAGE */}
-      <section style={{ padding: "70px 40px", background: "#FFFFFF", borderTop: "1px solid " + cardBorder, borderBottom: "1px solid " + cardBorder }}>
+      <section style={{ padding: "70px 40px", background: bgCard, borderTop: "1px solid " + cardBorder, borderBottom: "1px solid " + cardBorder }}>
         <div style={{ maxWidth: 900, margin: "0 auto", textAlign: "center" }}>
           <div style={labelStyle(green)}>{t("differentiatorLabel")}</div>
           <h2 style={{ ...sectionTitleStyle, fontSize: 38 }}>{t("differentiatorTitle")}</h2>
@@ -185,17 +187,17 @@ export default function HomePage() {
       <section style={{ padding: "70px 40px 100px", maxWidth: 1200, margin: "0 auto" }}>
         <h2 style={sectionTitleStyle}>{t("pillarsTitle")}</h2>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 32, marginTop: 56 }}>
-          <div className="hover-lift fade-in-up" style={{ padding: 40, background: "#FFFFFF", border: "2px solid " + cyan + "30", borderRadius: 22, boxShadow: "0 14px 34px " + cyan + "14" }}>
+          <div className="hover-lift fade-in-up" style={{ padding: 40, background: bgCard, border: "2px solid " + cyan + "30", borderRadius: 22, boxShadow: "0 14px 34px " + cyan + "14" }}>
             <div style={{ width: 60, height: 60, background: cyan + "18", borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 24 }}><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={cyan} strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg></div>
             <h3 style={{ fontSize: 27, fontWeight: 800, color: cyan, fontFamily: "'IBM Plex Serif', serif" }}>{t("pillar1Title")}</h3>
             <p style={{ marginTop: 16, fontSize: 18, color: inkSoft, lineHeight: 1.8 }}>{t("pillar1Desc")}</p>
           </div>
-          <div className="hover-lift fade-in-up" style={{ padding: 40, background: "#FFFFFF", border: "2px solid " + indigo + "30", borderRadius: 22, boxShadow: "0 14px 34px " + indigo + "14" }}>
+          <div className="hover-lift fade-in-up" style={{ padding: 40, background: bgCard, border: "2px solid " + indigo + "30", borderRadius: 22, boxShadow: "0 14px 34px " + indigo + "14" }}>
             <div style={{ width: 60, height: 60, background: indigo + "18", borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 24 }}><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={indigo} strokeWidth="2"><line x1="12" y1="20" x2="12" y2="10" /><line x1="18" y1="20" x2="18" y2="4" /><line x1="6" y1="20" x2="6" y2="16" /></svg></div>
             <h3 style={{ fontSize: 27, fontWeight: 800, color: indigo, fontFamily: "'IBM Plex Serif', serif" }}>{t("pillar2Title")}</h3>
             <p style={{ marginTop: 16, fontSize: 18, color: inkSoft, lineHeight: 1.8 }}>{t("pillar2Desc")}</p>
           </div>
-          <div className="hover-lift fade-in-up" style={{ padding: 40, background: "#FFFFFF", border: "2px solid " + amber + "30", borderRadius: 22, boxShadow: "0 14px 34px " + amber + "14" }}>
+          <div className="hover-lift fade-in-up" style={{ padding: 40, background: bgCard, border: "2px solid " + amber + "30", borderRadius: 22, boxShadow: "0 14px 34px " + amber + "14" }}>
             <div style={{ width: 60, height: 60, background: amber + "18", borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 24 }}><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={amber} strokeWidth="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" /><rect x="9" y="3" width="6" height="4" rx="1" /></svg></div>
             <h3 style={{ fontSize: 27, fontWeight: 800, color: amber, fontFamily: "'IBM Plex Serif', serif" }}>{t("pillar3Title")}</h3>
             <p style={{ marginTop: 16, fontSize: 18, color: inkSoft, lineHeight: 1.8 }}>{t("pillar3Desc")}</p>
@@ -211,19 +213,19 @@ export default function HomePage() {
             <h2 style={sectionTitleStyle}>{t("securityTitle")}</h2>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28, marginTop: 56 }}>
-            <div style={{ padding: 30, background: "#FFFFFF", borderRadius: 18, border: "1px solid " + cardBorder }}>
+            <div style={{ padding: 30, background: bgCard, borderRadius: 18, border: "1px solid " + cardBorder }}>
               <h3 style={{ fontSize: 21, fontWeight: 700, color: green, display: "flex", alignItems: "center", gap: 8 }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={green} strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>{t("security1Title")}</h3>
               <p style={{ marginTop: 12, fontSize: 17, color: inkSoft, lineHeight: 1.7 }}>{t("security1Desc")}</p>
             </div>
-            <div style={{ padding: 30, background: "#FFFFFF", borderRadius: 18, border: "1px solid " + cardBorder }}>
+            <div style={{ padding: 30, background: bgCard, borderRadius: 18, border: "1px solid " + cardBorder }}>
               <h3 style={{ fontSize: 21, fontWeight: 700, color: green, display: "flex", alignItems: "center", gap: 8 }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={green} strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>{t("security2Title")}</h3>
               <p style={{ marginTop: 12, fontSize: 17, color: inkSoft, lineHeight: 1.7 }}>{t("security2Desc")}</p>
             </div>
-            <div style={{ padding: 30, background: "#FFFFFF", borderRadius: 18, border: "1px solid " + cardBorder }}>
+            <div style={{ padding: 30, background: bgCard, borderRadius: 18, border: "1px solid " + cardBorder }}>
               <h3 style={{ fontSize: 21, fontWeight: 700, color: green, display: "flex", alignItems: "center", gap: 8 }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={green} strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>{t("security3Title")}</h3>
               <p style={{ marginTop: 12, fontSize: 17, color: inkSoft, lineHeight: 1.7 }}>{t("security3Desc")}</p>
             </div>
-            <div style={{ padding: 30, background: "#FFFFFF", borderRadius: 18, border: "1px solid " + cardBorder }}>
+            <div style={{ padding: 30, background: bgCard, borderRadius: 18, border: "1px solid " + cardBorder }}>
               <h3 style={{ fontSize: 21, fontWeight: 700, color: green, display: "flex", alignItems: "center", gap: 8 }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={green} strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>{t("security4Title")}</h3>
               <p style={{ marginTop: 12, fontSize: 17, color: inkSoft, lineHeight: 1.7 }}>{t("security4Desc")}</p>
             </div>
@@ -242,7 +244,7 @@ export default function HomePage() {
       </section>
 
       {/* FAQ */}
-      <section style={{ padding: "90px 40px", background: "#FFFFFF", borderTop: "1px solid " + cardBorder }}>
+      <section style={{ padding: "90px 40px", background: bgCard, borderTop: "1px solid " + cardBorder }}>
         <div style={{ maxWidth: 820, margin: "0 auto" }}>
           <div style={{ textAlign: "center" }}>
             <div style={labelStyle(cyan)}>{t("faqLabel")}</div>
@@ -259,7 +261,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <footer style={{ padding: "36px 40px", borderTop: "1px solid " + cardBorder, textAlign: "center", fontSize: 15, color: inkSoft, background: "#FFFFFF" }}>
+      <footer style={{ padding: "36px 40px", borderTop: "1px solid " + cardBorder, textAlign: "center", fontSize: 15, color: inkSoft, background: bgCard }}>
         {tNav("brand")}
       </footer>
     </div>
