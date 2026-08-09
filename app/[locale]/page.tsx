@@ -25,16 +25,16 @@ export default function HomePage() {
     return () => observer.disconnect();
   }, []);
 
-  const bg = "#0A0E16";
-  const bgCard = "#12161F";
-  const bgCard2 = "#161B26";
+  const bg = "#0A1628";
+  const bgCard = "#12213B";
+  const bgCard2 = "#16294A";
   const ink = "#F1F5F9";
   const inkSoft = "#94A3B8";
   const cyan = "#10B981";
   const indigo = "#818CF8";
   const amber = "#F59E0B";
   const green = "#34D399";
-  const cardBorder = "#232937";
+  const cardBorder = "#1E3A5F";
 
   const sectionTitleStyle: React.CSSProperties = {
     fontSize: 44,
@@ -57,7 +57,7 @@ export default function HomePage() {
   });
 
   return (
-    <div style={{ background: "radial-gradient(ellipse 90% 50% at 50% -10%, " + bgCard + " 0%, " + bg + " 60%, #050709 100%)", minHeight: "100vh", color: ink, fontFamily: "'IBM Plex Sans', sans-serif", overflow: "hidden" }}>
+    <div style={{ background: "radial-gradient(ellipse 90% 50% at 50% -10%, " + bgCard + " 0%, " + bg + " 60%, #040911 100%)", minHeight: "100vh", color: ink, fontFamily: "'IBM Plex Sans', sans-serif", overflow: "hidden" }}>
       <style>{`
         @keyframes heroGradientShift {
           0% { background-position: 0% 0%; }
