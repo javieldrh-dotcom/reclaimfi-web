@@ -35,6 +35,7 @@ export default function HomePage() {
   const amber = "#F59E0B";
   const green = "#34D399";
   const cardBorder = "#1E3A5F";
+  const yellowBrand = "#FACC15";
 
   const sectionTitleStyle: React.CSSProperties = {
     fontSize: 44,
@@ -123,7 +124,7 @@ export default function HomePage() {
         }
       `}</style>
       <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "24px 56px", borderBottom: "1px solid " + cardBorder, flexWrap: "wrap", gap: 16, background: "rgba(10,14,22,0.85)", backdropFilter: "blur(12px)", position: "sticky", top: 0, zIndex: 50 }}>
-        <div style={{ fontSize: 24, fontWeight: 800, color: indigo, fontFamily: "'IBM Plex Serif', serif" }}>
+        <div style={{ fontSize: 24, fontWeight: 800, color: yellowBrand, fontFamily: "'IBM Plex Serif', serif" }}>
           {tNav("brand")}
         </div>
         <nav className="desktop-nav" style={{ display: "flex", alignItems: "center", gap: 32, flexWrap: "wrap" }}>
@@ -131,7 +132,7 @@ export default function HomePage() {
           <Link href="./tecnologia" style={{ color: ink, textDecoration: "none", fontSize: 18, fontWeight: 600 }}>{tNav("tecnologia")}</Link>
           <Link href="./contacto" style={{ color: ink, textDecoration: "none", fontSize: 18, fontWeight: 600 }}>{tNav("contacto")}</Link>
           <LanguageSwitcher />
-          <Link href="/login" style={{ padding: "14px 30px", background: indigo, borderRadius: 12, color: "white", textDecoration: "none", fontSize: 17, fontWeight: 700, boxShadow: "0 6px 18px " + indigo + "40" }}>
+          <Link href="/login" style={{ padding: "14px 30px", background: yellowBrand, borderRadius: 12, color: bg, textDecoration: "none", fontSize: 17, fontWeight: 800, boxShadow: "0 6px 18px " + yellowBrand + "40" }}>
             {tNav("acceso")}
           </Link>
         </nav>
@@ -144,7 +145,7 @@ export default function HomePage() {
             <Link href="./tecnologia" onClick={() => setMenuOpen(false)} style={{ color: ink, textDecoration: "none", fontSize: 18, fontWeight: 600 }}>{tNav("tecnologia")}</Link>
             <Link href="./contacto" onClick={() => setMenuOpen(false)} style={{ color: ink, textDecoration: "none", fontSize: 18, fontWeight: 600 }}>{tNav("contacto")}</Link>
             <LanguageSwitcher />
-            <Link href="/login" style={{ padding: "14px 30px", background: indigo, borderRadius: 12, color: "white", textDecoration: "none", fontSize: 17, fontWeight: 700, textAlign: "center" }}>
+            <Link href="/login" style={{ padding: "14px 30px", background: yellowBrand, borderRadius: 12, color: bg, textDecoration: "none", fontSize: 17, fontWeight: 800, textAlign: "center" }}>
               {tNav("acceso")}
             </Link>
           </div>
