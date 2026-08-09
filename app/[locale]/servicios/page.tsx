@@ -46,35 +46,35 @@ export default function ServiciosPage() {
         <div style={{ display: "inline-block", padding: "8px 20px", background: sky + "18", color: sky, borderRadius: 999, fontSize: 14, fontWeight: 700, marginBottom: 20, border: "1px solid " + sky + "35" }}>
           {t("eyebrow")}
         </div>
-        <h1 style={{ fontSize: 44, fontWeight: 800, fontFamily: "'IBM Plex Serif', serif", lineHeight: 1.2 }}>{t("headline")}</h1>
-        <p style={{ marginTop: 18, fontSize: 19, color: inkSoft, lineHeight: 1.7 }}>{t("subheadline")}</p>
+        <h1 style={{ fontSize: 58, fontWeight: 800, fontFamily: "'IBM Plex Serif', serif", lineHeight: 1.15 }}>{t("headline")}</h1>
+        <p style={{ marginTop: 20, fontSize: 23, color: inkSoft, lineHeight: 1.7 }}>{t("subheadline")}</p>
       </section>
 
       <section style={{ padding: "20px 40px 80px", maxWidth: 1150, margin: "0 auto" }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 28 }}>
           <div style={cardStyle}>
-            <h2 style={{ fontSize: 21, fontWeight: 800, color: sky }}>{t("service1Title")}</h2>
-            <p style={{ marginTop: 12, fontSize: 16, color: inkSoft, lineHeight: 1.7 }}>{t("service1Desc")}</p>
+            <h2 style={{ fontSize: 24, fontWeight: 800, color: sky }}>{t("service1Title")}</h2>
+            <p style={{ marginTop: 12, fontSize: 18, color: inkSoft, lineHeight: 1.7 }}>{t("service1Desc")}</p>
           </div>
           <div style={cardStyle}>
-            <h2 style={{ fontSize: 21, fontWeight: 800, color: sky }}>{t("service2Title")}</h2>
-            <p style={{ marginTop: 12, fontSize: 16, color: inkSoft, lineHeight: 1.7 }}>{t("service2Desc")}</p>
+            <h2 style={{ fontSize: 24, fontWeight: 800, color: sky }}>{t("service2Title")}</h2>
+            <p style={{ marginTop: 12, fontSize: 18, color: inkSoft, lineHeight: 1.7 }}>{t("service2Desc")}</p>
           </div>
           <div style={cardStyle}>
-            <h2 style={{ fontSize: 21, fontWeight: 800, color: sky }}>{t("service4Title")}</h2>
-            <p style={{ marginTop: 12, fontSize: 16, color: inkSoft, lineHeight: 1.7 }}>{t("service4Desc")}</p>
+            <h2 style={{ fontSize: 24, fontWeight: 800, color: sky }}>{t("service4Title")}</h2>
+            <p style={{ marginTop: 12, fontSize: 18, color: inkSoft, lineHeight: 1.7 }}>{t("service4Desc")}</p>
           </div>
           <div style={cardStyle}>
-            <h2 style={{ fontSize: 21, fontWeight: 800, color: sky }}>{t("service3Title")}</h2>
-            <p style={{ marginTop: 12, fontSize: 16, color: inkSoft, lineHeight: 1.7 }}>{t("service3Desc")}</p>
+            <h2 style={{ fontSize: 24, fontWeight: 800, color: sky }}>{t("service3Title")}</h2>
+            <p style={{ marginTop: 12, fontSize: 18, color: inkSoft, lineHeight: 1.7 }}>{t("service3Desc")}</p>
           </div>
           <div style={cardStyle}>
-            <h2 style={{ fontSize: 21, fontWeight: 800, color: sky }}>{t("service5Title")}</h2>
-            <p style={{ marginTop: 12, fontSize: 16, color: inkSoft, lineHeight: 1.7 }}>{t("service5Desc")}</p>
+            <h2 style={{ fontSize: 24, fontWeight: 800, color: sky }}>{t("service5Title")}</h2>
+            <p style={{ marginTop: 12, fontSize: 18, color: inkSoft, lineHeight: 1.7 }}>{t("service5Desc")}</p>
           </div>
           <div style={cardStyle}>
-            <h2 style={{ fontSize: 21, fontWeight: 800, color: sky }}>{t("service6Title")}</h2>
-            <p style={{ marginTop: 12, fontSize: 16, color: inkSoft, lineHeight: 1.7 }}>{t("service6Desc")}</p>
+            <h2 style={{ fontSize: 24, fontWeight: 800, color: sky }}>{t("service6Title")}</h2>
+            <p style={{ marginTop: 12, fontSize: 18, color: inkSoft, lineHeight: 1.7 }}>{t("service6Desc")}</p>
           </div>
         </div>
       </section>
@@ -84,7 +84,7 @@ export default function ServiciosPage() {
           <div style={{ display: "inline-block", padding: "8px 20px", background: navy + "20", color: sky, borderRadius: 999, fontSize: 14, fontWeight: 700, marginBottom: 20, border: "1px solid " + navy + "40" }}>
             {t("plansLabel")}
           </div>
-          <h2 style={{ fontSize: 36, fontWeight: 800, fontFamily: "'IBM Plex Serif', serif" }}>{t("plansHeadline")}</h2>
+          <h2 style={{ fontSize: 42, fontWeight: 800, fontFamily: "'IBM Plex Serif', serif" }}>{t("plansHeadline")}</h2>
           <p style={{ marginTop: 14, fontSize: 18, color: inkSoft, maxWidth: 650, margin: "14px auto 0" }}>{t("plansSubheadline")}</p>
 
           <div style={{ marginTop: 48, overflowX: "auto" }}>
