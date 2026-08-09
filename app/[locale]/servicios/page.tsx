@@ -46,35 +46,35 @@ export default function ServiciosPage() {
         <div style={{ display: "inline-block", padding: "8px 20px", background: sky + "18", color: sky, borderRadius: 999, fontSize: 14, fontWeight: 700, marginBottom: 20, border: "1px solid " + sky + "35" }}>
           {t("eyebrow")}
         </div>
-        <h1 style={{ fontSize: 58, fontWeight: 800, fontFamily: "'IBM Plex Serif', serif", lineHeight: 1.15 }}>{t("headline")}</h1>
-        <p style={{ marginTop: 20, fontSize: 23, color: inkSoft, lineHeight: 1.7 }}>{t("subheadline")}</p>
+        <h1 style={{ fontSize: 68, fontWeight: 800, fontFamily: "'IBM Plex Serif', serif", lineHeight: 1.1 }}>{t("headline")}</h1>
+        <p style={{ marginTop: 22, fontSize: 26, color: inkSoft, lineHeight: 1.6 }}>{t("subheadline")}</p>
       </section>
 
       <section style={{ padding: "20px 40px 80px", maxWidth: 1150, margin: "0 auto" }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 28 }}>
           <div style={cardStyle}>
-            <h2 style={{ fontSize: 24, fontWeight: 800, color: sky }}>{t("service1Title")}</h2>
-            <p style={{ marginTop: 12, fontSize: 18, color: inkSoft, lineHeight: 1.7 }}>{t("service1Desc")}</p>
+            <h2 style={{ fontSize: 28, fontWeight: 800, color: sky }}>{t("service1Title")}</h2>
+            <p style={{ marginTop: 12, fontSize: 19, color: inkSoft, lineHeight: 1.7 }}>{t("service1Desc")}</p>
           </div>
           <div style={cardStyle}>
-            <h2 style={{ fontSize: 24, fontWeight: 800, color: sky }}>{t("service2Title")}</h2>
-            <p style={{ marginTop: 12, fontSize: 18, color: inkSoft, lineHeight: 1.7 }}>{t("service2Desc")}</p>
+            <h2 style={{ fontSize: 28, fontWeight: 800, color: sky }}>{t("service2Title")}</h2>
+            <p style={{ marginTop: 12, fontSize: 19, color: inkSoft, lineHeight: 1.7 }}>{t("service2Desc")}</p>
           </div>
           <div style={cardStyle}>
-            <h2 style={{ fontSize: 24, fontWeight: 800, color: sky }}>{t("service4Title")}</h2>
-            <p style={{ marginTop: 12, fontSize: 18, color: inkSoft, lineHeight: 1.7 }}>{t("service4Desc")}</p>
+            <h2 style={{ fontSize: 28, fontWeight: 800, color: sky }}>{t("service4Title")}</h2>
+            <p style={{ marginTop: 12, fontSize: 19, color: inkSoft, lineHeight: 1.7 }}>{t("service4Desc")}</p>
           </div>
           <div style={cardStyle}>
-            <h2 style={{ fontSize: 24, fontWeight: 800, color: sky }}>{t("service3Title")}</h2>
-            <p style={{ marginTop: 12, fontSize: 18, color: inkSoft, lineHeight: 1.7 }}>{t("service3Desc")}</p>
+            <h2 style={{ fontSize: 28, fontWeight: 800, color: sky }}>{t("service3Title")}</h2>
+            <p style={{ marginTop: 12, fontSize: 19, color: inkSoft, lineHeight: 1.7 }}>{t("service3Desc")}</p>
           </div>
           <div style={cardStyle}>
-            <h2 style={{ fontSize: 24, fontWeight: 800, color: sky }}>{t("service5Title")}</h2>
-            <p style={{ marginTop: 12, fontSize: 18, color: inkSoft, lineHeight: 1.7 }}>{t("service5Desc")}</p>
+            <h2 style={{ fontSize: 28, fontWeight: 800, color: sky }}>{t("service5Title")}</h2>
+            <p style={{ marginTop: 12, fontSize: 19, color: inkSoft, lineHeight: 1.7 }}>{t("service5Desc")}</p>
           </div>
           <div style={cardStyle}>
-            <h2 style={{ fontSize: 24, fontWeight: 800, color: sky }}>{t("service6Title")}</h2>
-            <p style={{ marginTop: 12, fontSize: 18, color: inkSoft, lineHeight: 1.7 }}>{t("service6Desc")}</p>
+            <h2 style={{ fontSize: 28, fontWeight: 800, color: sky }}>{t("service6Title")}</h2>
+            <p style={{ marginTop: 12, fontSize: 19, color: inkSoft, lineHeight: 1.7 }}>{t("service6Desc")}</p>
           </div>
         </div>
       </section>
@@ -84,7 +84,7 @@ export default function ServiciosPage() {
           <div style={{ display: "inline-block", padding: "8px 20px", background: navy + "20", color: sky, borderRadius: 999, fontSize: 14, fontWeight: 700, marginBottom: 20, border: "1px solid " + navy + "40" }}>
             {t("plansLabel")}
           </div>
-          <h2 style={{ fontSize: 42, fontWeight: 800, fontFamily: "'IBM Plex Serif', serif" }}>{t("plansHeadline")}</h2>
+          <h2 style={{ fontSize: 48, fontWeight: 800, fontFamily: "'IBM Plex Serif', serif" }}>{t("plansHeadline")}</h2>
           <p style={{ marginTop: 14, fontSize: 18, color: inkSoft, maxWidth: 650, margin: "14px auto 0" }}>{t("plansSubheadline")}</p>
 
           <div style={{ marginTop: 48, overflowX: "auto" }}>
@@ -92,44 +92,44 @@ export default function ServiciosPage() {
               <thead>
                 <tr>
                   <th style={{ padding: "16px 20px", borderBottom: "2px solid " + cardBorder, fontSize: 15, color: inkSoft, fontWeight: 600 }}></th>
-                  <th style={{ padding: "16px 20px", borderBottom: "2px solid " + cardBorder, fontSize: 19, fontWeight: 800 }}>{t("planBasicName")}</th>
-                  <th style={{ padding: "16px 20px", borderBottom: "2px solid " + sky, fontSize: 19, fontWeight: 800, color: sky, background: sky + "0C" }}>{t("planProName")}</th>
-                  <th style={{ padding: "16px 20px", borderBottom: "2px solid " + cardBorder, fontSize: 19, fontWeight: 800 }}>{t("planEnterpriseName")}</th>
+                  <th style={{ padding: "16px 20px", borderBottom: "2px solid " + cardBorder, fontSize: 22, fontWeight: 800 }}>{t("planBasicName")}</th>
+                  <th style={{ padding: "16px 20px", borderBottom: "2px solid " + sky, fontSize: 22, fontWeight: 800, color: sky, background: sky + "0C" }}>{t("planProName")}</th>
+                  <th style={{ padding: "16px 20px", borderBottom: "2px solid " + cardBorder, fontSize: 22, fontWeight: 800 }}>{t("planEnterpriseName")}</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td style={{ padding: "14px 20px", borderBottom: "1px solid " + cardBorder, fontSize: 15, color: inkSoft }}>{t("planBasicFeature1")}</td>
+                  <td style={{ padding: "14px 20px", borderBottom: "1px solid " + cardBorder, fontSize: 17, color: inkSoft }}>{t("planBasicFeature1")}</td>
                   <td style={{ padding: "14px 20px", borderBottom: "1px solid " + cardBorder, textAlign: "center", color: sky }}>OK</td>
                   <td style={{ padding: "14px 20px", borderBottom: "1px solid " + cardBorder, textAlign: "center", color: sky, background: sky + "0C" }}>OK</td>
                   <td style={{ padding: "14px 20px", borderBottom: "1px solid " + cardBorder, textAlign: "center", color: sky }}>OK</td>
                 </tr>
                 <tr>
-                  <td style={{ padding: "14px 20px", borderBottom: "1px solid " + cardBorder, fontSize: 15, color: inkSoft }}>{t("planBasicFeature2")}</td>
+                  <td style={{ padding: "14px 20px", borderBottom: "1px solid " + cardBorder, fontSize: 17, color: inkSoft }}>{t("planBasicFeature2")}</td>
                   <td style={{ padding: "14px 20px", borderBottom: "1px solid " + cardBorder, textAlign: "center", color: sky }}>OK</td>
                   <td style={{ padding: "14px 20px", borderBottom: "1px solid " + cardBorder, textAlign: "center", color: sky, background: sky + "0C" }}>OK</td>
                   <td style={{ padding: "14px 20px", borderBottom: "1px solid " + cardBorder, textAlign: "center", color: sky }}>OK</td>
                 </tr>
                 <tr>
-                  <td style={{ padding: "14px 20px", borderBottom: "1px solid " + cardBorder, fontSize: 15, color: inkSoft }}>{t("planProFeature2")}</td>
+                  <td style={{ padding: "14px 20px", borderBottom: "1px solid " + cardBorder, fontSize: 17, color: inkSoft }}>{t("planProFeature2")}</td>
                   <td style={{ padding: "14px 20px", borderBottom: "1px solid " + cardBorder, textAlign: "center", color: cardBorder }}>-</td>
                   <td style={{ padding: "14px 20px", borderBottom: "1px solid " + cardBorder, textAlign: "center", color: sky, background: sky + "0C" }}>OK</td>
                   <td style={{ padding: "14px 20px", borderBottom: "1px solid " + cardBorder, textAlign: "center", color: sky }}>OK</td>
                 </tr>
                 <tr>
-                  <td style={{ padding: "14px 20px", borderBottom: "1px solid " + cardBorder, fontSize: 15, color: inkSoft }}>{t("planProFeature3")}</td>
+                  <td style={{ padding: "14px 20px", borderBottom: "1px solid " + cardBorder, fontSize: 17, color: inkSoft }}>{t("planProFeature3")}</td>
                   <td style={{ padding: "14px 20px", borderBottom: "1px solid " + cardBorder, textAlign: "center", color: cardBorder }}>-</td>
                   <td style={{ padding: "14px 20px", borderBottom: "1px solid " + cardBorder, textAlign: "center", color: sky, background: sky + "0C" }}>OK</td>
                   <td style={{ padding: "14px 20px", borderBottom: "1px solid " + cardBorder, textAlign: "center", color: sky }}>OK</td>
                 </tr>
                 <tr>
-                  <td style={{ padding: "14px 20px", borderBottom: "1px solid " + cardBorder, fontSize: 15, color: inkSoft }}>{t("planEnterpriseFeature2")}</td>
+                  <td style={{ padding: "14px 20px", borderBottom: "1px solid " + cardBorder, fontSize: 17, color: inkSoft }}>{t("planEnterpriseFeature2")}</td>
                   <td style={{ padding: "14px 20px", borderBottom: "1px solid " + cardBorder, textAlign: "center", color: cardBorder }}>-</td>
                   <td style={{ padding: "14px 20px", borderBottom: "1px solid " + cardBorder, textAlign: "center", color: cardBorder, background: sky + "0C" }}>-</td>
                   <td style={{ padding: "14px 20px", borderBottom: "1px solid " + cardBorder, textAlign: "center", color: sky }}>OK</td>
                 </tr>
                 <tr>
-                  <td style={{ padding: "14px 20px", fontSize: 15, color: inkSoft }}>{t("planEnterpriseFeature3")}</td>
+                  <td style={{ padding: "14px 20px", fontSize: 17, color: inkSoft }}>{t("planEnterpriseFeature3")}</td>
                   <td style={{ padding: "14px 20px", textAlign: "center", color: cardBorder }}>-</td>
                   <td style={{ padding: "14px 20px", textAlign: "center", color: cardBorder, background: sky + "0C" }}>-</td>
                   <td style={{ padding: "14px 20px", textAlign: "center", color: sky }}>OK</td>
