@@ -171,7 +171,7 @@ export default function HomePage() {
           {t("subheadline")}
         </p>
         <div style={{ marginTop: 44, display: "flex", gap: 18, justifyContent: "center", flexWrap: "wrap" }}>
-          <Link href="/login" className="cta-button" style={{ padding: "20px 48px", background: indigo, color: "white", borderRadius: 14, textDecoration: "none", fontSize: 20, fontWeight: 700, boxShadow: "0 10px 30px " + indigo + "45" }}>
+          <Link href="/login" className="cta-button" style={{ padding: "20px 48px", background: yellowBrand, color: bg, borderRadius: 14, textDecoration: "none", fontSize: 20, fontWeight: 800, boxShadow: "0 10px 30px " + yellowBrand + "45" }}>
             {t("cta")}
           </Link>
         </div>
@@ -319,7 +319,7 @@ export default function HomePage() {
         <div className="label-badge" style={labelStyle(indigo)}>{t("plansLabel")}</div>
         <h2 style={sectionTitleStyle}>{t("plansTitle")}</h2>
         <p style={{ marginTop: 18, fontSize: 20, color: inkSoft, maxWidth: 600, margin: "18px auto 0" }}>{t("plansDesc")}</p>
-        <Link href="./servicios" style={{ display: "inline-block", marginTop: 34, padding: "18px 42px", background: indigo, color: "white", borderRadius: 14, textDecoration: "none", fontSize: 19, fontWeight: 700, boxShadow: "0 10px 26px " + indigo + "40" }}>
+        <Link href="./servicios" style={{ display: "inline-block", marginTop: 34, padding: "18px 42px", background: yellowBrand, color: bg, borderRadius: 14, textDecoration: "none", fontSize: 19, fontWeight: 800, boxShadow: "0 10px 26px " + yellowBrand + "40" }}>
           {t("plansCta")}
         </Link>
       </section>
