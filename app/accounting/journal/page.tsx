@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
@@ -46,6 +46,7 @@ export default function JournalPage() {
       .select("id, description, entry_date, status, entry_number, reversed_by_entry_id, reversal_of_entry_id")
       .eq("company_id", cid)
       .eq("status", "ACTIVE")
+      .order("entry_date", { ascending: true })
       .order("entry_number", { ascending: true });
     if (year !== "TODOS") {
       query = query.gte("entry_date", year + "-01-01").lte("entry_date", year + "-12-31");
@@ -161,7 +162,7 @@ export default function JournalPage() {
     const rows = lines.filter(l => l.account_id).map(l => ({ journal_entry_id: entry.id, account_id: l.account_id, debit: (parseFloat(l.debit) || 0) * rate, credit: (parseFloat(l.credit) || 0) * rate }));
     const { error: e2 } = await supabase.from("journal_lines").insert(rows);
     if (e2) { setMessage("Error: " + e2.message); return; }
-    setMessage("Asiento Nº " + nextNumber + " guardado correctamente.");
+    setMessage("Asiento NÂº " + nextNumber + " guardado correctamente.");
     setDescription("");
     setEntryDateInput(workPeriod);
     setLines([{ account_id: "", debit: "", credit: "" }, { account_id: "", debit: "", credit: "" }]);
@@ -180,7 +181,7 @@ export default function JournalPage() {
     if (entry.reversed_by_entry_id) { alert("Este asiento ya fue reversado anteriormente. No se puede reversar dos veces."); return; }
     const { data: closedPeriods } = await supabase.from("fiscal_periods").select("period_start, period_end").eq("company_id", companyId).lte("period_start", entry.entry_date).gte("period_end", entry.entry_date);
     if (closedPeriods && closedPeriods.length > 0) { alert("Este asiento pertenece a un periodo fiscal ya cerrado (" + closedPeriods[0].period_start + " a " + closedPeriods[0].period_end + "). No se puede reversar un asiento de un periodo cerrado."); return; }
-    const confirmMsg = "Se creara un asiento nuevo con las cifras invertidas de Nº" + (entry.entry_number ?? "S/N") + ". El asiento original permanecera visible. Confirmar?";
+    const confirmMsg = "Se creara un asiento nuevo con las cifras invertidas de NÂº" + (entry.entry_number ?? "S/N") + ". El asiento original permanecera visible. Confirmar?";
     if (!window.confirm(confirmMsg)) return;
 
     const { data: lastEntry } = await supabase.from("journal_entries").select("entry_number").eq("company_id", companyId).eq("status", "ACTIVE").not("entry_number", "is", null).order("entry_number", { ascending: false }).limit(1).maybeSingle();
@@ -189,7 +190,7 @@ export default function JournalPage() {
 
     const { data: newEntry, error: entryError } = await supabase.from("journal_entries").insert([{
       company_id: companyId,
-      description: "Reverso del Asiento Nº" + (entry.entry_number ?? "S/N") + " - " + entry.description,
+      description: "Reverso del Asiento NÂº" + (entry.entry_number ?? "S/N") + " - " + entry.description,
       entry_date: today,
       entry_number: nextNumber,
       reversal_of_entry_id: entry.id,
@@ -232,7 +233,7 @@ export default function JournalPage() {
     <VerticalPageLayout
       vertical="accounting"
       title="Libro Diario"
-      subtitle={lastEntryNumber > 0 ? "Ultimo asiento del ejercicio " + selectedYear + ": Nº " + lastEntryNumber : undefined}
+      subtitle={lastEntryNumber > 0 ? "Ultimo asiento del ejercicio " + selectedYear + ": NÂº " + lastEntryNumber : undefined}
       fullWidth
       actions={entries.length > 0 ? (
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
@@ -329,7 +330,7 @@ export default function JournalPage() {
             <div key={e.id} style={{ ...theme.cardStyle, marginTop: 12, opacity: e.status === "VOIDED" ? 0.5 : 1 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontWeight: 700, fontSize: 22 }}>
-                  Nº{e.entry_number ?? "S/N"} - {e.entry_date} - {e.description}
+                  NÂº{e.entry_number ?? "S/N"} - {e.entry_date} - {e.description}
                   {e.status === "VOIDED" && <span style={{ color: "#F87171", marginLeft: 8, fontSize: 16 }}>[ANULADO]</span>}
                 </span>
                 {e.status === "ACTIVE" && (
@@ -345,7 +346,7 @@ export default function JournalPage() {
               </div>
               {(e.journal_lines ?? []).map((l: any, idx: number) => (
                 <div key={idx} style={{ display: "flex", justifyContent: "space-between", fontSize: 20, color: "#B0B8C8", marginTop: 6, paddingLeft: 12 }}>
-                  <span>{presentationMode ? l.chart_of_accounts?.account_name : "Fol." + (l.chart_of_accounts?.mayor_folio ?? "-") + " · " + l.chart_of_accounts?.account_code + " - " + l.chart_of_accounts?.account_name}</span>
+                  <span>{presentationMode ? l.chart_of_accounts?.account_name : "Fol." + (l.chart_of_accounts?.mayor_folio ?? "-") + " Â· " + l.chart_of_accounts?.account_code + " - " + l.chart_of_accounts?.account_name}</span>
                   <span style={theme.numberStyle}>{l.debit > 0 ? "Debe: " + l.debit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "Haber: " + l.credit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
               ))}
