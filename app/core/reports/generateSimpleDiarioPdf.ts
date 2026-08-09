@@ -1,4 +1,4 @@
-﻿import jsPDF from "jspdf";
+import jsPDF from "jspdf";
 
 interface JournalLineItem {
   year: string;
@@ -39,7 +39,7 @@ export function generateSimpleDiarioPdf(companyName: string, exerciseYear: strin
   let lastMonth = "";
 
   items.forEach((item) => {
-    if (y > 275) { doc.addPage(); y = 20; }
+    if (y > 275) { doc.addPage(); y = 20; lastYear = ""; lastMonth = ""; }
     doc.text(item.year !== lastYear ? item.year : "", 20, y);
     doc.text(item.month !== lastMonth ? item.month : "", 40, y);
     lastYear = item.year;
