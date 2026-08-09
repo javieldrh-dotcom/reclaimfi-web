@@ -128,8 +128,12 @@ export default function HomePage() {
           {tNav("brand")}
         </div>
         <nav className="desktop-nav" style={{ display: "flex", alignItems: "center", gap: 32, flexWrap: "wrap" }}>
+          <Link href="./producto" style={{ color: ink, textDecoration: "none", fontSize: 17, fontWeight: 600 }}>{tNav("producto")}</Link>
+          <Link href="./soluciones" style={{ color: ink, textDecoration: "none", fontSize: 17, fontWeight: 600 }}>{tNav("soluciones")}</Link>
+          <Link href="./precios" style={{ color: ink, textDecoration: "none", fontSize: 17, fontWeight: 600 }}>{tNav("precios")}</Link>
           <Link href="./servicios" style={{ color: ink, textDecoration: "none", fontSize: 18, fontWeight: 600 }}>{tNav("servicios")}</Link>
           <Link href="./tecnologia" style={{ color: ink, textDecoration: "none", fontSize: 18, fontWeight: 600 }}>{tNav("tecnologia")}</Link>
+          <Link href="./seguridad" style={{ color: ink, textDecoration: "none", fontSize: 17, fontWeight: 600 }}>{tNav("seguridad")}</Link>
           <Link href="./contacto" style={{ color: ink, textDecoration: "none", fontSize: 18, fontWeight: 600 }}>{tNav("contacto")}</Link>
           <LanguageSwitcher />
           <Link href="/login" style={{ padding: "14px 30px", background: yellowBrand, borderRadius: 12, color: bg, textDecoration: "none", fontSize: 17, fontWeight: 800, boxShadow: "0 6px 18px " + yellowBrand + "40" }}>
@@ -141,8 +145,12 @@ export default function HomePage() {
         </button>
         {menuOpen && (
           <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: bgCard, borderBottom: "1px solid " + cardBorder, display: "flex", flexDirection: "column", padding: 24, gap: 18 }}>
+            <Link href="./producto" onClick={() => setMenuOpen(false)} style={{ color: ink, textDecoration: "none", fontSize: 18, fontWeight: 600 }}>{tNav("producto")}</Link>
+            <Link href="./soluciones" onClick={() => setMenuOpen(false)} style={{ color: ink, textDecoration: "none", fontSize: 18, fontWeight: 600 }}>{tNav("soluciones")}</Link>
+            <Link href="./precios" onClick={() => setMenuOpen(false)} style={{ color: ink, textDecoration: "none", fontSize: 18, fontWeight: 600 }}>{tNav("precios")}</Link>
             <Link href="./servicios" onClick={() => setMenuOpen(false)} style={{ color: ink, textDecoration: "none", fontSize: 18, fontWeight: 600 }}>{tNav("servicios")}</Link>
             <Link href="./tecnologia" onClick={() => setMenuOpen(false)} style={{ color: ink, textDecoration: "none", fontSize: 18, fontWeight: 600 }}>{tNav("tecnologia")}</Link>
+            <Link href="./seguridad" onClick={() => setMenuOpen(false)} style={{ color: ink, textDecoration: "none", fontSize: 18, fontWeight: 600 }}>{tNav("seguridad")}</Link>
             <Link href="./contacto" onClick={() => setMenuOpen(false)} style={{ color: ink, textDecoration: "none", fontSize: 18, fontWeight: 600 }}>{tNav("contacto")}</Link>
             <LanguageSwitcher />
             <Link href="/login" style={{ padding: "14px 30px", background: yellowBrand, borderRadius: 12, color: bg, textDecoration: "none", fontSize: 17, fontWeight: 800, textAlign: "center" }}>
