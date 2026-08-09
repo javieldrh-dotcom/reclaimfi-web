@@ -1,4 +1,4 @@
-﻿import jsPDF from "jspdf";
+import jsPDF from "jspdf";
 
 interface AccountLine {
   code?: string;
@@ -77,11 +77,6 @@ export function generateProfessionalDiarioPdf(companyName: string, exerciseYear:
   drawHeader();
 
   entries.forEach((entry, entryIdx) => {
-    const showYear = entry.year !== lastYearPrinted;
-    const showMonth = entry.month !== lastMonthPrinted;
-    lastYearPrinted = entry.year;
-    lastMonthPrinted = entry.month;
-
     const narrationLines = doc.splitTextToSize("P/R " + entry.narration, pageWidth - 70);
     const blockHeight = entry.lines.length * 6 + narrationLines.length * 4 + 6;
 
@@ -92,7 +87,14 @@ export function generateProfessionalDiarioPdf(companyName: string, exerciseYear:
       pageDebitTotal = 0;
       pageCreditTotal = 0;
       drawHeader();
+      lastYearPrinted = "";
+      lastMonthPrinted = "";
     }
+
+    const showYear = entry.year !== lastYearPrinted;
+    const showMonth = entry.month !== lastMonthPrinted;
+    lastYearPrinted = entry.year;
+    lastMonthPrinted = entry.month;
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
