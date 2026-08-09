@@ -87,6 +87,7 @@
     "planEnterpriseFeature3": "Modulo de Licitaciones (APU)"
   },
   "tecnologia": {
+    "eyebrow": "Infraestructura Verificable",
     "headline": "Tecnologia",
     "subheadline": "Infraestructura construida sobre principios de verificabilidad: cada registro contable esta encadenado criptograficamente, cada declaracion se valida antes de presentarse, y cada region tiene sus propias reglas activas sin afectar a las demas.",
     "feature1Title": "Libro Verificable por Blockchain",
@@ -96,7 +97,11 @@
     "feature3Title": "Motor de Riesgo con IA",
     "feature3Desc": "Modelos de analisis para deteccion de patrones sospechosos y evaluacion predictiva de riesgo financiero.",
     "feature4Title": "Seguridad de Extremo a Extremo",
-    "feature4Desc": "Aislamiento de datos por empresa a nivel de base de datos, autenticacion de dos factores opcional, y roles de acceso granulares por usuario."
+    "feature4Desc": "Aislamiento de datos por empresa a nivel de base de datos, autenticacion de dos factores opcional, y roles de acceso granulares por usuario.",
+    "feature5Title": "Motor de Costos para Licitaciones",
+    "feature5Desc": "Analisis de precios unitarios con catalogo de clasificacion oficial y motor de costo laboral, para procesos de contratacion con el Estado.",
+    "feature6Title": "Traduccion Asistida por IA",
+    "feature6Desc": "Plataforma disponible en 17 idiomas de los 5 continentes, con nuevas traducciones generadas y verificadas al ritmo en que se agregan funciones nuevas."
   },
   "contacto": {
     "headline": "Contacto",
