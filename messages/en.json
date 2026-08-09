@@ -4,7 +4,11 @@
                 "servicios":  "Services",
                 "tecnologia":  "Technology",
                 "contacto":  "Contact",
-                "acceso":  "Secure Access"
+                "acceso":  "Secure Access",
+                "producto":  "Product",
+                "soluciones":  "Solutions",
+                "precios":  "Pricing",
+                "seguridad":  "Security"
             },
     "home":  {
                  "eyebrow":  "One platform, adapted to your reality",
@@ -113,5 +117,41 @@
                      "submitting":  "Sending...",
                      "successMessage":  "Message sent successfully. We will get back to you soon.",
                      "errorMessage":  "Could not send the message. Please try again."
-                 }
+                 },
+    "producto":  {
+                     "eyebrow":  "The Platform",
+                     "headline":  "Everything you need to run your operation with verifiable truth",
+                     "subheadline":  "A tour of the tools you will use every day.",
+                     "section1Title":  "Control Panel",
+                     "section1Desc":  "Unified view of your operation: balances, compliance alerts, and status of your 3 modules in one place.",
+                     "section2Title":  "Daily Accounting",
+                     "section2Desc":  "Entry recording, legal books, and financial reports generated automatically from your operation.",
+                     "section3Title":  "Forensic Investigation",
+                     "section3Desc":  "Digital evidence traceability with a verifiable chain of custody, for auditors and investigators.",
+                     "section4Title":  "Public Bidding",
+                     "section4Desc":  "Unit price analysis and bid structuring for government contracting processes."
+                 },
+    "soluciones":  {
+                       "eyebrow":  "Use Cases",
+                       "headline":  "One platform, adapted to your work",
+                       "subheadline":  "Explore how different roles use the platform every day.",
+                       "role1Title":  "For Accountants",
+                       "role1Desc":  "Handle your clients\u0027 complete legal accounting, with automatic inflation adjustment when the economy requires it.",
+                       "role2Title":  "For Forensic Auditors",
+                       "role2Desc":  "Investigate digital evidence with a chain of custody that cannot be altered without leaving a mathematical trace.",
+                       "role3Title":  "For Companies in Public Bidding",
+                       "role3Desc":  "Structure your unit-price bids with the official classification catalog and labor cost engine.",
+                       "role4Title":  "For Multi-Country Teams",
+                       "role4Desc":  "Manage multiple companies across different regions from a single account, each with its own active tax rules."
+                   },
+    "precios":  {
+                    "eyebrow":  "Plans and Pricing",
+                    "headline":  "A plan for every stage of your operation",
+                    "subheadline":  "Clear pricing, no surprises. All plans include total data isolation and a verifiable blockchain chain."
+                },
+    "seguridad":  {
+                      "eyebrow":  "Verifiable Trust",
+                      "headline":  "We don\u0027t just promise security. You can verify it.",
+                      "subheadline":  "Every layer of protection on the platform is designed so you can confirm it yourself, not just take our word for it."
+                  }
 }

@@ -4,7 +4,11 @@
                 "servicios":  "Huduma",
                 "tecnologia":  "Teknolojia",
                 "contacto":  "Wasiliana Nasi",
-                "acceso":  "Ufikiaji Salama"
+                "acceso":  "Ufikiaji Salama",
+                "producto":  "Bidhaa",
+                "soluciones":  "Suluhisho",
+                "precios":  "Bei",
+                "seguridad":  "Usalama"
             },
     "home":  {
                  "eyebrow":  "Jukwaa moja, lililobadilika kulingana na hali yako",
@@ -113,5 +117,41 @@
                      "submitting":  "Inatuma...",
                      "successMessage":  "Ujumbe umetumwa kwa mafanikio. Tutakujibu hivi karibuni.",
                      "errorMessage":  "Imeshindwa kutuma ujumbe. Tafadhali jaribu tena."
-                 }
+                 },
+    "producto":  {
+                     "eyebrow":  "Jukwaa",
+                     "headline":  "Kila kitu unachohitaji kuendesha uendeshaji wako na ukweli unaothibitishwa",
+                     "subheadline":  "Ziara ya zana utakazotumia kila siku.",
+                     "section1Title":  "Paneli ya Udhibiti",
+                     "section1Desc":  "Muonekano wa pamoja wa uendeshaji wako: salio, tahadhari za kufuata, na hali ya moduli zako 3 mahali pamoja.",
+                     "section2Title":  "Uhasibu wa Kila Siku",
+                     "section2Desc":  "Kurekodi viingilio, vitabu vya kisheria, na ripoti za kifedha zinazozalishwa kiotomatiki kutoka kwa uendeshaji wako.",
+                     "section3Title":  "Uchunguzi wa Kipelelezi",
+                     "section3Desc":  "Ufuatiliaji wa ushahidi wa kidijitali na mnyororo wa ulinzi unaothibitishwa, kwa wakaguzi na wapelelezi.",
+                     "section4Title":  "Zabuni za Umma",
+                     "section4Desc":  "Uchambuzi wa bei za kitengo na muundo wa zabuni kwa taratibu za mikataba ya serikali."
+                 },
+    "soluciones":  {
+                       "eyebrow":  "Matumizi",
+                       "headline":  "Jukwaa moja, lililobadilishwa kwa kazi yako",
+                       "subheadline":  "Gundua jinsi majukumu tofauti yanavyotumia jukwaa kila siku.",
+                       "role1Title":  "Kwa Wahasibu",
+                       "role1Desc":  "Shughulikia uhasibu kamili wa kisheria wa wateja wako, na urekebishaji wa kiotomatiki wa mfumko wa bei uchumi unapohitaji.",
+                       "role2Title":  "Kwa Wakaguzi wa Kipelelezi",
+                       "role2Desc":  "Chunguza ushahidi wa kidijitali na mnyororo wa ulinzi usioweza kubadilishwa bila kuacha alama ya kihesabu.",
+                       "role3Title":  "Kwa Makampuni katika Zabuni",
+                       "role3Desc":  "Panga zabuni zako za bei za kitengo na katalogi rasmi ya uainishaji na injini ya gharama ya kazi.",
+                       "role4Title":  "Kwa Timu za Nchi Nyingi",
+                       "role4Desc":  "Simamia makampuni mengi katika maeneo tofauti kutoka akaunti moja, kila moja likiwa na sheria zake za kodi zinazotumika."
+                   },
+    "precios":  {
+                    "eyebrow":  "Mipango na Bei",
+                    "headline":  "Mpango kwa kila hatua ya uendeshaji wako",
+                    "subheadline":  "Bei wazi, bila mshangao. Mipango yote inajumuisha kutengwa kamili kwa data na mnyororo wa blockchain unaothibitishwa."
+                },
+    "seguridad":  {
+                      "eyebrow":  "Uaminifu Unaothibitishwa",
+                      "headline":  "Hatuahidii usalama tu. Unaweza kuuthibitisha.",
+                      "subheadline":  "Kila safu ya ulinzi kwenye jukwaa imeundwa ili uweze kuithibitisha mwenyewe, sio tu kuamini neno letu."
+                  }
 }

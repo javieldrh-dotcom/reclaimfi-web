@@ -4,7 +4,11 @@
                 "servicios":  "Servicos",
                 "tecnologia":  "Tecnologia",
                 "contacto":  "Contato",
-                "acceso":  "Acesso Seguro"
+                "acceso":  "Acesso Seguro",
+                "producto":  "Produto",
+                "soluciones":  "Solucoes",
+                "precios":  "Precos",
+                "seguridad":  "Seguranca"
             },
     "home":  {
                  "eyebrow":  "Uma plataforma, adaptada a sua realidade",
@@ -113,5 +117,41 @@
                      "submitting":  "Enviando...",
                      "successMessage":  "Mensagem enviada com sucesso. Retornaremos em breve.",
                      "errorMessage":  "Nao foi possivel enviar a mensagem. Tente novamente."
-                 }
+                 },
+    "producto":  {
+                     "eyebrow":  "A Plataforma",
+                     "headline":  "Tudo o que voce precisa para conduzir sua operacao com verdade verificavel",
+                     "subheadline":  "Um tour pelas ferramentas que voce usara todos os dias.",
+                     "section1Title":  "Painel de Controle",
+                     "section1Desc":  "Visao unificada da sua operacao: saldos, alertas de conformidade, e status dos seus 3 modulos em um so lugar.",
+                     "section2Title":  "Contabilidade Diaria",
+                     "section2Desc":  "Registro de lancamentos, livros legais, e relatorios financeiros gerados automaticamente a partir da sua operacao.",
+                     "section3Title":  "Investigacao Forense",
+                     "section3Desc":  "Rastreabilidade de evidencia digital com cadeia de custodia verificavel, para auditores e investigadores.",
+                     "section4Title":  "Licitacoes Publicas",
+                     "section4Desc":  "Analise de precos unitarios e estruturacao de propostas para processos de contratacao publica."
+                 },
+    "soluciones":  {
+                       "eyebrow":  "Casos de Uso",
+                       "headline":  "Uma plataforma, adaptada ao seu trabalho",
+                       "subheadline":  "Explore como diferentes perfis usam a plataforma todos os dias.",
+                       "role1Title":  "Para Contadores",
+                       "role1Desc":  "Conduza a contabilidade legal completa dos seus clientes, com ajuste automatico por inflacao quando a economia exigir.",
+                       "role2Title":  "Para Auditores Forenses",
+                       "role2Desc":  "Investigue evidencia digital com uma cadeia de custodia que nao pode ser alterada sem deixar rastro matematico.",
+                       "role3Title":  "Para Empresas em Licitacoes",
+                       "role3Desc":  "Estruture suas propostas de precos unitarios com o catalogo de classificacao oficial e o motor de custo de mao de obra.",
+                       "role4Title":  "Para Equipes Multi-Pais",
+                       "role4Desc":  "Gerencie varias empresas em regioes diferentes a partir de uma unica conta, cada uma com suas proprias regras fiscais ativas."
+                   },
+    "precios":  {
+                    "eyebrow":  "Planos e Precos",
+                    "headline":  "Um plano para cada etapa da sua operacao",
+                    "subheadline":  "Precos claros, sem surpresas. Todos os planos incluem isolamento total de dados e cadeia blockchain verificavel."
+                },
+    "seguridad":  {
+                      "eyebrow":  "Confianca Verificavel",
+                      "headline":  "Nao apenas prometemos seguranca. Voce pode verificar.",
+                      "subheadline":  "Cada camada de protecao na plataforma foi projetada para que voce mesmo possa confirmar, nao apenas confiar em nossa palavra."
+                  }
 }

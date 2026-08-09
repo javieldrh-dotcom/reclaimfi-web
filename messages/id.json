@@ -4,7 +4,11 @@
                 "servicios":  "Layanan",
                 "tecnologia":  "Teknologi",
                 "contacto":  "Kontak",
-                "acceso":  "Akses Aman"
+                "acceso":  "Akses Aman",
+                "producto":  "Produk",
+                "soluciones":  "Solusi",
+                "precios":  "Harga",
+                "seguridad":  "Keamanan"
             },
     "home":  {
                  "eyebrow":  "Satu platform, disesuaikan dengan realitas Anda",
@@ -113,5 +117,41 @@
                      "submitting":  "Mengirim...",
                      "successMessage":  "Pesan berhasil dikirim. Kami akan segera menghubungi Anda.",
                      "errorMessage":  "Pesan gagal dikirim. Silakan coba lagi."
-                 }
+                 },
+    "producto":  {
+                     "eyebrow":  "Platform",
+                     "headline":  "Semua yang Anda butuhkan untuk menjalankan operasi dengan kebenaran yang dapat diverifikasi",
+                     "subheadline":  "Tur alat yang akan Anda gunakan setiap hari.",
+                     "section1Title":  "Panel Kontrol",
+                     "section1Desc":  "Tampilan terpadu operasi Anda: saldo, peringatan kepatuhan, dan status 3 modul Anda di satu tempat.",
+                     "section2Title":  "Akuntansi Harian",
+                     "section2Desc":  "Pencatatan entri, buku legal, dan laporan keuangan yang dihasilkan secara otomatis dari operasi Anda.",
+                     "section3Title":  "Investigasi Forensik",
+                     "section3Desc":  "Ketertelusuran bukti digital dengan rantai pengawasan yang dapat diverifikasi, untuk auditor dan investigator.",
+                     "section4Title":  "Tender Publik",
+                     "section4Desc":  "Analisis harga satuan dan penyusunan penawaran untuk proses pengadaan pemerintah."
+                 },
+    "soluciones":  {
+                       "eyebrow":  "Kasus Penggunaan",
+                       "headline":  "Satu platform, disesuaikan dengan pekerjaan Anda",
+                       "subheadline":  "Jelajahi bagaimana berbagai peran menggunakan platform setiap hari.",
+                       "role1Title":  "Untuk Akuntan",
+                       "role1Desc":  "Kelola akuntansi legal lengkap klien Anda, dengan penyesuaian inflasi otomatis saat ekonomi membutuhkannya.",
+                       "role2Title":  "Untuk Auditor Forensik",
+                       "role2Desc":  "Selidiki bukti digital dengan rantai pengawasan yang tidak dapat diubah tanpa meninggalkan jejak matematis.",
+                       "role3Title":  "Untuk Perusahaan dalam Tender",
+                       "role3Desc":  "Susun penawaran harga satuan Anda dengan katalog klasifikasi resmi dan mesin biaya tenaga kerja.",
+                       "role4Title":  "Untuk Tim Multi-Negara",
+                       "role4Desc":  "Kelola beberapa perusahaan di berbagai wilayah dari satu akun, masing-masing dengan aturan pajak aktifnya sendiri."
+                   },
+    "precios":  {
+                    "eyebrow":  "Paket dan Harga",
+                    "headline":  "Paket untuk setiap tahap operasi Anda",
+                    "subheadline":  "Harga jelas, tanpa kejutan. Semua paket mencakup isolasi data total dan rantai blockchain yang dapat diverifikasi."
+                },
+    "seguridad":  {
+                      "eyebrow":  "Kepercayaan yang Dapat Diverifikasi",
+                      "headline":  "Kami tidak hanya menjanjikan keamanan. Anda dapat memverifikasinya.",
+                      "subheadline":  "Setiap lapisan perlindungan pada platform dirancang agar Anda dapat mengonfirmasinya sendiri, bukan hanya mempercayai kata-kata kami."
+                  }
 }

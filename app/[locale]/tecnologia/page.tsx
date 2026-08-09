@@ -35,8 +35,12 @@ export default function TecnologiaPage() {
           {tNav("brand")}
         </Link>
         <nav style={{ display: "flex", alignItems: "center", gap: 28, flexWrap: "wrap" }}>
+          <Link href="./producto" style={{ color: ink, textDecoration: "none", fontSize: 17, fontWeight: 600 }}>{tNav("producto")}</Link>
+          <Link href="./soluciones" style={{ color: ink, textDecoration: "none", fontSize: 17, fontWeight: 600 }}>{tNav("soluciones")}</Link>
+          <Link href="./precios" style={{ color: ink, textDecoration: "none", fontSize: 17, fontWeight: 600 }}>{tNav("precios")}</Link>
           <Link href="./servicios" style={{ color: ink, textDecoration: "none", fontSize: 19, fontWeight: 600 }}>{tNav("servicios")}</Link>
           <Link href="./tecnologia" style={{ color: sky, textDecoration: "none", fontSize: 19, fontWeight: 700 }}>{tNav("tecnologia")}</Link>
+          <Link href="./seguridad" style={{ color: ink, textDecoration: "none", fontSize: 17, fontWeight: 600 }}>{tNav("seguridad")}</Link>
           <Link href="./contacto" style={{ color: ink, textDecoration: "none", fontSize: 19, fontWeight: 600 }}>{tNav("contacto")}</Link>
           <LanguageSwitcher />
           <Link href="/login" style={{ padding: "12px 26px", background: sky, borderRadius: 10, color: bg, textDecoration: "none", fontSize: 16, fontWeight: 800 }}>

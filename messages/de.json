@@ -4,7 +4,11 @@
                 "servicios":  "Dienstleistungen",
                 "tecnologia":  "Technologie",
                 "contacto":  "Kontakt",
-                "acceso":  "Sicherer Zugang"
+                "acceso":  "Sicherer Zugang",
+                "producto":  "Produkt",
+                "soluciones":  "Losungen",
+                "precios":  "Preise",
+                "seguridad":  "Sicherheit"
             },
     "home":  {
                  "eyebrow":  "Eine Plattform, angepasst an Ihre Realitat",
@@ -113,5 +117,41 @@
                      "submitting":  "Wird gesendet...",
                      "successMessage":  "Nachricht erfolgreich gesendet. Wir melden uns in Kurze bei Ihnen.",
                      "errorMessage":  "Nachricht konnte nicht gesendet werden. Bitte versuchen Sie es erneut."
-                 }
+                 },
+    "producto":  {
+                     "eyebrow":  "Die Plattform",
+                     "headline":  "Alles was Sie brauchen, um Ihren Betrieb mit verifizierbarer Wahrheit zu fuhren",
+                     "subheadline":  "Eine Tour durch die Werkzeuge, die Sie taglich nutzen werden.",
+                     "section1Title":  "Kontrollzentrum",
+                     "section1Desc":  "Einheitliche Ansicht Ihres Betriebs: Salden, Compliance-Warnungen, und Status Ihrer 3 Module an einem Ort.",
+                     "section2Title":  "Tagliche Buchhaltung",
+                     "section2Desc":  "Buchungserfassung, gesetzliche Bucher, und Finanzberichte, die automatisch aus Ihrem Betrieb generiert werden.",
+                     "section3Title":  "Forensische Ermittlung",
+                     "section3Desc":  "Ruckverfolgbarkeit digitaler Beweise mit einer verifizierbaren Verwahrkette, fur Prufer und Ermittler.",
+                     "section4Title":  "Offentliche Ausschreibungen",
+                     "section4Desc":  "Einheitspreisanalyse und Angebotsstrukturierung fur offentliche Vergabeverfahren."
+                 },
+    "soluciones":  {
+                       "eyebrow":  "Anwendungsfalle",
+                       "headline":  "Eine Plattform, angepasst an Ihre Arbeit",
+                       "subheadline":  "Entdecken Sie, wie verschiedene Rollen die Plattform taglich nutzen.",
+                       "role1Title":  "Fur Buchhalter",
+                       "role1Desc":  "Fuhren Sie die vollstandige gesetzliche Buchhaltung Ihrer Kunden, mit automatischer Inflationsanpassung wenn die Wirtschaft es erfordert.",
+                       "role2Title":  "Fur Forensische Prufer",
+                       "role2Desc":  "Untersuchen Sie digitale Beweise mit einer Verwahrkette, die ohne mathematische Spur nicht verandert werden kann.",
+                       "role3Title":  "Fur Unternehmen bei Ausschreibungen",
+                       "role3Desc":  "Strukturieren Sie Ihre Einheitspreisangebote mit dem offiziellen Klassifizierungskatalog und dem Arbeitskostenmodul.",
+                       "role4Title":  "Fur Multi-Land-Teams",
+                       "role4Desc":  "Verwalten Sie mehrere Unternehmen in verschiedenen Regionen von einem einzigen Konto aus, jedes mit seinen eigenen aktiven Steuerregeln."
+                   },
+    "precios":  {
+                    "eyebrow":  "Plane und Preise",
+                    "headline":  "Ein Plan fur jede Phase Ihres Betriebs",
+                    "subheadline":  "Klare Preise, keine Uberraschungen. Alle Plane beinhalten vollstandige Datenisolation und eine verifizierbare Blockchain-Kette."
+                },
+    "seguridad":  {
+                      "eyebrow":  "Verifizierbares Vertrauen",
+                      "headline":  "Wir versprechen Sicherheit nicht nur. Sie konnen sie uberprufen.",
+                      "subheadline":  "Jede Schutzschicht auf der Plattform ist so konzipiert, dass Sie sie selbst bestatigen konnen, nicht nur unser Wort dafur nehmen."
+                  }
 }

@@ -4,7 +4,11 @@
                 "servicios":  "Servizi",
                 "tecnologia":  "Tecnologia",
                 "contacto":  "Contatti",
-                "acceso":  "Accesso Sicuro"
+                "acceso":  "Accesso Sicuro",
+                "producto":  "Prodotto",
+                "soluciones":  "Soluzioni",
+                "precios":  "Prezzi",
+                "seguridad":  "Sicurezza"
             },
     "home":  {
                  "eyebrow":  "Una piattaforma, adattata alla tua realta",
@@ -113,5 +117,41 @@
                      "submitting":  "Invio in corso...",
                      "successMessage":  "Messaggio inviato con successo. Ti risponderemo presto.",
                      "errorMessage":  "Impossibile inviare il messaggio. Riprova."
-                 }
+                 },
+    "producto":  {
+                     "eyebrow":  "La Piattaforma",
+                     "headline":  "Tutto cio di cui hai bisogno per gestire la tua attivita con verita verificabile",
+                     "subheadline":  "Un tour degli strumenti che userai ogni giorno.",
+                     "section1Title":  "Pannello di Controllo",
+                     "section1Desc":  "Vista unificata della tua attivita: saldi, avvisi di conformita, e stato dei tuoi 3 moduli in un unico posto.",
+                     "section2Title":  "Contabilita Quotidiana",
+                     "section2Desc":  "Registrazione delle scritture, libri legali, e report finanziari generati automaticamente dalla tua attivita.",
+                     "section3Title":  "Indagine Forense",
+                     "section3Desc":  "Tracciabilita delle prove digitali con una catena di custodia verificabile, per revisori e investigatori.",
+                     "section4Title":  "Gare d\u0027Appalto",
+                     "section4Desc":  "Analisi dei prezzi unitari e strutturazione delle offerte per processi di contrattazione pubblica."
+                 },
+    "soluciones":  {
+                       "eyebrow":  "Casi d\u0027Uso",
+                       "headline":  "Una piattaforma, adattata al tuo lavoro",
+                       "subheadline":  "Scopri come diversi profili usano la piattaforma ogni giorno.",
+                       "role1Title":  "Per Commercialisti",
+                       "role1Desc":  "Gestisci la contabilita legale completa dei tuoi clienti, con aggiustamento automatico per iperinflazione quando l\u0027economia lo richiede.",
+                       "role2Title":  "Per Revisori Forensi",
+                       "role2Desc":  "Indaga prove digitali con una catena di custodia che non puo essere alterata senza lasciare traccia matematica.",
+                       "role3Title":  "Per Aziende in Gare d\u0027Appalto",
+                       "role3Desc":  "Struttura le tue offerte di prezzi unitari con il catalogo di classificazione ufficiale e il motore del costo del lavoro.",
+                       "role4Title":  "Per Team Multi-Paese",
+                       "role4Desc":  "Gestisci piu aziende in diverse regioni da un unico account, ciascuna con le proprie regole fiscali attive."
+                   },
+    "precios":  {
+                    "eyebrow":  "Piani e Prezzi",
+                    "headline":  "Un piano per ogni fase della tua attivita",
+                    "subheadline":  "Prezzi chiari, senza sorprese. Tutti i piani includono isolamento totale dei dati e catena blockchain verificabile."
+                },
+    "seguridad":  {
+                      "eyebrow":  "Fiducia Verificabile",
+                      "headline":  "Non promettiamo solo sicurezza. Puoi verificarla.",
+                      "subheadline":  "Ogni livello di protezione sulla piattaforma e progettato affinche tu possa confermarlo da solo, non solo fidarti della nostra parola."
+                  }
 }

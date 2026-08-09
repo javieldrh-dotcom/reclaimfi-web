@@ -4,12 +4,16 @@
                 "servicios":  "Ayyuka",
                 "tecnologia":  "Fasaha",
                 "contacto":  "Tuntube Mu",
-                "acceso":  "Shiga Mai Tsaro"
+                "acceso":  "Shiga Mai Tsaro",
+                "producto":  "Kaya",
+                "soluciones":  "Mafita",
+                "precios":  "Farashi",
+                "seguridad":  "Tsaro"
             },
     "home":  {
                  "eyebrow":  "Dandali daya, wanda ya dace da halin da kake ciki",
                  "headline":  "Gaskiyar kudi da za a iya tabbatarwa, a kowace nahiya",
-                 "subheadline":  "Bincike na shari\u0027a tare da sarkar kriftography, lissafin kudi wanda ya dace da dokoki da tattalin arzikin yankinka, da nazarin farashin naÃƒÆ’Ã‚Âºra don gasa na gwamnati. Duk a cikin dandali daya wanda ke girma tare da kai.",
+                 "subheadline":  "Bincike na shari\u0027a tare da sarkar kriftography, lissafin kudi wanda ya dace da dokoki da tattalin arzikin yankinka, da nazarin farashin naÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âºra don gasa na gwamnati. Duk a cikin dandali daya wanda ke girma tare da kai.",
                  "statLabel":  "An gina shi don ainihin sauyi",
                  "statDescription":  "A cikin tattalin arzikin da hauhawar farashi ta shekara ta wuce kashi 1,000, bayanan kudi suna rasa maana cikin makonni. Injin lissafin kudinmu yana sake bayyana kowace lamba ta atomatik kowane wata, ko da yaushe halin tattalin arzikinka yana da sifili nawa. Wannan dabara ce ta bakiliki da muke amfani da ita akan kowane yanki mai sauyi mai yawa, ba lamari daya kadai ba.",
                  "pillarsTitle":  "Ra\u0027ayoyi guda uku akan gaskiya daya",
@@ -18,7 +22,7 @@
                  "pillar2Title":  "Lissafin Kudi",
                  "pillar2Desc":  "Jadawalin asusun da aka daidaita bisa ga sashe da yanki, rufe lokaci bisa ga IFRS, da injin kadai a kasuwa tare da daidaitawar hauhawar farashi na asali (IAS 29) don tattalin arzikin da ke da sauyi mai yawa.",
                  "pillar3Title":  "Gasa da Kwangilar Gwamnati",
-                 "pillar3Desc":  "Nazarin farashin naÃƒÆ’Ã‚Âºra don matakan sayayya na gwamnati, tare da jerin rarrabuwa na hukuma da injin kudin aiki.",
+                 "pillar3Desc":  "Nazarin farashin naÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âºra don matakan sayayya na gwamnati, tare da jerin rarrabuwa na hukuma da injin kudin aiki.",
                  "cta":  "Shiga Dandali",
                  "differentiatorLabel":  "Me ya sa muke da bambanci",
                  "differentiatorTitle":  "Software na gama-gari yana bi da kowane yanki iri daya. Mu ba haka muke ba.",
@@ -38,13 +42,13 @@
                  "plansDesc":  "Bincika tsare-tsaremu kuma nemo wanda ya dace da aikinku.",
                  "plansCta":  "Duba tsare-tsare da farashi",
                  "faqLabel":  "Tambayoyin da Ake Yawan Yi",
-                 "faqTitle":  "Abin da wataƙila kuke tambaya",
+                 "faqTitle":  "Abin da wataÃ†â„¢ila kuke tambaya",
                  "faq1Q":  "Idan yankina ba a rufe shi ba tukuna, zan iya amfani da dandali?",
                  "faq1A":  "Ee. Lissafin kudi na asali (IFRS, littattafan doka, rahotanni) yana aiki a kowane yanki. Kayan aiki na musamman, kamar daidaita hauhawar farashi mai tsanani, ana kunna su lokacin da yankinku ke bukatarsu.",
                  "faq2Q":  "Bayanan kudi na na amintacce ne?",
                  "faq2A":  "Kowace kamfani an kebe ta gaba daya a matakin bayanan bayanai, tare da sarkar blockchain mai tantancewa akan kowane rajistan lissafin kudi da tabbatarwa ta abubuwa biyu da ake samu.",
-                 "faq3Q":  "Zan iya ƙaura daga tsarin lissafin kudi na yanzu?",
-                 "faq3A":  "Ee, muna tallafawa ƙaurar tsarin lissafin kudi da ma\u0027aunin farawa. Tuntube mu don kimanta yanayin ku na musamman.",
+                 "faq3Q":  "Zan iya Ã†â„¢aura daga tsarin lissafin kudi na yanzu?",
+                 "faq3A":  "Ee, muna tallafawa Ã†â„¢aurar tsarin lissafin kudi da ma\u0027aunin farawa. Tuntube mu don kimanta yanayin ku na musamman.",
                  "faq4Q":  "Farashin ya hada da tallafi?",
                  "faq4A":  "Ee, dukkan tsare-tsare sun hada da tallafi. Bayanai sun bambanta bisa ga tsari, duba sashen Ayyuka."
              },
@@ -59,7 +63,7 @@
                       "service3Title":  "Hankalin Blockchain",
                       "service3Desc":  "Bincike na jakunkuna da mu\u0027amaloli, da rarraba hadarin kudi tare da shaida da za a iya tabbatarwa ta hanyar kriftography.",
                       "service4Title":  "Gasa na Gwamnati",
-                      "service4Desc":  "Nazarin farashin naÃƒÆ’Ã‚Âºra da tsara tayin don matakan sayayya na gwamnati.",
+                      "service4Desc":  "Nazarin farashin naÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âºra da tsara tayin don matakan sayayya na gwamnati.",
                       "service5Title":  "AML / KYC",
                       "service5Desc":  "Atomatik na tabbatarwar doka da lura da bin doka akai-akai.",
                       "service6Title":  "Daidaitawa da Yanki",
@@ -113,5 +117,41 @@
                      "submitting":  "Ana Turawa...",
                      "successMessage":  "An aika sako cikin nasara. Za mu tuntube ka nan ba da jimawa ba.",
                      "errorMessage":  "Ba a iya aika sako ba. Da fatan za a sake gwadawa."
-                 }
+                 },
+    "producto":  {
+                     "eyebrow":  "Dandali",
+                     "headline":  "Duk abin da kuke bukata don gudanar da aikinku da gaskiya mai tantancewa",
+                     "subheadline":  "Yawon shakatawa na kayan aikin da za ku yi amfani da su kowace rana.",
+                     "section1Title":  "Fanel na Iko",
+                     "section1Desc":  "Kallon hade-hade na aikinku: ma\u0027aunin kudi, gargadin bin doka, da matsayin sassa 3 na ku a wuri daya.",
+                     "section2Title":  "Lissafin Kudi na Yau da Kullun",
+                     "section2Desc":  "Rikodin shigarwa, littattafan doka, da rahotannin kudi da ake samarwa ta atomatik daga aikinku.",
+                     "section3Title":  "Binciken Shari\u0027a",
+                     "section3Desc":  "Bin diddigin shaidar dijital tare da sarkar kula mai tantancewa, ga masu duba lissafi da masu bincike.",
+                     "section4Title":  "Takarar Jama\u0027a",
+                     "section4Desc":  "Nazarin farashin kashi da tsara tayin don matakan kwangilar gwamnati."
+                 },
+    "soluciones":  {
+                       "eyebrow":  "Yanayin Amfani",
+                       "headline":  "Dandali daya, wanda aka daidaita da aikinku",
+                       "subheadline":  "Gano yadda ayyuka daban-daban ke amfani da dandali kowace rana.",
+                       "role1Title":  "Ga Masu Lissafin Kudi",
+                       "role1Desc":  "Sarrafa cikakken lissafin kudi na doka na abokan cinikinku, tare da daidaita hauhawar farashi ta atomatik lokacin da tattalin arziki ke bukata.",
+                       "role2Title":  "Ga Masu Duba Lissafin Shari\u0027a",
+                       "role2Desc":  "Bincika shaidar dijital tare da sarkar kula da ba za a iya canzawa ba tare da barin alama ta lissafi ba.",
+                       "role3Title":  "Ga Kamfanoni a Takara",
+                       "role3Desc":  "Tsara tayin farashin kashi tare da jerin rarrabuwa na hukuma da injin kudin aiki.",
+                       "role4Title":  "Ga Kungiyoyi na Kasashe Da Yawa",
+                       "role4Desc":  "Sarrafa kamfanoni da yawa a yankuna daban-daban daga asusu daya, kowanne da dokokin harajinsa masu aiki."
+                   },
+    "precios":  {
+                    "eyebrow":  "Tsare-tsare da Farashi",
+                    "headline":  "Tsari don kowane mataki na aikinku",
+                    "subheadline":  "Farashi bayyananne, babu mamaki. Dukkan tsare-tsare sun hada da cikakkiyar kebewar bayanai da sarkar blockchain mai tantancewa."
+                },
+    "seguridad":  {
+                      "eyebrow":  "Amana Mai Tantancewa",
+                      "headline":  "Ba mu alkawarin tsaro kawai ba. Kuna iya tantance shi.",
+                      "subheadline":  "An tsara kowace matakin kariya akan dandali domin ku iya tabbatar da ita da kanku, ba kawai gaskata maganarmu ba."
+                  }
 }
