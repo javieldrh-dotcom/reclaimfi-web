@@ -4,7 +4,11 @@
     "servicios": "Servicios",
     "tecnologia": "Tecnologia",
     "contacto": "Contacto",
-    "acceso": "Acceso Seguro"
+    "acceso": "Acceso Seguro",
+    "producto": "Producto",
+    "soluciones": "Soluciones",
+    "precios": "Precios",
+    "seguridad": "Seguridad"
   },
   "home": {
     "eyebrow": "Una plataforma, adaptada a tu realidad",
@@ -113,5 +117,41 @@
     "submitting": "Enviando...",
     "successMessage": "Mensaje enviado correctamente. Te responderemos pronto.",
     "errorMessage": "No se pudo enviar el mensaje. Intenta de nuevo."
+  },
+  "producto": {
+    "eyebrow": "La Plataforma",
+    "headline": "Todo lo que necesitas para llevar tu operacion con verdad verificable",
+    "subheadline": "Un recorrido por las herramientas que usaras todos los dias.",
+    "section1Title": "Panel de Control",
+    "section1Desc": "Vista unificada de tu operacion: saldos, alertas de cumplimiento, y estado de tus 3 modulos en un solo lugar.",
+    "section2Title": "Contabilidad Diaria",
+    "section2Desc": "Registro de asientos, libros legales, y reportes financieros que se generan automaticamente a partir de tu operacion.",
+    "section3Title": "Investigacion Forense",
+    "section3Desc": "Trazabilidad de evidencia digital con cadena de custodia verificable, para auditores e investigadores.",
+    "section4Title": "Licitaciones",
+    "section4Desc": "Analisis de precios unitarios y estructuracion de ofertas para procesos de contratacion publica."
+  },
+  "soluciones": {
+    "eyebrow": "Casos de Uso",
+    "headline": "Una plataforma, adaptada a tu trabajo",
+    "subheadline": "Explora como distintos perfiles usan la plataforma cada dia.",
+    "role1Title": "Para Contadores",
+    "role1Desc": "Lleva la contabilidad legal completa de tus clientes, con ajuste automatico por inflacion cuando la economia lo requiera.",
+    "role2Title": "Para Auditores Forenses",
+    "role2Desc": "Investiga evidencia digital con una cadena de custodia que no se puede alterar sin dejar rastro matematico.",
+    "role3Title": "Para Empresas en Licitaciones",
+    "role3Desc": "Estructura tus ofertas de precios unitarios con el catalogo de clasificacion oficial y el motor de costo laboral.",
+    "role4Title": "Para Equipos Multi-Pais",
+    "role4Desc": "Gestiona varias empresas en distintas regiones desde una sola cuenta, cada una con sus propias reglas fiscales activas."
+  },
+  "precios": {
+    "eyebrow": "Planes y Precios",
+    "headline": "Un plan para cada etapa de tu operacion",
+    "subheadline": "Precios claros, sin sorpresas. Todos los planes incluyen aislamiento total de datos y cadena blockchain verificable."
+  },
+  "seguridad": {
+    "eyebrow": "Confianza Verificable",
+    "headline": "No solo prometemos seguridad. La puedes verificar.",
+    "subheadline": "Cada capa de proteccion en la plataforma esta disenada para que puedas confirmarla tu mismo, no solo confiar en nuestra palabra."
   }
 }
