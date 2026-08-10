@@ -1,11 +1,11 @@
-﻿import { type NextRequest } from "next/server";
+import { type NextRequest } from "next/server";
 import { updateSession } from "@/app/lib/supabase/middleware";
 import createIntlMiddleware from "next-intl/middleware";
 import { routing } from "@/i18n/routing";
 
 const intlMiddleware = createIntlMiddleware(routing);
 
-const publicPageNames = ["", "servicios", "tecnologia", "contacto"];
+const publicPageNames = ["", "servicios", "tecnologia", "contacto", "producto", "soluciones", "precios", "seguridad"];
 
 function isPublicPage(pathname: string): boolean {
   const segments = pathname.split("/").filter(Boolean);
