@@ -5,7 +5,7 @@ import { routing } from "@/i18n/routing";
 
 const intlMiddleware = createIntlMiddleware(routing);
 
-const publicPageNames = ["", "servicios", "tecnologia", "contacto", "producto", "soluciones", "precios", "seguridad"];
+const publicPageNames = ["", "servicios", "tecnologia", "contacto", "producto", "soluciones", "precios", "seguridad", "privacidad", "terminos"];
 
 function isPublicPage(pathname: string): boolean {
   const segments = pathname.split("/").filter(Boolean);
