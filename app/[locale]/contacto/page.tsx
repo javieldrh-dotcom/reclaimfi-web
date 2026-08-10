@@ -1,11 +1,12 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import LanguageSwitcher from "../_components/LanguageSwitcher";
 
 export default function ContactoPage() {
   const t = useTranslations("contacto");
+  const locale = useLocale();
   const tNav = useTranslations("nav");
 
   const bg = "#0A1628";
@@ -59,17 +60,17 @@ export default function ContactoPage() {
   return (
     <div style={{ background: "radial-gradient(ellipse 90% 50% at 50% -10%, " + bgCard + " 0%, " + bg + " 60%, #040911 100%)", minHeight: "100vh", color: ink, fontFamily: "'IBM Plex Sans', sans-serif" }}>
       <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "22px 48px", borderBottom: "1px solid " + cardBorder, flexWrap: "wrap", gap: 16, background: "rgba(10,22,40,0.85)", backdropFilter: "blur(12px)", position: "sticky", top: 0, zIndex: 50 }}>
-        <Link href="./" style={{ fontSize: 22, fontWeight: 800, color: sky, fontFamily: "'IBM Plex Serif', serif", textDecoration: "none" }}>
+        <Link href={"/" + locale} style={{ fontSize: 22, fontWeight: 800, color: sky, fontFamily: "'IBM Plex Serif', serif", textDecoration: "none" }}>
           {tNav("brand")}
         </Link>
         <nav style={{ display: "flex", alignItems: "center", gap: 28, flexWrap: "wrap" }}>
-          <Link href="./producto" style={{ color: ink, textDecoration: "none", fontSize: 17, fontWeight: 600 }}>{tNav("producto")}</Link>
-          <Link href="./soluciones" style={{ color: ink, textDecoration: "none", fontSize: 17, fontWeight: 600 }}>{tNav("soluciones")}</Link>
-          <Link href="./precios" style={{ color: ink, textDecoration: "none", fontSize: 17, fontWeight: 600 }}>{tNav("precios")}</Link>
-          <Link href="./servicios" style={{ color: ink, textDecoration: "none", fontSize: 19, fontWeight: 600 }}>{tNav("servicios")}</Link>
-          <Link href="./tecnologia" style={{ color: ink, textDecoration: "none", fontSize: 19, fontWeight: 600 }}>{tNav("tecnologia")}</Link>
-          <Link href="./seguridad" style={{ color: ink, textDecoration: "none", fontSize: 17, fontWeight: 600 }}>{tNav("seguridad")}</Link>
-          <Link href="./contacto" style={{ color: sky, textDecoration: "none", fontSize: 19, fontWeight: 700 }}>{tNav("contacto")}</Link>
+          <Link href={"/" + locale + "/producto"} style={{ color: ink, textDecoration: "none", fontSize: 17, fontWeight: 600 }}>{tNav("producto")}</Link>
+          <Link href={"/" + locale + "/soluciones"} style={{ color: ink, textDecoration: "none", fontSize: 17, fontWeight: 600 }}>{tNav("soluciones")}</Link>
+          <Link href={"/" + locale + "/precios"} style={{ color: ink, textDecoration: "none", fontSize: 17, fontWeight: 600 }}>{tNav("precios")}</Link>
+          <Link href={"/" + locale + "/servicios"} style={{ color: ink, textDecoration: "none", fontSize: 19, fontWeight: 600 }}>{tNav("servicios")}</Link>
+          <Link href={"/" + locale + "/tecnologia"} style={{ color: ink, textDecoration: "none", fontSize: 19, fontWeight: 600 }}>{tNav("tecnologia")}</Link>
+          <Link href={"/" + locale + "/seguridad"} style={{ color: ink, textDecoration: "none", fontSize: 17, fontWeight: 600 }}>{tNav("seguridad")}</Link>
+          <Link href={"/" + locale + "/contacto"} style={{ color: sky, textDecoration: "none", fontSize: 19, fontWeight: 700 }}>{tNav("contacto")}</Link>
           <LanguageSwitcher />
           <Link href="/login" style={{ padding: "12px 26px", background: sky, borderRadius: 10, color: bg, textDecoration: "none", fontSize: 16, fontWeight: 800 }}>
             {tNav("acceso")}

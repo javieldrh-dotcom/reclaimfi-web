@@ -1,11 +1,12 @@
 "use client";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import LanguageSwitcher from "../_components/LanguageSwitcher";
 
 export default function PreciosPage() {
   const t = useTranslations("precios");
   const ts = useTranslations("servicios");
+  const locale = useLocale();
   const tNav = useTranslations("nav");
 
   const bg = "#0A1628";
@@ -18,16 +19,16 @@ export default function PreciosPage() {
   return (
     <div style={{ background: "radial-gradient(ellipse 90% 50% at 50% -10%, " + bgCard + " 0%, " + bg + " 60%, #040911 100%)", minHeight: "100vh", color: ink, fontFamily: "'IBM Plex Sans', sans-serif" }}>
       <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "22px 48px", borderBottom: "1px solid " + cardBorder, flexWrap: "wrap", gap: 16, background: "rgba(10,22,40,0.85)", backdropFilter: "blur(12px)", position: "sticky", top: 0, zIndex: 50 }}>
-        <Link href="./" style={{ fontSize: 22, fontWeight: 800, color: sky, fontFamily: "'IBM Plex Serif', serif", textDecoration: "none" }}>
+        <Link href={"/" + locale} style={{ fontSize: 22, fontWeight: 800, color: sky, fontFamily: "'IBM Plex Serif', serif", textDecoration: "none" }}>
           {tNav("brand")}
         </Link>
         <nav style={{ display: "flex", alignItems: "center", gap: 22, flexWrap: "wrap" }}>
-          <Link href="./producto" style={{ color: ink, textDecoration: "none", fontSize: 17, fontWeight: 600 }}>{tNav("producto")}</Link>
-          <Link href="./soluciones" style={{ color: ink, textDecoration: "none", fontSize: 17, fontWeight: 600 }}>{tNav("soluciones")}</Link>
-          <Link href="./precios" style={{ color: sky, textDecoration: "none", fontSize: 17, fontWeight: 700 }}>{tNav("precios")}</Link>
-          <Link href="./tecnologia" style={{ color: ink, textDecoration: "none", fontSize: 17, fontWeight: 600 }}>{tNav("tecnologia")}</Link>
-          <Link href="./seguridad" style={{ color: ink, textDecoration: "none", fontSize: 17, fontWeight: 600 }}>{tNav("seguridad")}</Link>
-          <Link href="./contacto" style={{ color: ink, textDecoration: "none", fontSize: 17, fontWeight: 600 }}>{tNav("contacto")}</Link>
+          <Link href={"/" + locale + "/producto"} style={{ color: ink, textDecoration: "none", fontSize: 17, fontWeight: 600 }}>{tNav("producto")}</Link>
+          <Link href={"/" + locale + "/soluciones"} style={{ color: ink, textDecoration: "none", fontSize: 17, fontWeight: 600 }}>{tNav("soluciones")}</Link>
+          <Link href={"/" + locale + "/precios"} style={{ color: sky, textDecoration: "none", fontSize: 17, fontWeight: 700 }}>{tNav("precios")}</Link>
+          <Link href={"/" + locale + "/tecnologia"} style={{ color: ink, textDecoration: "none", fontSize: 17, fontWeight: 600 }}>{tNav("tecnologia")}</Link>
+          <Link href={"/" + locale + "/seguridad"} style={{ color: ink, textDecoration: "none", fontSize: 17, fontWeight: 600 }}>{tNav("seguridad")}</Link>
+          <Link href={"/" + locale + "/contacto"} style={{ color: ink, textDecoration: "none", fontSize: 17, fontWeight: 600 }}>{tNav("contacto")}</Link>
           <LanguageSwitcher />
           <Link href="/login" style={{ padding: "12px 26px", background: sky, borderRadius: 10, color: bg, textDecoration: "none", fontSize: 16, fontWeight: 800 }}>
             {tNav("acceso")}
@@ -94,13 +95,13 @@ export default function PreciosPage() {
               <tr>
                 <td style={{ padding: "20px" }}></td>
                 <td style={{ padding: 20, textAlign: "center" }}>
-                  <Link href="./contacto" style={{ display: "inline-block", padding: "12px 26px", border: "1px solid " + sky, color: sky, borderRadius: 10, textDecoration: "none", fontWeight: 700, fontSize: 15 }}>{ts("planCta")}</Link>
+                  <Link href={"/" + locale + "/contacto"} style={{ display: "inline-block", padding: "12px 26px", border: "1px solid " + sky, color: sky, borderRadius: 10, textDecoration: "none", fontWeight: 700, fontSize: 15 }}>{ts("planCta")}</Link>
                 </td>
                 <td style={{ padding: 20, textAlign: "center", background: sky + "0C" }}>
-                  <Link href="./contacto" style={{ display: "inline-block", padding: "12px 26px", background: sky, color: bg, borderRadius: 10, textDecoration: "none", fontWeight: 800, fontSize: 15 }}>{ts("planCta")}</Link>
+                  <Link href={"/" + locale + "/contacto"} style={{ display: "inline-block", padding: "12px 26px", background: sky, color: bg, borderRadius: 10, textDecoration: "none", fontWeight: 800, fontSize: 15 }}>{ts("planCta")}</Link>
                 </td>
                 <td style={{ padding: 20, textAlign: "center" }}>
-                  <Link href="./contacto" style={{ display: "inline-block", padding: "12px 26px", border: "1px solid " + sky, color: sky, borderRadius: 10, textDecoration: "none", fontWeight: 700, fontSize: 15 }}>{ts("planCta")}</Link>
+                  <Link href={"/" + locale + "/contacto"} style={{ display: "inline-block", padding: "12px 26px", border: "1px solid " + sky, color: sky, borderRadius: 10, textDecoration: "none", fontWeight: 700, fontSize: 15 }}>{ts("planCta")}</Link>
                 </td>
               </tr>
             </tbody>
