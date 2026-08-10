@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/app/lib/supabase";
@@ -119,13 +119,13 @@ export default function TrialBalancePage() {
         justifyContent: "space-between",
         alignItems: "center",
         maxWidth: 1100,
-        background: isBalanced ? "#2DD4BF15" : "#F8717115",
-        border: "1px solid " + (isBalanced ? "#2DD4BF40" : "#F8717140"),
+        background: isBalanced ? theme.subtleAccent + "15" : "#F8717115",
+        border: "1px solid " + (isBalanced ? theme.subtleAccent + "40" : "#F8717140"),
       }}>
-        <div style={{ ...theme.kpiStyle }}>
+        <div style={{ ...theme.kpiStyle, color: isBalanced ? theme.subtleAccent : "#F87171" }}>
           Debe: {totalDebit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} &nbsp;·&nbsp; Haber: {totalCredit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </div>
-        <div style={{ fontWeight: 700, color: isBalanced ? "#2DD4BF" : "#F87171", display: "flex", alignItems: "center", gap: 6, fontSize: 15 }}>
+        <div style={{ fontWeight: 700, color: isBalanced ? theme.subtleAccent : "#F87171", display: "flex", alignItems: "center", gap: 6, fontSize: 15 }}>
           <span>{isBalanced ? "✓" : "!"}</span>
           {isBalanced ? "Cuadrado" : "Descuadrado"}
         </div>

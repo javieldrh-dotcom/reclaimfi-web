@@ -1,6 +1,5 @@
-﻿"use client";
+"use client";
 import VerticalSidebar from "@/app/components/VerticalSidebar";
-import NeuralBackground from "@/app/components/NeuralBackground";
 import CompanySwitcher from "@/app/components/CompanySwitcher";
 import AccountingChatWidget from "@/app/components/AccountingChatWidget";
 const navItems = [
@@ -67,7 +66,6 @@ const navItems = [
 export default function AccountingLayout({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ display: "flex", position: "relative" }}>
-      <NeuralBackground color="#818CF8" particleCount={100} />
       <VerticalSidebar vertical="accounting" brandName="CONTABILIDAD" navItems={navItems} />
       <AccountingChatWidget />
       <div style={{ marginLeft: 280, flex: 1, position: "relative", zIndex: 1 }}>
