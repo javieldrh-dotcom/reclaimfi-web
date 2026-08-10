@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
@@ -112,7 +112,7 @@ export default function IgtfPage() {
         </div>
         <div style={{ ...theme.cardStyle, marginTop: 16 }}>
           <p style={{ fontSize: 18 }}>Monto de IGTF a Retener/Pagar:</p>
-          <p style={{ fontSize: 28, fontWeight: 900, color: theme.accent, ...theme.numberStyle }}>{igtfAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} {currency}</p>
+          <p style={{ fontSize: 28, fontWeight: 900, ...theme.numberStyle, color: theme.accent }}>{igtfAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} {currency}</p>
         </div>
         <button onClick={registerIgtf} style={{ ...theme.buttonStyle, marginTop: 16, fontSize: 18 }}>
           REGISTRAR IGTF

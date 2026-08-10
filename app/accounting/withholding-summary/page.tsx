@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
@@ -238,7 +238,7 @@ export default function WithholdingSummaryPage() {
             </div>
           <div style={{ ...theme.cardStyle, marginTop: 12, marginBottom: 12 }}>
             <p style={{ fontSize: 18 }}>Total ISLR Retenido del Periodo:</p>
-            <p style={{ fontSize: 28, fontWeight: 900, color: theme.accent, ...theme.numberStyle }}>{islrWithheld.reduce((s, e) => s + (e.islr_withheld || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+            <p style={{ fontSize: 28, fontWeight: 900, ...theme.numberStyle, color: theme.accent }}>{islrWithheld.reduce((s, e) => s + (e.islr_withheld || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
           </div>
           {islrWithheld.map((e, idx) => (
             <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: 8, fontSize: 18, borderBottom: "1px solid #1F2937" }}>
