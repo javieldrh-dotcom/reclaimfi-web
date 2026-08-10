@@ -1,11 +1,12 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import LanguageSwitcher from "./_components/LanguageSwitcher";
 
 export default function HomePage() {
   const t = useTranslations("home");
+  const locale = useLocale();
   const [menuOpen, setMenuOpen] = useState(false);
   const tNav = useTranslations("nav");
 
@@ -128,13 +129,13 @@ export default function HomePage() {
           {tNav("brand")}
         </div>
         <nav className="desktop-nav" style={{ display: "flex", alignItems: "center", gap: 32, flexWrap: "wrap" }}>
-          <Link href="./producto" style={{ color: ink, textDecoration: "none", fontSize: 17, fontWeight: 600 }}>{tNav("producto")}</Link>
-          <Link href="./soluciones" style={{ color: ink, textDecoration: "none", fontSize: 17, fontWeight: 600 }}>{tNav("soluciones")}</Link>
-          <Link href="./precios" style={{ color: ink, textDecoration: "none", fontSize: 17, fontWeight: 600 }}>{tNav("precios")}</Link>
-          <Link href="./servicios" style={{ color: ink, textDecoration: "none", fontSize: 18, fontWeight: 600 }}>{tNav("servicios")}</Link>
-          <Link href="./tecnologia" style={{ color: ink, textDecoration: "none", fontSize: 18, fontWeight: 600 }}>{tNav("tecnologia")}</Link>
-          <Link href="./seguridad" style={{ color: ink, textDecoration: "none", fontSize: 17, fontWeight: 600 }}>{tNav("seguridad")}</Link>
-          <Link href="./contacto" style={{ color: ink, textDecoration: "none", fontSize: 18, fontWeight: 600 }}>{tNav("contacto")}</Link>
+          <Link href={"/" + locale + "/producto"} style={{ color: ink, textDecoration: "none", fontSize: 17, fontWeight: 600 }}>{tNav("producto")}</Link>
+          <Link href={"/" + locale + "/soluciones"} style={{ color: ink, textDecoration: "none", fontSize: 17, fontWeight: 600 }}>{tNav("soluciones")}</Link>
+          <Link href={"/" + locale + "/precios"} style={{ color: ink, textDecoration: "none", fontSize: 17, fontWeight: 600 }}>{tNav("precios")}</Link>
+          <Link href={"/" + locale + "/servicios"} style={{ color: ink, textDecoration: "none", fontSize: 18, fontWeight: 600 }}>{tNav("servicios")}</Link>
+          <Link href={"/" + locale + "/tecnologia"} style={{ color: ink, textDecoration: "none", fontSize: 18, fontWeight: 600 }}>{tNav("tecnologia")}</Link>
+          <Link href={"/" + locale + "/seguridad"} style={{ color: ink, textDecoration: "none", fontSize: 17, fontWeight: 600 }}>{tNav("seguridad")}</Link>
+          <Link href={"/" + locale + "/contacto"} style={{ color: ink, textDecoration: "none", fontSize: 18, fontWeight: 600 }}>{tNav("contacto")}</Link>
           <LanguageSwitcher />
           <Link href="/login" style={{ padding: "14px 30px", background: yellowBrand, borderRadius: 12, color: bg, textDecoration: "none", fontSize: 17, fontWeight: 800, boxShadow: "0 6px 18px " + yellowBrand + "40" }}>
             {tNav("acceso")}
@@ -145,13 +146,13 @@ export default function HomePage() {
         </button>
         {menuOpen && (
           <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: bgCard, borderBottom: "1px solid " + cardBorder, display: "flex", flexDirection: "column", padding: 24, gap: 18 }}>
-            <Link href="./producto" onClick={() => setMenuOpen(false)} style={{ color: ink, textDecoration: "none", fontSize: 18, fontWeight: 600 }}>{tNav("producto")}</Link>
-            <Link href="./soluciones" onClick={() => setMenuOpen(false)} style={{ color: ink, textDecoration: "none", fontSize: 18, fontWeight: 600 }}>{tNav("soluciones")}</Link>
-            <Link href="./precios" onClick={() => setMenuOpen(false)} style={{ color: ink, textDecoration: "none", fontSize: 18, fontWeight: 600 }}>{tNav("precios")}</Link>
-            <Link href="./servicios" onClick={() => setMenuOpen(false)} style={{ color: ink, textDecoration: "none", fontSize: 18, fontWeight: 600 }}>{tNav("servicios")}</Link>
-            <Link href="./tecnologia" onClick={() => setMenuOpen(false)} style={{ color: ink, textDecoration: "none", fontSize: 18, fontWeight: 600 }}>{tNav("tecnologia")}</Link>
-            <Link href="./seguridad" onClick={() => setMenuOpen(false)} style={{ color: ink, textDecoration: "none", fontSize: 18, fontWeight: 600 }}>{tNav("seguridad")}</Link>
-            <Link href="./contacto" onClick={() => setMenuOpen(false)} style={{ color: ink, textDecoration: "none", fontSize: 18, fontWeight: 600 }}>{tNav("contacto")}</Link>
+            <Link href={"/" + locale + "/producto"} onClick={() => setMenuOpen(false)} style={{ color: ink, textDecoration: "none", fontSize: 18, fontWeight: 600 }}>{tNav("producto")}</Link>
+            <Link href={"/" + locale + "/soluciones"} onClick={() => setMenuOpen(false)} style={{ color: ink, textDecoration: "none", fontSize: 18, fontWeight: 600 }}>{tNav("soluciones")}</Link>
+            <Link href={"/" + locale + "/precios"} onClick={() => setMenuOpen(false)} style={{ color: ink, textDecoration: "none", fontSize: 18, fontWeight: 600 }}>{tNav("precios")}</Link>
+            <Link href={"/" + locale + "/servicios"} onClick={() => setMenuOpen(false)} style={{ color: ink, textDecoration: "none", fontSize: 18, fontWeight: 600 }}>{tNav("servicios")}</Link>
+            <Link href={"/" + locale + "/tecnologia"} onClick={() => setMenuOpen(false)} style={{ color: ink, textDecoration: "none", fontSize: 18, fontWeight: 600 }}>{tNav("tecnologia")}</Link>
+            <Link href={"/" + locale + "/seguridad"} onClick={() => setMenuOpen(false)} style={{ color: ink, textDecoration: "none", fontSize: 18, fontWeight: 600 }}>{tNav("seguridad")}</Link>
+            <Link href={"/" + locale + "/contacto"} onClick={() => setMenuOpen(false)} style={{ color: ink, textDecoration: "none", fontSize: 18, fontWeight: 600 }}>{tNav("contacto")}</Link>
             <LanguageSwitcher />
             <Link href="/login" style={{ padding: "14px 30px", background: yellowBrand, borderRadius: 12, color: bg, textDecoration: "none", fontSize: 17, fontWeight: 800, textAlign: "center" }}>
               {tNav("acceso")}
@@ -327,7 +328,7 @@ export default function HomePage() {
         <div className="label-badge" style={labelStyle(indigo)}>{t("plansLabel")}</div>
         <h2 style={sectionTitleStyle}>{t("plansTitle")}</h2>
         <p style={{ marginTop: 18, fontSize: 20, color: inkSoft, maxWidth: 600, margin: "18px auto 0" }}>{t("plansDesc")}</p>
-        <Link href="./servicios" style={{ display: "inline-block", marginTop: 34, padding: "18px 42px", background: yellowBrand, color: bg, borderRadius: 14, textDecoration: "none", fontSize: 19, fontWeight: 800, boxShadow: "0 10px 26px " + yellowBrand + "40" }}>
+        <Link href={"/" + locale + "/servicios"} style={{ display: "inline-block", marginTop: 34, padding: "18px 42px", background: yellowBrand, color: bg, borderRadius: 14, textDecoration: "none", fontSize: 19, fontWeight: 800, boxShadow: "0 10px 26px " + yellowBrand + "40" }}>
           {t("plansCta")}
         </Link>
       </section>
