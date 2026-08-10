@@ -56,9 +56,13 @@ export default function CommandCenterPage() {
   const monthlyRevenue = subscriptions.filter((s) => s.status === "ACTIVE" && !isExpired(s)).reduce((sum, s) => sum + (s.subscription_plans?.monthly_price_usd || 0), 0);
   const openSituations = situations.filter((s) => s.status !== "RESUELTA");
 
+  const activeCompanyIds = new Set(
+    subscriptions.filter((s) => s.status === "ACTIVE" && !isExpired(s)).map((s) => s.company_id)
+  );
   const continentCounts: Record<string, number> = {};
   CONTINENTS.forEach((c) => (continentCounts[c] = 0));
   companies.forEach((c) => {
+    if (!activeCompanyIds.has(c.id)) return;
     const continent = mapCountryToContinent(c.country);
     continentCounts[continent] = (continentCounts[continent] || 0) + 1;
   });
@@ -97,7 +101,7 @@ export default function CommandCenterPage() {
         <div style={{ width: 10, height: 10, borderRadius: "50%", background: glow, boxShadow: "0 0 10px " + glow }} />
         <h1 style={{ fontSize: 26, fontWeight: 800, fontFamily: "'IBM Plex Mono', monospace", letterSpacing: 2, color: glow }}>CENTRO DE MANDO</h1>
       </div>
-      <p style={{ color: inkSoft, fontSize: 13, fontFamily: "'IBM Plex Mono', monospace" }}>SISTEMA OPERATIVO — ACCESO NIVEL PROPIETARIO</p>
+      <p style={{ color: inkSoft, fontSize: 13, fontFamily: "'IBM Plex Mono', monospace" }}>SISTEMA OPERATIVO â€” ACCESO NIVEL PROPIETARIO</p>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginTop: 28 }}>
         <div style={panelStyle}>
@@ -119,7 +123,7 @@ export default function CommandCenterPage() {
       </div>
 
       <div style={{ ...panelStyle, marginTop: 20 }}>
-        <p style={{ fontSize: 13, color: glow, fontFamily: "'IBM Plex Mono', monospace", letterSpacing: 1, marginBottom: 16 }}>DISTRIBUCION GLOBAL — 5 CONTINENTES</p>
+        <p style={{ fontSize: 13, color: glow, fontFamily: "'IBM Plex Mono', monospace", letterSpacing: 1, marginBottom: 16 }}>DISTRIBUCION GLOBAL â€” 5 CONTINENTES</p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12 }}>
           {CONTINENTS.filter((c) => c !== "Sin Clasificar").map((c) => (
             <div key={c} style={{ padding: 14, background: bg, borderRadius: 6, border: "1px solid " + glowDim, textAlign: "center" }}>
