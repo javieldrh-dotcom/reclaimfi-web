@@ -59,7 +59,7 @@ export default function VerticalSidebar({ vertical, brandName, navItems }: Props
 
   return (
     <div ref={navRef} style={{ width: "100%", background: theme.background, borderBottom: "1px solid " + theme.border, position: "sticky", top: 0, zIndex: 200 }}>
-      <div style={{ display: "flex", alignItems: "center", padding: "0 24px", height: 64, gap: 4, overflowX: "auto" }}>
+      <div style={{ display: "flex", alignItems: "center", padding: "0 24px", height: 64, gap: 4, flexWrap: "wrap" }}>
         <div style={{ fontSize: 18, fontWeight: 900, color: theme.accent, letterSpacing: "0.03em", fontFamily: theme.titleStyle.fontFamily, marginRight: 20, whiteSpace: "nowrap" }}>
           {brandName}
         </div>
