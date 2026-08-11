@@ -65,10 +65,10 @@ const navItems = [
 ];
 export default function AccountingLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ display: "flex", position: "relative" }}>
+    <div style={{ position: "relative" }}>
       <VerticalSidebar vertical="accounting" brandName="CONTABILIDAD" navItems={navItems} />
       <AccountingChatWidget />
-      <div style={{ marginLeft: 280, flex: 1, position: "relative", zIndex: 1 }}>
+      <div style={{ position: "relative", zIndex: 1 }}>
         <div style={{ padding: "20px 40px 0" }}>
           <CompanySwitcher />
         </div>

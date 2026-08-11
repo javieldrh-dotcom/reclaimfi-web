@@ -10,9 +10,9 @@ const navItems = [
 
 export default function ApuLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ display: "flex", position: "relative" }}>
+    <div style={{ position: "relative" }}>
       <VerticalSidebar vertical="apu" brandName="APU / LICITACIONES" navItems={navItems} />
-      <div style={{ marginLeft: 280, flex: 1, position: "relative", zIndex: 1 }}>
+      <div style={{ position: "relative", zIndex: 1 }}>
         {children}
       </div>
     </div>
