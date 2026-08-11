@@ -46,7 +46,7 @@ export default function VerticalSidebar({ vertical, brandName, navItems }: Props
     gap: 6,
     padding: "10px 14px",
     borderRadius: 8,
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: 700,
     letterSpacing: "0.02em",
     textDecoration: "none",
@@ -60,7 +60,7 @@ export default function VerticalSidebar({ vertical, brandName, navItems }: Props
   return (
     <div ref={navRef} style={{ width: "100%", background: theme.background, borderBottom: "1px solid " + theme.border, position: "sticky", top: 0, zIndex: 200 }}>
       <div style={{ display: "flex", alignItems: "center", padding: "0 24px", height: 64, gap: 4, flexWrap: "wrap" }}>
-        <div style={{ fontSize: 18, fontWeight: 900, color: theme.accent, letterSpacing: "0.03em", fontFamily: theme.titleStyle.fontFamily, marginRight: 20, whiteSpace: "nowrap" }}>
+        <div style={{ fontSize: 20, fontWeight: 900, color: theme.accent, letterSpacing: "0.03em", fontFamily: theme.titleStyle.fontFamily, marginRight: 20, whiteSpace: "nowrap" }}>
           {brandName}
         </div>
 
@@ -92,7 +92,7 @@ export default function VerticalSidebar({ vertical, brandName, navItems }: Props
                             display: "block",
                             padding: "10px 14px",
                             borderRadius: 8,
-                            fontSize: 13,
+                            fontSize: 15,
                             fontWeight: 600,
                             textDecoration: "none",
                             color: isActive ? theme.background : theme.textPrimary,

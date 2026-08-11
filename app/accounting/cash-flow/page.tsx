@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
@@ -137,7 +137,7 @@ export default function CashFlowPage() {
         </button>
       }
     >
-      <div style={{ ...theme.cardStyle, maxWidth: 700, marginBottom: 20 }}>
+      <div style={{ ...theme.cardStyle, maxWidth: 1300, margin: "0 auto 20px" }}>
         <p style={{ fontSize: 15, color: theme.accent, fontWeight: 700, marginBottom: 10 }}>Periodo del Flujo</p>
         <div style={{ display: "flex", gap: 10 }}>
           <input type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} style={theme.inputStyle} />
@@ -145,7 +145,7 @@ export default function CashFlowPage() {
           <button onClick={recalculate} style={{ ...theme.buttonStyle, fontSize: 14, padding: "8px 20px" }}>Recalcular</button>
         </div>
       </div>
-      <div style={{ ...theme.cardStyle, maxWidth: 700 }}>
+      <div style={{ ...theme.cardStyle, maxWidth: 1300, margin: "0 auto" }}>
         <h3 style={{ color: "#4ade80", fontSize: 24, marginBottom: 16, fontWeight: 700 }}>Actividades de Operacion</h3>
         <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", fontSize: 22 }}><span>Utilidad del Ejercicio</span><span style={theme.numberStyle}>{netIncome.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
         <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", fontSize: 22 }}><span>+ Depreciacion</span><span style={theme.numberStyle}>{depreciation.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>

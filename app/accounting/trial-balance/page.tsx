@@ -69,11 +69,11 @@ export default function TrialBalancePage() {
   }
   return (
     <div style={theme.pageStyle}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", maxWidth: 1100 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", maxWidth: 1500, margin: "0 auto" }}>
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{ width: 4, height: 32, background: theme.accent, borderRadius: 2 }} />
-            <h1 style={theme.titleStyle}>Balance de Comprobación</h1>
+            <h1 style={theme.titleStyle}>Balance de ComprobaciÃƒÂ³n</h1>
           </div>
           <p style={{ color: "#8B93A7", fontSize: 14, marginLeft: 16, marginTop: 4 }}>
             Selecciona una cuenta para ver su historial completo de movimientos
@@ -84,11 +84,11 @@ export default function TrialBalancePage() {
         </button>
       </div>
 
-      <div style={{ ...theme.cardStyle, marginTop: 28, padding: 0, overflow: "hidden", maxWidth: 1100 }}>
+      <div style={{ ...theme.cardStyle, marginTop: 28, padding: 0, overflow: "hidden", maxWidth: 1500, margin: "28px auto 0" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ textAlign: "left", color: theme.accent, fontSize: 12, letterSpacing: "0.08em", textTransform: "uppercase", background: "#1F293755" }}>
-              <th style={{ padding: "16px 20px", width: 110 }}>Código</th>
+              <th style={{ padding: "16px 20px", width: 110 }}>CÃƒÂ³digo</th>
               <th style={{ padding: "16px 20px" }}>Cuenta</th>
               <th style={{ padding: "16px 20px", textAlign: "right", width: 160 }}>Debe</th>
               <th style={{ padding: "16px 20px", textAlign: "right", width: 160 }}>Haber</th>
@@ -103,8 +103,8 @@ export default function TrialBalancePage() {
                     {r.name}
                   </Link>
                 </td>
-                <td style={{ padding: "16px 20px", textAlign: "right", ...theme.numberStyle, fontSize: 20, lineHeight: 1.6 }}>{r.debit > 0 ? r.debit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "—"}</td>
-                <td style={{ padding: "16px 20px", textAlign: "right", ...theme.numberStyle, fontSize: 20, lineHeight: 1.6 }}>{r.credit > 0 ? r.credit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "—"}</td>
+                <td style={{ padding: "16px 20px", textAlign: "right", ...theme.numberStyle, fontSize: 20, lineHeight: 1.6 }}>{r.debit > 0 ? r.debit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "Ã¢â‚¬â€"}</td>
+                <td style={{ padding: "16px 20px", textAlign: "right", ...theme.numberStyle, fontSize: 20, lineHeight: 1.6 }}>{r.credit > 0 ? r.credit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "Ã¢â‚¬â€"}</td>
               </tr>
             ))}
           </tbody>
@@ -118,15 +118,15 @@ export default function TrialBalancePage() {
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
-        maxWidth: 1100,
+        maxWidth: 1500,
         background: isBalanced ? theme.subtleAccent + "15" : "#F8717115",
         border: "1px solid " + (isBalanced ? theme.subtleAccent + "40" : "#F8717140"),
       }}>
         <div style={{ ...theme.kpiStyle, color: isBalanced ? theme.subtleAccent : "#F87171" }}>
-          Debe: {totalDebit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} &nbsp;·&nbsp; Haber: {totalCredit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          Debe: {totalDebit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} &nbsp;Ã‚Â·&nbsp; Haber: {totalCredit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </div>
         <div style={{ fontWeight: 700, color: isBalanced ? theme.subtleAccent : "#F87171", display: "flex", alignItems: "center", gap: 6, fontSize: 15 }}>
-          <span>{isBalanced ? "✓" : "!"}</span>
+          <span>{isBalanced ? "Ã¢Å“â€œ" : "!"}</span>
           {isBalanced ? "Cuadrado" : "Descuadrado"}
         </div>
       </div>

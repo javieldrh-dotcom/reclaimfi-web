@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
@@ -102,7 +102,7 @@ export default function EquityStatementPage() {
         </div>
       }
     >
-      <div style={{ maxWidth: 700 }}>
+      <div style={{ maxWidth: 1300, margin: "0 auto" }}>
         <h2 style={{ marginTop: 20, fontSize: 24, color: theme.accent, fontWeight: 700 }}>Capital Social</h2>
         {capital.length === 0 && <p style={{ fontSize: 15, color: "#8B93A7", padding: 8 }}>Sin movimientos de capital registrados.</p>}
         {capital.map((r) => (
