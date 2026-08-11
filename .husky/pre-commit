@@ -1,0 +1,1 @@
+node scripts/check-encoding-and-style.js
