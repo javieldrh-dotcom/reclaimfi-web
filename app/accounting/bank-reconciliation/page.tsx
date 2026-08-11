@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useState } from "react";
 import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
@@ -58,7 +58,7 @@ export default function BankReconciliationPage() {
   };
   return (
     <VerticalPageLayout vertical="accounting" title="Conciliacion Bancaria" subtitle="Analisis asistido por IA de tus movimientos" fullWidth>
-      <div style={{ maxWidth: 700 }}>
+      <div style={{ maxWidth: 700, margin: "0 auto" }}>
         <label style={{ fontSize: 18, color: theme.accent, fontWeight: 700 }}>Pega el texto de tu estado de cuenta bancario</label>
         <textarea
           value={bankText}

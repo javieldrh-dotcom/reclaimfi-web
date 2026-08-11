@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
@@ -200,7 +200,7 @@ export default function FixedAssetsPage() {
       </button>
 
       {batchMode && (
-        <div style={{ ...theme.cardStyle, marginBottom: 20, maxWidth: 1100 }}>
+        <div style={{ ...theme.cardStyle, marginBottom: 20, maxWidth: 1100, margin: "0 auto 20px" }}>
           <p style={{ fontSize: 15, color: theme.accent, fontWeight: 700, marginBottom: 10 }}>Carga por Lote — Solo para control de depreciacion, no genera asiento contable</p>
           {batchRows.map((row) => (
             <div key={row.id} style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "center", flexWrap: "wrap" }}>
@@ -219,7 +219,7 @@ export default function FixedAssetsPage() {
         </div>
       )}
 
-      <div style={{ ...theme.cardStyle, marginBottom: 20, maxWidth: 900 }}>
+      <div style={{ ...theme.cardStyle, marginBottom: 20, maxWidth: 900, margin: "0 auto 20px" }}>
         <p style={{ fontSize: 15, color: theme.accent, fontWeight: 700, marginBottom: 10 }}>Cuentas Contables (requeridas)</p>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <div style={{ display: "flex", gap: 6, flex: 1, minWidth: 220 }}>
@@ -241,7 +241,7 @@ export default function FixedAssetsPage() {
         </div>
       </div>
 
-      <div style={{ maxWidth: 600 }}>
+      <div style={{ maxWidth: 600, margin: "0 auto" }}>
         <input value={assetName} onChange={(e) => setAssetName(e.target.value)} style={inputStyle} placeholder="Nombre del activo" />
         <input type="date" value={acquisitionDate} onChange={(e) => setAcquisitionDate(e.target.value)} style={{ ...inputStyle, marginTop: 10 }} />
         <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
