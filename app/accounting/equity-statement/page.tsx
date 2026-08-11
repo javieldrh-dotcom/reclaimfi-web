@@ -102,7 +102,7 @@ export default function EquityStatementPage() {
         </div>
       }
     >
-      <div style={{ maxWidth: 1300, margin: "0 auto" }}>
+      <div>
         <h2 style={{ marginTop: 20, fontSize: 24, color: theme.accent, fontWeight: 700 }}>Capital Social</h2>
         {capital.length === 0 && <p style={{ fontSize: 15, color: "#8B93A7", padding: 8 }}>Sin movimientos de capital registrados.</p>}
         {capital.map((r) => (

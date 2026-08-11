@@ -1,6 +1,5 @@
-﻿"use client";
+"use client";
 import { getVerticalTheme } from "@/app/core/design/tokens";
-
 interface Props {
   fullWidth?: boolean;
   vertical: "accounting" | "apu";
@@ -9,13 +8,12 @@ interface Props {
   actions?: React.ReactNode;
   children: React.ReactNode;
 }
-
 export default function VerticalPageLayout({ vertical, title, subtitle, actions, children, fullWidth }: Props) {
   const theme = getVerticalTheme(vertical);
-
+  const contentMaxWidth = fullWidth ? 1600 : 1100;
   return (
     <div style={theme.pageStyle}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", maxWidth: 1100 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", maxWidth: contentMaxWidth, margin: "0 auto" }}>
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{ width: 4, height: 32, background: theme.accent, borderRadius: 2 }} />
@@ -25,7 +23,7 @@ export default function VerticalPageLayout({ vertical, title, subtitle, actions,
         </div>
         {actions && <div>{actions}</div>}
       </div>
-      <div style={{ marginTop: 28, maxWidth: fullWidth ? "none" : 1100 }}>
+      <div style={{ marginTop: 28, maxWidth: contentMaxWidth, margin: "28px auto 0" }}>
         {children}
       </div>
     </div>

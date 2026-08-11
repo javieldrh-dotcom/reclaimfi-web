@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
@@ -105,7 +105,7 @@ export default function IncomeStatementPage() {
         </div>
       }
     >
-      <div style={{ maxWidth: 700 }}>
+      <div>
         <h2 style={{ marginTop: 20, fontSize: 24, color: "#4ade80", fontWeight: 700 }}>Ingresos</h2>
         {revenue.map((r) => (
           <div key={r.code} style={rowStyle}>

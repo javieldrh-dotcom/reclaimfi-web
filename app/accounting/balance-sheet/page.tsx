@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
@@ -113,7 +113,7 @@ export default function BalanceSheetPage() {
         </div>
       }
     >
-      <div style={{ maxWidth: 700 }}>
+      <div>
         <h2 style={{ marginTop: 20, fontSize: 24, color: theme.accent, fontWeight: 700 }}>Activos Corrientes</h2>
         {currentAssets.map((r) => (
           <div key={r.code} style={rowStyle}>
