@@ -64,7 +64,7 @@ export default function ResourcesPage() {
               <span style={{ fontSize: 11, fontWeight: 700, color: "#FACC15", textTransform: "uppercase" }}>{r.category}</span>
               <p style={{ fontSize: 17, fontWeight: 700, marginTop: 8 }}>{r.title}</p>
               {r.description && <p style={{ fontSize: 14, color: "#8FA3C4", marginTop: 6, lineHeight: 1.5 }}>{r.description}</p>}
-              <p style={{ fontSize: 13, color: "#FACC15", marginTop: 14, fontWeight: 600 }}>Descargar PDF Ã¢â€ â€œ</p>
+              <p style={{ fontSize: 13, color: "#FACC15", marginTop: 14, fontWeight: 600 }}>Descargar PDF</p>
             </a>
           ))}
         </div>
