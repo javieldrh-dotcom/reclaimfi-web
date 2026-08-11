@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
@@ -119,7 +119,7 @@ export default function ApBillsPage() {
 
   return (
     <VerticalPageLayout vertical="accounting" title="Cuentas por Pagar" subtitle="Cada factura de proveedor genera automaticamente su asiento contable en el Libro Diario" fullWidth>
-      <div style={{ maxWidth: 600 }}>
+      <div style={{ maxWidth: 600, margin: "0 auto" }}>
         <input value={vendorName} onChange={(e) => setVendorName(e.target.value)} style={inputStyle} placeholder="Nombre del proveedor" />
         <input value={billNumber} onChange={(e) => setBillNumber(e.target.value)} style={{ ...inputStyle, marginTop: 10 }} placeholder="Numero de factura" />
         <div style={{ display: "flex", gap: 10, marginTop: 10 }}>

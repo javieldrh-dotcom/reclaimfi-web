@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
@@ -305,7 +305,7 @@ export default function PurchaseBookPage() {
         </button>
       ) : undefined}
     >
-      <div style={{ maxWidth: 900 }}>
+      <div style={{ maxWidth: 1400, margin: "0 auto" }}>
         <div style={{ ...theme.cardStyle, marginBottom: 12, border: "1px dashed " + theme.accent }}>
           <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: extracting ? "wait" : "pointer" }}>
             <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleInvoiceUpload} disabled={extracting} style={{ display: "none" }} />
@@ -546,7 +546,7 @@ export default function PurchaseBookPage() {
             </div>
           )}
 
-          <div style={{ ...theme.cardStyle, marginTop: 24, maxWidth: 500 }}>
+          <div style={{ ...theme.cardStyle, marginTop: 24, maxWidth: 500, margin: "24px auto 0" }}>
             <h3 style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginBottom: 12 }}>RESUMEN LIBRO DE COMPRAS</h3>
             <div style={{ display: "flex", justifyContent: "space-between", padding: 6, fontSize: 15 }}><span>Compras no gravadas o sin derecho a C.F.</span><span style={theme.numberStyle}>{entries.reduce((s, e) => s + (e.non_taxable_amount || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
             <div style={{ display: "flex", justifyContent: "space-between", padding: 6, fontSize: 15 }}><span>Importaciones gravadas alicuota general</span><span style={theme.numberStyle}>{entries.reduce((s, e) => s + (e.import_taxable_base || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>

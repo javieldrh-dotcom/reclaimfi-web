@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
@@ -243,7 +243,7 @@ export default function SalesBookPage() {
         </button>
       ) : undefined}
     >
-      <div style={{ maxWidth: 900 }}>
+      <div style={{ maxWidth: 1400, margin: "0 auto" }}>
         <div style={{ display: "flex", gap: 10 }}>
           <input type="date" value={entryDate} onChange={(e) => setEntryDate(e.target.value)} style={inputStyle} />
           <select value={invoiceCurrency} onChange={(e) => setInvoiceCurrency(e.target.value)} style={inputStyle}>
@@ -425,7 +425,7 @@ export default function SalesBookPage() {
             </div>
           )}
 
-          <div style={{ ...theme.cardStyle, marginTop: 24, maxWidth: 500 }}>
+          <div style={{ ...theme.cardStyle, marginTop: 24, maxWidth: 500, margin: "24px auto 0" }}>
             <h3 style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginBottom: 12 }}>RESUMEN LIBRO DE VENTAS</h3>
             <div style={{ display: "flex", justifyContent: "space-between", padding: 6, fontSize: 15 }}><span>Ventas internas no gravadas</span><span style={theme.numberStyle}>{entries.reduce((s, e) => s + (e.non_taxable_amount || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
             <div style={{ display: "flex", justifyContent: "space-between", padding: 6, fontSize: 15 }}><span>Ventas de exportacion</span><span style={theme.numberStyle}>{entries.filter(e => e.is_export).reduce((s, e) => s + (e.total_including_vat || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>

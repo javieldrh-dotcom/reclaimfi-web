@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
@@ -120,7 +120,7 @@ export default function ArInvoicesPage() {
 
   return (
     <VerticalPageLayout vertical="accounting" title="Cuentas por Cobrar" subtitle="Cada factura genera automaticamente su asiento contable en el Libro Diario" fullWidth>
-      <div style={{ maxWidth: 600 }}>
+      <div style={{ maxWidth: 600, margin: "0 auto" }}>
         <input value={customerName} onChange={(e) => setCustomerName(e.target.value)} style={inputStyle} placeholder="Nombre del cliente" />
         <input value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} style={{ ...inputStyle, marginTop: 10 }} placeholder="Numero de factura" />
         <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
