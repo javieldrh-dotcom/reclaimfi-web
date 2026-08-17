@@ -4,6 +4,7 @@ import { useParams } from "next/navigation";
 import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
 import VerticalPageLayout from "@/app/components/VerticalPageLayout";
+import { generateApuOfertaPdf } from "@/app/core/reports/generateApuOfertaPdf";
 
 interface Partida {
   id: string;
@@ -48,6 +49,7 @@ export default function ApuPartidasPage() {
   const projectId = params?.projectId as string;
 
   const [project, setProject] = useState<any>(null);
+  const [companyName, setCompanyName] = useState("");
   const [partidas, setPartidas] = useState<Partida[]>([]);
   const [fsclOptions, setFsclOptions] = useState<FsclOption[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -75,6 +77,10 @@ export default function ApuPartidasPage() {
       if (!projectId) return;
       const { data: proj } = await supabase.from("apu_projects").select("*").eq("id", projectId).single();
       setProject(proj);
+      if (proj?.company_id) {
+        const { data: comp } = await supabase.from("companies").select("name").eq("id", proj.company_id).single();
+        setCompanyName(comp?.name ?? "");
+      }
       const { data: fscl } = await supabase.from("apu_fscl_calculations").select("id, work_system, fscl_factor").eq("apu_project_id", projectId).order("created_at", { ascending: false });
       setFsclOptions(fscl ?? []);
       await loadPartidas();
@@ -188,10 +194,65 @@ export default function ApuPartidasPage() {
     return { materialsCost, equipmentCost, laborCost, directCost, admin, profit, unitPrice, total: unitPrice * partida.quantity, factor };
   }
 
+  const [pdfGenerating, setPdfGenerating] = useState(false);
+
+  async function downloadOfertaPdf() {
+    setPdfGenerating(true);
+    const freshSubItems: typeof subItems = { ...subItems };
+    for (const p of partidas) {
+      if (!freshSubItems[p.id]) {
+        const [{ data: materials }, { data: equipment }, { data: labor }] = await Promise.all([
+          supabase.from("apu_partida_materials").select("*").eq("apu_partida_id", p.id),
+          supabase.from("apu_partida_equipment").select("*").eq("apu_partida_id", p.id),
+          supabase.from("apu_partida_labor").select("*").eq("apu_partida_id", p.id),
+        ]);
+        freshSubItems[p.id] = { materials: materials ?? [], equipment: equipment ?? [], labor: labor ?? [] };
+      }
+    }
+    setSubItems(freshSubItems);
+
+    const ofertaPartidas = partidas.map((p) => {
+      const items = freshSubItems[p.id];
+      const materialsCost = (items?.materials ?? []).reduce((s, m) => s + (m.quantity || 0) * (m.unit_cost || 0), 0);
+      const equipmentCost = (items?.equipment ?? []).reduce((s, e) => s + (e.quantity || 0) * (e.unit_cost || 0), 0);
+      const fscl = fsclOptions.find((f) => f.id === p.fscl_calculation_id);
+      const factor = fscl ? fscl.fscl_factor : 1;
+      const laborCost = (items?.labor ?? []).reduce((s, l) => s + (l.quantity || 0) * (l.days || 0) * (l.daily_rate || 0) * factor, 0);
+      const directCost = materialsCost + equipmentCost + laborCost;
+      const admin = directCost * ((p.admin_percentage || 0) / 100);
+      const profit = directCost * ((p.profit_percentage || 0) / 100);
+      const unitPrice = directCost + admin + profit;
+      return {
+        code: p.code,
+        description: p.description,
+        unit: p.unit,
+        quantity: p.quantity,
+        unitPrice,
+        total: unitPrice * p.quantity,
+      };
+    });
+
+    const doc = generateApuOfertaPdf(
+      companyName,
+      project?.procedure_number ?? "",
+      project?.project_description ?? "",
+      project?.contracting_entity ?? "",
+      ofertaPartidas
+    );
+    doc.save("oferta-" + (project?.procedure_number ?? "apu") + ".pdf");
+    setPdfGenerating(false);
+  }
+
   const inputStyle = { ...theme.inputStyle, fontSize: 16 };
   const smallInput = { ...theme.inputStyle, fontSize: 14, padding: 8 };
   return (
-    <VerticalPageLayout vertical="apu" title="Partidas de la Oferta" subtitle={project ? project.procedure_number + " - " + project.project_description : "Cargando..."} fullWidth>
+    <VerticalPageLayout vertical="apu" title="Partidas de la Oferta" subtitle={project ? project.procedure_number + " - " + project.project_description : "Cargando..."} fullWidth
+      actions={
+        <button onClick={downloadOfertaPdf} disabled={pdfGenerating || partidas.length === 0} style={{ ...theme.buttonStyle, fontSize: 13, padding: "10px 20px", opacity: pdfGenerating || partidas.length === 0 ? 0.6 : 1 }}>
+          {pdfGenerating ? "Generando..." : "Descargar PDF de Oferta"}
+        </button>
+      }
+    >
       <div style={{ ...theme.cardStyle, marginBottom: 24 }}>
         <h3 style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginBottom: 12 }}>Nueva Partida</h3>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
