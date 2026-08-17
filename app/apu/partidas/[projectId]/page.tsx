@@ -8,6 +8,7 @@ import VerticalPageLayout from "@/app/components/VerticalPageLayout";
 interface Partida {
   id: string;
   apu_project_id: string;
+  item_number: number;
   code: string | null;
   description: string;
   unit: string;
@@ -84,8 +85,10 @@ export default function ApuPartidasPage() {
   async function createPartida() {
     setMessage("");
     if (!newDescription || !newUnit) { setMessage("Completa al menos descripcion y unidad."); return; }
+    const nextItemNumber = partidas.length > 0 ? Math.max(...partidas.map((p: any) => p.item_number || 0)) + 1 : 1;
     const { error } = await supabase.from("apu_partidas").insert([{
       apu_project_id: projectId,
+      item_number: nextItemNumber,
       code: newCode || null,
       description: newDescription,
       unit: newUnit,
