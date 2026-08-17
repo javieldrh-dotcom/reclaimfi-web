@@ -1,186 +1,369 @@
-﻿"use client";
-import { useEffect, useState } from "react";
+"use client";
+import { useEffect, useState, useCallback } from "react";
+import { useParams } from "next/navigation";
 import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
 import VerticalPageLayout from "@/app/components/VerticalPageLayout";
 
-export default function FsclCalculatorPage() {
+interface Partida {
+  id: string;
+  apu_project_id: string;
+  code: string | null;
+  description: string;
+  unit: string;
+  quantity: number;
+  admin_percentage: number;
+  profit_percentage: number;
+  fscl_calculation_id: string | null;
+}
+
+interface LineItem {
+  id: string;
+  description?: string;
+  position_name?: string;
+  unit?: string;
+  quantity: number;
+  unit_cost?: number;
+  days?: number;
+  daily_rate?: number;
+}
+
+interface FsclOption {
+  id: string;
+  work_system: string;
+  fscl_factor: number;
+}
+
+interface AiSuggestion {
+  materials: { description: string; unit: string; quantity: number }[];
+  equipment: { description: string; unit: string; quantity: number }[];
+  labor: { positionName: string; quantity: number; days: number }[];
+  summary: string;
+}
+
+export default function ApuPartidasPage() {
   const theme = getVerticalTheme("apu");
-  const [companyId, setCompanyId] = useState<string | null>(null);
-  const [projects, setProjects] = useState<any[]>([]);
-  const [selectedProject, setSelectedProject] = useState("");
-  const [workSystem, setWorkSystem] = useState("5X2-36-DIA");
-  const [dailyBasicSalary, setDailyBasicSalary] = useState("");
-  const [calendarDays, setCalendarDays] = useState("365");
-  const [nonWorkedDays, setNonWorkedDays] = useState("104");
-  const [isaPercentage, setIsaPercentage] = useState("0");
-  const [travelTimeAmount, setTravelTimeAmount] = useState("0");
-  const [preavisoDays, setPreavisoDays] = useState("60");
-  const [antiguedadLegalDays, setAntiguedadLegalDays] = useState("30");
-  const [antiguedadContractualDays, setAntiguedadContractualDays] = useState("0");
-  const [vacacionesDays, setVacacionesDays] = useState("27");
-  const [bonoVacacionalDays, setBonoVacacionalDays] = useState("60");
-  const [utilidadesDays, setUtilidadesDays] = useState("120");
-  const [eppAmount, setEppAmount] = useState("0");
-  const [aguaHieloAmount, setAguaHieloAmount] = useState("0");
-  const [clinicaAmount, setClinicaAmount] = useState("0");
+  const params = useParams();
+  const projectId = params?.projectId as string;
+
+  const [project, setProject] = useState<any>(null);
+  const [partidas, setPartidas] = useState<Partida[]>([]);
+  const [fsclOptions, setFsclOptions] = useState<FsclOption[]>([]);
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [subItems, setSubItems] = useState<Record<string, { materials: LineItem[]; equipment: LineItem[]; labor: LineItem[] }>>({});
   const [message, setMessage] = useState("");
-  const [savedCalculations, setSavedCalculations] = useState<any[]>([]);
+
+  const [newCode, setNewCode] = useState("");
+  const [newDescription, setNewDescription] = useState("");
+  const [newUnit, setNewUnit] = useState("");
+  const [newQuantity, setNewQuantity] = useState("1");
+  const [newAdmin, setNewAdmin] = useState("15");
+  const [newProfit, setNewProfit] = useState("10");
+  const [newFsclId, setNewFsclId] = useState("");
+
+  const [aiLoading, setAiLoading] = useState<string | null>(null);
+  const [aiSuggestion, setAiSuggestion] = useState<Record<string, AiSuggestion>>({});
+
+  const loadPartidas = useCallback(async () => {
+    const { data } = await supabase.from("apu_partidas").select("*").eq("apu_project_id", projectId).order("created_at", { ascending: true });
+    setPartidas(data ?? []);
+  }, [projectId]);
 
   useEffect(() => {
     async function load() {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData?.user) return;
-      const { data: uc } = await supabase.from("user_companies").select("company_id").eq("user_id", userData.user.id).order("last_active_at", { ascending: false }).limit(1).single();
-      const cid = uc?.company_id ?? null;
-      setCompanyId(cid);
-      if (cid) {
-        const { data: proj } = await supabase.from("apu_projects").select("id, procedure_number, project_description").eq("company_id", cid).order("created_at", { ascending: false });
-        setProjects(proj ?? []);
-      }
+      if (!projectId) return;
+      const { data: proj } = await supabase.from("apu_projects").select("*").eq("id", projectId).single();
+      setProject(proj);
+      const { data: fscl } = await supabase.from("apu_fscl_calculations").select("id, work_system, fscl_factor").eq("apu_project_id", projectId).order("created_at", { ascending: false });
+      setFsclOptions(fscl ?? []);
+      await loadPartidas();
     }
     load();
-  }, []);
-  function calculateFscl() {
-    const sb = parseFloat(dailyBasicSalary) || 0;
-    const calDays = parseFloat(calendarDays) || 365;
-    const nonWorked = parseFloat(nonWorkedDays) || 0;
-    const worked = calDays - nonWorked;
+  }, [projectId, loadPartidas]);
 
-    const isa = sb * ((parseFloat(isaPercentage) || 0) / 100);
-    const travel = parseFloat(travelTimeAmount) || 0;
-    const subTotalA = (sb + isa + travel) * calDays;
-
-    const preaviso = sb * (parseFloat(preavisoDays) || 0);
-    const antigLegal = sb * (parseFloat(antiguedadLegalDays) || 0);
-    const antigContractual = sb * (parseFloat(antiguedadContractualDays) || 0);
-    const vacaciones = sb * (parseFloat(vacacionesDays) || 0);
-    const bonoVac = sb * (parseFloat(bonoVacacionalDays) || 0);
-    const utilidades = sb * (parseFloat(utilidadesDays) || 0);
-    const subTotalB = preaviso + antigLegal + antigContractual + vacaciones + bonoVac + utilidades;
-
-    const epp = parseFloat(eppAmount) || 0;
-    const agua = parseFloat(aguaHieloAmount) || 0;
-    const clinica = parseFloat(clinicaAmount) || 0;
-    const subTotalC = epp + agua + clinica;
-
-    const seguroSocial = subTotalA * 0.11;
-    const inces = subTotalA * 0.02;
-    const lph = subTotalA * 0.02;
-    const paroForzoso = subTotalA * 0.02;
-    const subTotalTerceros = seguroSocial + inces + lph + paroForzoso;
-
-    const totalAnnualCost = subTotalA + subTotalB + subTotalC + subTotalTerceros;
-    const totalDailyCost = totalAnnualCost / calDays;
-    const factor = totalDailyCost / sb;
-
-    return {
-      worked, subTotalA, subTotalB, subTotalC, subTotalTerceros,
-      totalAnnualCost, totalDailyCost, factor,
-      seguroSocial, inces, lph, paroForzoso,
-    };
-  }
-
-  async function saveCalculation() {
+  async function createPartida() {
     setMessage("");
-    if (!selectedProject || !dailyBasicSalary) { setMessage("Selecciona un proyecto y el salario basico."); return; }
-
-    const r = calculateFscl();
-
-    const { error } = await supabase.from("apu_fscl_calculations").insert([{
-      apu_project_id: selectedProject,
-      work_system: workSystem,
-      daily_basic_salary: parseFloat(dailyBasicSalary),
-      calendar_days: parseInt(calendarDays),
-      non_worked_days: parseInt(nonWorkedDays),
-      worked_days: r.worked,
-      isa_percentage: parseFloat(isaPercentage),
-      travel_time_amount: parseFloat(travelTimeAmount),
-      sub_total_a: r.subTotalA,
-      preaviso_days: parseFloat(preavisoDays),
-      antiguedad_legal_days: parseFloat(antiguedadLegalDays),
-      antiguedad_contractual_days: parseFloat(antiguedadContractualDays),
-      vacaciones_days: parseFloat(vacacionesDays),
-      bono_vacacional_days: parseFloat(bonoVacacionalDays),
-      utilidades_days: parseFloat(utilidadesDays),
-      sub_total_b: r.subTotalB,
-      examenes_pre_empleo: 0,
-      epp_amount: parseFloat(eppAmount),
-      agua_hielo_amount: parseFloat(aguaHieloAmount),
-      clinica_amount: parseFloat(clinicaAmount),
-      sub_total_c: r.subTotalC,
-      sub_total_terceros: r.subTotalTerceros,
-      total_daily_cost: r.totalDailyCost,
-      fscl_factor: r.factor,
+    if (!newDescription || !newUnit) { setMessage("Completa al menos descripcion y unidad."); return; }
+    const { error } = await supabase.from("apu_partidas").insert([{
+      apu_project_id: projectId,
+      code: newCode || null,
+      description: newDescription,
+      unit: newUnit,
+      quantity: parseFloat(newQuantity) || 1,
+      admin_percentage: parseFloat(newAdmin) || 0,
+      profit_percentage: parseFloat(newProfit) || 0,
+      fscl_calculation_id: newFsclId || null,
     }]);
-
     if (error) { setMessage("Error: " + error.message); return; }
-    setMessage("Calculo FSCL guardado. Factor: " + r.factor.toFixed(4));
+    setNewCode(""); setNewDescription(""); setNewUnit(""); setNewQuantity("1"); setNewAdmin("15"); setNewProfit("10"); setNewFsclId("");
+    await loadPartidas();
   }
 
-  const inputStyle = { ...theme.inputStyle, fontSize: 20 };
+  async function deletePartida(id: string) {
+    if (!window.confirm("Eliminar esta partida y todo su detalle de costos?")) return;
+    await supabase.from("apu_partidas").delete().eq("id", id);
+    await loadPartidas();
+  }
 
-  const r = calculateFscl();
+  async function loadSubItems(partidaId: string) {
+    const [{ data: materials }, { data: equipment }, { data: labor }] = await Promise.all([
+      supabase.from("apu_partida_materials").select("*").eq("apu_partida_id", partidaId).order("created_at", { ascending: true }),
+      supabase.from("apu_partida_equipment").select("*").eq("apu_partida_id", partidaId).order("created_at", { ascending: true }),
+      supabase.from("apu_partida_labor").select("*").eq("apu_partida_id", partidaId).order("created_at", { ascending: true }),
+    ]);
+    setSubItems((prev) => ({ ...prev, [partidaId]: { materials: materials ?? [], equipment: equipment ?? [], labor: labor ?? [] } }));
+  }
 
+  async function toggleExpand(partidaId: string) {
+    if (expanded === partidaId) { setExpanded(null); return; }
+    setExpanded(partidaId);
+    if (!subItems[partidaId]) await loadSubItems(partidaId);
+  }
+
+  async function addRow(partidaId: string, table: "apu_partida_materials" | "apu_partida_equipment" | "apu_partida_labor", row: any) {
+    const { error } = await supabase.from(table).insert([{ apu_partida_id: partidaId, ...row }]);
+    if (error) { setMessage("Error: " + error.message); return; }
+    await loadSubItems(partidaId);
+  }
+
+  async function deleteRow(partidaId: string, table: "apu_partida_materials" | "apu_partida_equipment" | "apu_partida_labor", id: string) {
+    await supabase.from(table).delete().eq("id", id);
+    await loadSubItems(partidaId);
+  }
+
+  async function requestAiSuggestion(partida: Partida) {
+    setAiLoading(partida.id);
+    setMessage("");
+    try {
+      const res = await fetch("/api/apu-suggest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description: partida.description }),
+      });
+      const data = await res.json();
+      if (data?.error || data?.success === false) {
+        setMessage(data.error || "No se pudo generar la sugerencia.");
+      } else {
+        setAiSuggestion((prev) => ({ ...prev, [partida.id]: data }));
+      }
+    } catch (e: any) {
+      setMessage("Error consultando IA: " + e.message);
+    } finally {
+      setAiLoading(null);
+    }
+  }
+
+  async function applySuggestions(partidaId: string) {
+    const s = aiSuggestion[partidaId];
+    if (!s) return;
+    for (const m of s.materials) {
+      await supabase.from("apu_partida_materials").insert([{ apu_partida_id: partidaId, description: m.description, unit: m.unit, quantity: m.quantity, unit_cost: 0 }]);
+    }
+    for (const e of s.equipment) {
+      await supabase.from("apu_partida_equipment").insert([{ apu_partida_id: partidaId, description: e.description, unit: e.unit, quantity: e.quantity, unit_cost: 0 }]);
+    }
+    for (const l of s.labor) {
+      await supabase.from("apu_partida_labor").insert([{ apu_partida_id: partidaId, position_name: l.positionName, quantity: l.quantity, days: l.days, daily_rate: 0 }]);
+    }
+    setAiSuggestion((prev) => { const next = { ...prev }; delete next[partidaId]; return next; });
+    await loadSubItems(partidaId);
+    setMessage("Sugerencias agregadas. Ahora completa los costos unitarios (la IA no sugiere precios).");
+  }
+
+  function calc(partida: Partida) {
+    const items = subItems[partida.id];
+    if (!items) return { materialsCost: 0, equipmentCost: 0, laborCost: 0, directCost: 0, admin: 0, profit: 0, unitPrice: 0, total: 0, factor: 1 };
+    const materialsCost = items.materials.reduce((s, m) => s + (m.quantity || 0) * (m.unit_cost || 0), 0);
+    const equipmentCost = items.equipment.reduce((s, e) => s + (e.quantity || 0) * (e.unit_cost || 0), 0);
+    const fscl = fsclOptions.find((f) => f.id === partida.fscl_calculation_id);
+    const factor = fscl ? fscl.fscl_factor : 1;
+    const laborCost = items.labor.reduce((s, l) => s + (l.quantity || 0) * (l.days || 0) * (l.daily_rate || 0) * factor, 0);
+    const directCost = materialsCost + equipmentCost + laborCost;
+    const admin = directCost * ((partida.admin_percentage || 0) / 100);
+    const profit = directCost * ((partida.profit_percentage || 0) / 100);
+    const unitPrice = directCost + admin + profit;
+    return { materialsCost, equipmentCost, laborCost, directCost, admin, profit, unitPrice, total: unitPrice * partida.quantity, factor };
+  }
+
+  const inputStyle = { ...theme.inputStyle, fontSize: 16 };
+  const smallInput = { ...theme.inputStyle, fontSize: 14, padding: 8 };
   return (
-    <VerticalPageLayout vertical="apu" title="Calculadora FSCL (Factor Sobre Costo de Labor)" subtitle="Contrato Colectivo Petrolero (CCTP) - Calcula el factor multiplicador sobre el salario basico diario" fullWidth>
-      <div style={{ maxWidth: 700 }}>
-        <select value={selectedProject} onChange={(e) => setSelectedProject(e.target.value)} style={inputStyle}>
-          <option value="">Selecciona un proyecto/licitacion</option>
-          {projects.map((p) => <option key={p.id} value={p.id}>{p.procedure_number} - {p.project_description}</option>)}
-        </select>
-
-        <input value={workSystem} onChange={(e) => setWorkSystem(e.target.value)} style={{ ...inputStyle, marginTop: 10 }} placeholder="Sistema de trabajo (ej. 5X2-36-DIA)" />
-
-        <div style={{ marginTop: 10 }}>
-          <label style={{ fontSize: 16, color: theme.accent, fontWeight: 700 }}>SALARIO BASICO DIARIO</label>
-          <input type="number" value={dailyBasicSalary} onChange={(e) => setDailyBasicSalary(e.target.value)} style={{ ...inputStyle, marginTop: 6 }} />
+    <VerticalPageLayout vertical="apu" title="Partidas de la Oferta" subtitle={project ? project.procedure_number + " - " + project.project_description : "Cargando..."} fullWidth>
+      <div style={{ ...theme.cardStyle, marginBottom: 24 }}>
+        <h3 style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginBottom: 12 }}>Nueva Partida</h3>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <input value={newCode} onChange={(e) => setNewCode(e.target.value)} style={{ ...inputStyle, width: 120 }} placeholder="Codigo (ej. P-2.06)" />
+          <input value={newDescription} onChange={(e) => setNewDescription(e.target.value)} style={{ ...inputStyle, flex: 1, minWidth: 260 }} placeholder="Descripcion de la partida" />
+          <input value={newUnit} onChange={(e) => setNewUnit(e.target.value)} style={{ ...inputStyle, width: 90 }} placeholder="Unidad" />
+          <input type="number" value={newQuantity} onChange={(e) => setNewQuantity(e.target.value)} style={{ ...inputStyle, width: 110 }} placeholder="Cantidad" />
         </div>
-
-        <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
-          <input type="number" value={calendarDays} onChange={(e) => setCalendarDays(e.target.value)} style={inputStyle} placeholder="Dias calendario" />
-          <input type="number" value={nonWorkedDays} onChange={(e) => setNonWorkedDays(e.target.value)} style={inputStyle} placeholder="Dias no laborados" />
+        <div style={{ display: "flex", gap: 10, marginTop: 10, flexWrap: "wrap", alignItems: "center" }}>
+          <label style={{ fontSize: 14, color: "#8B93A7" }}>Admin %</label>
+          <input type="number" value={newAdmin} onChange={(e) => setNewAdmin(e.target.value)} style={{ ...inputStyle, width: 80 }} />
+          <label style={{ fontSize: 14, color: "#8B93A7" }}>Utilidad %</label>
+          <input type="number" value={newProfit} onChange={(e) => setNewProfit(e.target.value)} style={{ ...inputStyle, width: 80 }} />
+          <label style={{ fontSize: 14, color: "#8B93A7" }}>Factor FSCL</label>
+          <select value={newFsclId} onChange={(e) => setNewFsclId(e.target.value)} style={{ ...inputStyle, width: 220 }}>
+            <option value="">Sin factor (x1)</option>
+            {fsclOptions.map((f) => <option key={f.id} value={f.id}>{f.work_system} - {f.fscl_factor.toFixed(4)}</option>)}
+          </select>
+          <button onClick={createPartida} style={{ ...theme.buttonStyle, padding: "10px 20px" }}>Agregar Partida</button>
         </div>
-
-        <h3 style={{ marginTop: 20, color: "#4ade80", fontSize: 20, fontWeight: 700 }}>Sub Total A - Pagos Directos</h3>
-        <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
-          <input type="number" value={isaPercentage} onChange={(e) => setIsaPercentage(e.target.value)} style={inputStyle} placeholder="% ISA" />
-          <input type="number" value={travelTimeAmount} onChange={(e) => setTravelTimeAmount(e.target.value)} style={inputStyle} placeholder="Tiempo de viaje" />
-        </div>
-
-        <h3 style={{ marginTop: 20, color: "#facc15", fontSize: 20, fontWeight: 700 }}>Sub Total B - Indemnizacion Laboral (en dias de salario)</h3>
-        <div style={{ display: "flex", gap: 10, marginTop: 8, flexWrap: "wrap" }}>
-          <input type="number" value={preavisoDays} onChange={(e) => setPreavisoDays(e.target.value)} style={inputStyle} placeholder="Preaviso" />
-          <input type="number" value={antiguedadLegalDays} onChange={(e) => setAntiguedadLegalDays(e.target.value)} style={inputStyle} placeholder="Antiguedad Legal" />
-          <input type="number" value={antiguedadContractualDays} onChange={(e) => setAntiguedadContractualDays(e.target.value)} style={inputStyle} placeholder="Antiguedad Contractual" />
-        </div>
-        <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
-          <input type="number" value={vacacionesDays} onChange={(e) => setVacacionesDays(e.target.value)} style={inputStyle} placeholder="Vacaciones" />
-          <input type="number" value={bonoVacacionalDays} onChange={(e) => setBonoVacacionalDays(e.target.value)} style={inputStyle} placeholder="Bono Vacacional" />
-          <input type="number" value={utilidadesDays} onChange={(e) => setUtilidadesDays(e.target.value)} style={inputStyle} placeholder="Utilidades" />
-        </div>
-
-        <h3 style={{ marginTop: 20, color: "#f87171", fontSize: 20, fontWeight: 700 }}>Sub Total C - Puntos Contractuales</h3>
-        <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
-          <input type="number" value={eppAmount} onChange={(e) => setEppAmount(e.target.value)} style={inputStyle} placeholder="EPP" />
-          <input type="number" value={aguaHieloAmount} onChange={(e) => setAguaHieloAmount(e.target.value)} style={inputStyle} placeholder="Agua/Hielo" />
-          <input type="number" value={clinicaAmount} onChange={(e) => setClinicaAmount(e.target.value)} style={inputStyle} placeholder="Clinica" />
-        </div>
-
-        <div style={{ ...theme.cardStyle, marginTop: 24 }}>
-          <p style={{ fontSize: 18 }}>Sub Total A: <span style={theme.numberStyle}>{r.subTotalA.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span></p>
-          <p style={{ fontSize: 18, marginTop: 6 }}>Sub Total B: <span style={theme.numberStyle}>{r.subTotalB.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span></p>
-          <p style={{ fontSize: 18, marginTop: 6 }}>Sub Total C: <span style={theme.numberStyle}>{r.subTotalC.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span></p>
-          <p style={{ fontSize: 18, marginTop: 6 }}>Pagos a Terceros (SSO+INCES+LPH+PF): <span style={theme.numberStyle}>{r.subTotalTerceros.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span></p>
-          <p style={{ fontSize: 18, marginTop: 12 }}>Costo Diario Total: <span style={theme.numberStyle}>{r.totalDailyCost.toLocaleString(undefined, { maximumFractionDigits: 4 })}</span></p>
-          <p style={{ fontSize: 26, fontWeight: 900, color: "#4ade80", marginTop: 12 }}>Factor FSCL: {r.factor.toFixed(4)}</p>
-        </div>
-
-        <button onClick={saveCalculation} style={{ ...theme.buttonStyle, marginTop: 20, fontSize: 18 }}>
-          GUARDAR CALCULO FSCL
-        </button>
-        {message && <p style={{ marginTop: 8, fontSize: 18, color: message.includes("Error") ? "#f87171" : theme.accent }}>{message}</p>}
+        {message && <p style={{ marginTop: 10, fontSize: 14, color: message.includes("Error") ? "#f87171" : theme.accent }}>{message}</p>}
       </div>
+
+      {partidas.map((p) => {
+        const c = calc(p);
+        const isOpen = expanded === p.id;
+        const items = subItems[p.id];
+        const suggestion = aiSuggestion[p.id];
+        return (
+          <div key={p.id} style={{ ...theme.cardStyle, marginBottom: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", cursor: "pointer" }} onClick={() => toggleExpand(p.id)}>
+              <div>
+                <p style={{ fontSize: 12, color: theme.accent, fontFamily: theme.numberStyle.fontFamily }}>{p.code || "S/COD"}</p>
+                <p style={{ fontSize: 17, fontWeight: 600 }}>{p.description}</p>
+                <p style={{ fontSize: 13, color: "#8B93A7", marginTop: 2 }}>{p.quantity} {p.unit} - Admin {p.admin_percentage}% - Utilidad {p.profit_percentage}%</p>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <p style={{ fontSize: 12, color: "#8B93A7" }}>Precio Unitario</p>
+                <p style={theme.numberStyle}>{c.unitPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                <p style={{ fontSize: 12, color: "#8B93A7", marginTop: 4 }}>Total</p>
+                <p style={{ ...theme.numberStyle, fontWeight: 700, color: theme.accent }}>{c.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+              </div>
+            </div>
+
+            {isOpen && (
+              <div style={{ marginTop: 16, borderTop: "1px solid " + theme.border, paddingTop: 16 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                  <div style={{ display: "flex", gap: 16, fontSize: 13, color: "#8B93A7" }}>
+                    <span>Materiales: {c.materialsCost.toFixed(2)}</span>
+                    <span>Equipos: {c.equipmentCost.toFixed(2)}</span>
+                    <span>M.O. (x{c.factor.toFixed(2)}): {c.laborCost.toFixed(2)}</span>
+                    <span>Directo: {c.directCost.toFixed(2)}</span>
+                  </div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button onClick={() => requestAiSuggestion(p)} disabled={aiLoading === p.id}
+                      style={{ ...theme.buttonStyle, padding: "6px 14px", fontSize: 13, opacity: aiLoading === p.id ? 0.6 : 1 }}>
+                      {aiLoading === p.id ? "Consultando IA..." : "Sugerir con IA"}
+                    </button>
+                    <button onClick={() => deletePartida(p.id)} style={{ padding: "6px 14px", fontSize: 13, background: "none", border: "1px solid #f87171", color: "#f87171", borderRadius: 8, cursor: "pointer" }}>
+                      Eliminar partida
+                    </button>
+                  </div>
+                </div>
+
+                {suggestion && (
+                  <div style={{ background: theme.background, border: "1px solid " + theme.accent, borderRadius: 10, padding: 12, marginBottom: 14 }}>
+                    <p style={{ fontSize: 13, color: theme.accent, fontWeight: 700, marginBottom: 6 }}>Sugerencia IA (solo cantidades, sin precios)</p>
+                    <p style={{ fontSize: 12, color: "#8B93A7", marginBottom: 8 }}>{suggestion.summary}</p>
+                    <div style={{ fontSize: 12, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+                      <div>
+                        <p style={{ color: "#8B93A7", fontWeight: 700 }}>Materiales</p>
+                        {suggestion.materials.map((m, i) => <p key={i}>{m.description} - {m.quantity} {m.unit}</p>)}
+                      </div>
+                      <div>
+                        <p style={{ color: "#8B93A7", fontWeight: 700 }}>Equipos</p>
+                        {suggestion.equipment.map((e, i) => <p key={i}>{e.description} - {e.quantity} {e.unit}</p>)}
+                      </div>
+                      <div>
+                        <p style={{ color: "#8B93A7", fontWeight: 700 }}>Mano de Obra</p>
+                        {suggestion.labor.map((l, i) => <p key={i}>{l.positionName} - {l.quantity} x {l.days}d</p>)}
+                      </div>
+                    </div>
+                    <button onClick={() => applySuggestions(p.id)} style={{ ...theme.buttonStyle, marginTop: 10, padding: "6px 14px", fontSize: 13 }}>
+                      Agregar todo a la partida
+                    </button>
+                  </div>
+                )}
+
+                {items && (
+                  <>
+                    <LineItemTable
+                      label="Materiales" theme={theme} smallInput={smallInput}
+                      rows={items.materials} costLabel="Costo Unit."
+                      onAdd={(row: any) => addRow(p.id, "apu_partida_materials", row)}
+                      onDelete={(id: string) => deleteRow(p.id, "apu_partida_materials", id)}
+                    />
+                    <LineItemTable
+                      label="Equipos" theme={theme} smallInput={smallInput}
+                      rows={items.equipment} costLabel="Costo Unit."
+                      onAdd={(row: any) => addRow(p.id, "apu_partida_equipment", row)}
+                      onDelete={(id: string) => deleteRow(p.id, "apu_partida_equipment", id)}
+                    />
+                    <LaborTable
+                      theme={theme} smallInput={smallInput}
+                      rows={items.labor}
+                      onAdd={(row: any) => addRow(p.id, "apu_partida_labor", row)}
+                      onDelete={(id: string) => deleteRow(p.id, "apu_partida_labor", id)}
+                    />
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {partidas.length === 0 && <p style={{ color: "#8B93A7", fontSize: 15 }}>Aun no hay partidas registradas para este proyecto.</p>}
     </VerticalPageLayout>
+  );
+}
+
+function LineItemTable({ label, theme, smallInput, rows, costLabel, onAdd, onDelete }: any) {
+  const [desc, setDesc] = useState("");
+  const [unit, setUnit] = useState("");
+  const [qty, setQty] = useState("");
+  const [cost, setCost] = useState("");
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <p style={{ fontSize: 13, fontWeight: 700, color: theme.accent, marginBottom: 6 }}>{label}</p>
+      {rows.map((r: any) => (
+        <div key={r.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "4px 0", borderBottom: "1px solid " + theme.border }}>
+          <span>{r.description} ({r.unit})</span>
+          <span style={{ display: "flex", gap: 10 }}>
+            <span>{r.quantity} x {r.unit_cost}</span>
+            <button onClick={() => onDelete(r.id)} style={{ background: "none", border: "none", color: "#f87171", cursor: "pointer" }}>x</button>
+          </span>
+        </div>
+      ))}
+      <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+        <input value={desc} onChange={(e) => setDesc(e.target.value)} style={{ ...smallInput, flex: 1 }} placeholder="Descripcion" />
+        <input value={unit} onChange={(e) => setUnit(e.target.value)} style={{ ...smallInput, width: 70 }} placeholder="Unidad" />
+        <input type="number" value={qty} onChange={(e) => setQty(e.target.value)} style={{ ...smallInput, width: 80 }} placeholder="Cant." />
+        <input type="number" value={cost} onChange={(e) => setCost(e.target.value)} style={{ ...smallInput, width: 90 }} placeholder={costLabel} />
+        <button onClick={() => { if (!desc) return; onAdd({ description: desc, unit, quantity: parseFloat(qty) || 0, unit_cost: parseFloat(cost) || 0 }); setDesc(""); setUnit(""); setQty(""); setCost(""); }}
+          style={{ padding: "0 12px", background: theme.accent, color: theme.background, border: "none", borderRadius: 6, fontSize: 13, cursor: "pointer" }}>+</button>
+      </div>
+    </div>
+  );
+}
+
+function LaborTable({ theme, smallInput, rows, onAdd, onDelete }: any) {
+  const [pos, setPos] = useState("");
+  const [qty, setQty] = useState("");
+  const [days, setDays] = useState("");
+  const [rate, setRate] = useState("");
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <p style={{ fontSize: 13, fontWeight: 700, color: theme.accent, marginBottom: 6 }}>Mano de Obra</p>
+      {rows.map((r: any) => (
+        <div key={r.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "4px 0", borderBottom: "1px solid " + theme.border }}>
+          <span>{r.position_name}</span>
+          <span style={{ display: "flex", gap: 10 }}>
+            <span>{r.quantity} x {r.days}d x {r.daily_rate}</span>
+            <button onClick={() => onDelete(r.id)} style={{ background: "none", border: "none", color: "#f87171", cursor: "pointer" }}>x</button>
+          </span>
+        </div>
+      ))}
+      <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+        <input value={pos} onChange={(e) => setPos(e.target.value)} style={{ ...smallInput, flex: 1 }} placeholder="Cargo" />
+        <input type="number" value={qty} onChange={(e) => setQty(e.target.value)} style={{ ...smallInput, width: 70 }} placeholder="Cant." />
+        <input type="number" value={days} onChange={(e) => setDays(e.target.value)} style={{ ...smallInput, width: 70 }} placeholder="Dias" />
+        <input type="number" value={rate} onChange={(e) => setRate(e.target.value)} style={{ ...smallInput, width: 90 }} placeholder="Tarifa/dia" />
+        <button onClick={() => { if (!pos) return; onAdd({ position_name: pos, quantity: parseFloat(qty) || 0, days: parseFloat(days) || 0, daily_rate: parseFloat(rate) || 0 }); setPos(""); setQty(""); setDays(""); setRate(""); }}
+          style={{ padding: "0 12px", background: theme.accent, color: theme.background, border: "none", borderRadius: 6, fontSize: 13, cursor: "pointer" }}>+</button>
+      </div>
+    </div>
   );
 }
