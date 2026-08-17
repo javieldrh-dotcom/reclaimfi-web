@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/app/lib/supabase";
@@ -18,6 +18,11 @@ export default function ApuProjectsPage() {
   const [revenueAccounts, setRevenueAccounts] = useState<any[]>([]);
   const [orderDebtorAccount, setOrderDebtorAccount] = useState<any>(null);
   const [orderCreditorAccount, setOrderCreditorAccount] = useState<any>(null);
+  const [pliegoFile, setPliegoFile] = useState<File | null>(null);
+  const [pliegoAnalyzing, setPliegoAnalyzing] = useState(false);
+  const [pliegoResult, setPliegoResult] = useState<any>(null);
+  const [pliegoMessage, setPliegoMessage] = useState("");
+  const [pliegoSaving, setPliegoSaving] = useState(false);
 
   async function loadProjects(cid: string) {
     const { data } = await supabase.from("apu_projects").select("*").eq("company_id", cid).order("created_at", { ascending: false });
@@ -61,6 +66,92 @@ export default function ApuProjectsPage() {
     if (error) { setMessage("Error: " + error.message); return; }
     setMessage("Proyecto creado correctamente.");
     setProcedureNumber(""); setProjectDescription(""); setContractingEntity("");
+    if (companyId) await loadProjects(companyId);
+  }
+
+  async function analyzePliego() {
+    if (!pliegoFile) { setPliegoMessage("Selecciona un archivo PDF primero."); return; }
+    setPliegoAnalyzing(true);
+    setPliegoMessage("");
+    setPliegoResult(null);
+    try {
+      const formData = new FormData();
+      formData.append("file", pliegoFile);
+      const res = await fetch("/api/extract-pliego", { method: "POST", body: formData });
+      const json = await res.json();
+      if (!json.success) {
+        setPliegoMessage(json.error || "No se pudo analizar el pliego.");
+      } else {
+        setPliegoResult(json.data);
+        if (json.data.warnings && json.data.warnings.length > 0) {
+          setPliegoMessage("Revisa antes de confirmar: " + json.data.warnings.join(" | "));
+        }
+      }
+    } catch (e: any) {
+      setPliegoMessage("Error: " + e.message);
+    }
+    setPliegoAnalyzing(false);
+  }
+
+  function updatePliegoField(field: string, value: string) {
+    setPliegoResult((prev: any) => ({ ...prev, [field]: value }));
+  }
+
+  function updatePliegoPartida(index: number, field: string, value: string) {
+    setPliegoResult((prev: any) => {
+      const partidas = [...prev.partidas];
+      partidas[index] = { ...partidas[index], [field]: field === "quantity" ? parseFloat(value) || 0 : value };
+      return { ...prev, partidas };
+    });
+  }
+
+  function removePliegoPartida(index: number) {
+    setPliegoResult((prev: any) => ({ ...prev, partidas: prev.partidas.filter((_: any, i: number) => i !== index) }));
+  }
+
+  async function confirmPliegoProject() {
+    if (!pliegoResult || !companyId) return;
+    setPliegoSaving(true);
+    setPliegoMessage("");
+    const { data: newProject, error: projError } = await supabase.from("apu_projects").insert([{
+      company_id: companyId,
+      procedure_number: pliegoResult.procedureNumber || "SIN-NUMERO",
+      project_description: pliegoResult.projectDescription,
+      contracting_entity: pliegoResult.contractingEntity,
+      status: "DRAFT",
+    }]).select("id").single();
+
+    if (projError || !newProject) {
+      setPliegoMessage("Error al crear el proyecto: " + projError?.message);
+      setPliegoSaving(false);
+      return;
+    }
+
+    const partidasToInsert = (pliegoResult.partidas || []).map((p: any, i: number) => ({
+      apu_project_id: newProject.id,
+      item_number: i + 1,
+      code: p.code || null,
+      description: p.description,
+      unit: p.unit,
+      quantity: p.quantity || 0,
+      admin_percentage: 15,
+      profit_percentage: 10,
+    }));
+
+    if (partidasToInsert.length > 0) {
+      const { error: partError } = await supabase.from("apu_partidas").insert(partidasToInsert);
+      if (partError) {
+        setPliegoMessage("Proyecto creado, pero hubo un error al cargar las partidas: " + partError.message);
+        setPliegoSaving(false);
+        if (companyId) await loadProjects(companyId);
+        return;
+      }
+    }
+
+    setPliegoMessage("Proyecto y " + partidasToInsert.length + " partidas creadas correctamente.");
+    setPliegoResult(null);
+    setPliegoFile(null);
+    setPliegoSaving(false);
     if (companyId) await loadProjects(companyId);
   }
 
@@ -120,7 +211,48 @@ export default function ApuProjectsPage() {
 
   return (
     <VerticalPageLayout vertical="apu" title="Licitaciones y Ofertas al Estado" subtitle="Modulo de Analisis de Precios Unitarios (APU) - Aplicable a cualquier pais o moneda" fullWidth>
-      <div style={{ maxWidth: 600 }}>
+      <div style={{ ...theme.cardStyle, maxWidth: 900, margin: "0 auto 24px", border: "1px solid " + theme.accent }}>
+        <h3 style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginBottom: 6 }}>Crear Proyecto desde Pliego (PDF)</h3>
+        <p style={{ fontSize: 13, color: "#8B93A7", marginBottom: 12 }}>
+          Sube el pliego licitatorio. La IA extraera el proyecto y todas las partidas para que las revises antes de guardar.
+        </p>
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          <input type="file" accept="application/pdf" onChange={(e) => setPliegoFile(e.target.files?.[0] ?? null)} style={{ ...theme.inputStyle, flex: 1, minWidth: 220 }} />
+          <button onClick={analyzePliego} disabled={pliegoAnalyzing || !pliegoFile} style={{ ...theme.buttonStyle, padding: "10px 20px", opacity: pliegoAnalyzing || !pliegoFile ? 0.6 : 1 }}>
+            {pliegoAnalyzing ? "Analizando..." : "Analizar Pliego con IA"}
+          </button>
+        </div>
+        {pliegoMessage && <p style={{ marginTop: 10, fontSize: 13, color: pliegoMessage.includes("Error") ? "#f87171" : theme.accent }}>{pliegoMessage}</p>}
+
+        {pliegoResult && (
+          <div style={{ marginTop: 20, borderTop: "1px solid " + theme.border, paddingTop: 16 }}>
+            <p style={{ fontSize: 14, fontWeight: 700, color: theme.accent, marginBottom: 10 }}>
+              Revisa antes de confirmar (confianza: {pliegoResult.confidence})
+            </p>
+            <input value={pliegoResult.procedureNumber || ""} onChange={(e) => updatePliegoField("procedureNumber", e.target.value)} style={{ ...theme.inputStyle, marginBottom: 8 }} placeholder="Numero de procedimiento" />
+            <input value={pliegoResult.projectDescription || ""} onChange={(e) => updatePliegoField("projectDescription", e.target.value)} style={{ ...theme.inputStyle, marginBottom: 8 }} placeholder="Descripcion del proyecto" />
+            <input value={pliegoResult.contractingEntity || ""} onChange={(e) => updatePliegoField("contractingEntity", e.target.value)} style={{ ...theme.inputStyle, marginBottom: 12 }} placeholder="Ente contratante" />
+
+            <p style={{ fontSize: 13, color: "#8B93A7", marginBottom: 8 }}>{(pliegoResult.partidas || []).length} partidas encontradas:</p>
+            <div style={{ maxHeight: 400, overflowY: "auto" }}>
+              {(pliegoResult.partidas || []).map((p: any, i: number) => (
+                <div key={i} style={{ display: "flex", gap: 6, marginBottom: 6, alignItems: "center" }}>
+                  <input value={p.code || ""} onChange={(e) => updatePliegoPartida(i, "code", e.target.value)} style={{ ...theme.inputStyle, fontSize: 13, padding: 8, width: 90 }} placeholder="Codigo" />
+                  <input value={p.description || ""} onChange={(e) => updatePliegoPartida(i, "description", e.target.value)} style={{ ...theme.inputStyle, fontSize: 13, padding: 8, flex: 1 }} placeholder="Descripcion" />
+                  <input value={p.unit || ""} onChange={(e) => updatePliegoPartida(i, "unit", e.target.value)} style={{ ...theme.inputStyle, fontSize: 13, padding: 8, width: 70 }} placeholder="Unidad" />
+                  <input type="number" value={p.quantity ?? ""} onChange={(e) => updatePliegoPartida(i, "quantity", e.target.value)} style={{ ...theme.inputStyle, fontSize: 13, padding: 8, width: 90 }} placeholder="Cantidad" />
+                  <button onClick={() => removePliegoPartida(i)} style={{ background: "none", border: "none", color: "#f87171", cursor: "pointer", fontSize: 16 }}>x</button>
+                </div>
+              ))}
+            </div>
+            <button onClick={confirmPliegoProject} disabled={pliegoSaving} style={{ ...theme.buttonStyle, marginTop: 14, opacity: pliegoSaving ? 0.6 : 1 }}>
+              {pliegoSaving ? "Guardando..." : "Confirmar y Crear Proyecto con " + (pliegoResult.partidas || []).length + " Partidas"}
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div style={{ maxWidth: 600, margin: "0 auto" }}>
         <input value={procedureNumber} onChange={(e) => setProcedureNumber(e.target.value)} style={inputStyle} placeholder="Numero de procedimiento/licitacion" />
         <input value={projectDescription} onChange={(e) => setProjectDescription(e.target.value)} style={{ ...inputStyle, marginTop: 10 }} placeholder="Descripcion del proyecto/obra" />
         <input value={contractingEntity} onChange={(e) => setContractingEntity(e.target.value)} style={{ ...inputStyle, marginTop: 10 }} placeholder="Ente contratante" />
