@@ -14,20 +14,26 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "Demasiadas solicitudes. Espera un momento antes de intentar de nuevo (maximo 5 por minuto)." }, { status: 429 });
     }
     const formData = await request.formData();
-    const file = formData.get("file") as File | null;
-    if (!file) {
+    const files = formData.getAll("files") as File[];
+    if (!files || files.length === 0) {
       return NextResponse.json({ success: false, error: "No se recibio ningun archivo." }, { status: 400 });
     }
-    if (file.type !== "application/pdf") {
-      return NextResponse.json({ success: false, error: "Solo se permiten archivos PDF." }, { status: 400 });
+    if (files.length > 5) {
+      return NextResponse.json({ success: false, error: "Maximo 5 archivos a la vez." }, { status: 400 });
     }
     const maxSizeBytes = 25 * 1024 * 1024;
-    if (file.size > maxSizeBytes) {
-      return NextResponse.json({ success: false, error: "El PDF es muy grande (maximo 25MB)." }, { status: 400 });
+    const base64Pdfs: string[] = [];
+    for (const file of files) {
+      if (file.type !== "application/pdf") {
+        return NextResponse.json({ success: false, error: "Solo se permiten archivos PDF. '" + file.name + "' no es un PDF." }, { status: 400 });
+      }
+      if (file.size > maxSizeBytes) {
+        return NextResponse.json({ success: false, error: "El archivo '" + file.name + "' es muy grande (maximo 25MB cada uno)." }, { status: 400 });
+      }
+      const arrayBuffer = await file.arrayBuffer();
+      base64Pdfs.push(Buffer.from(arrayBuffer).toString("base64"));
     }
-    const arrayBuffer = await file.arrayBuffer();
-    const base64 = Buffer.from(arrayBuffer).toString("base64");
-    const result = await extractPliegoData(base64);
+    const result = await extractPliegoData(base64Pdfs);
     return NextResponse.json({ success: true, data: result });
   } catch (error: any) {
     console.error("EXTRACT PLIEGO ERROR:", error);

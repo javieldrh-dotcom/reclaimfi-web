@@ -18,7 +18,7 @@ export default function ApuProjectsPage() {
   const [revenueAccounts, setRevenueAccounts] = useState<any[]>([]);
   const [orderDebtorAccount, setOrderDebtorAccount] = useState<any>(null);
   const [orderCreditorAccount, setOrderCreditorAccount] = useState<any>(null);
-  const [pliegoFile, setPliegoFile] = useState<File | null>(null);
+  const [pliegoFiles, setPliegoFiles] = useState<File[]>([]);
   const [pliegoAnalyzing, setPliegoAnalyzing] = useState(false);
   const [pliegoResult, setPliegoResult] = useState<any>(null);
   const [pliegoMessage, setPliegoMessage] = useState("");
@@ -70,13 +70,13 @@ export default function ApuProjectsPage() {
   }
 
   async function analyzePliego() {
-    if (!pliegoFile) { setPliegoMessage("Selecciona un archivo PDF primero."); return; }
+    if (pliegoFiles.length === 0) { setPliegoMessage("Selecciona al menos un archivo PDF primero."); return; }
     setPliegoAnalyzing(true);
     setPliegoMessage("");
     setPliegoResult(null);
     try {
       const formData = new FormData();
-      formData.append("file", pliegoFile);
+      pliegoFiles.forEach((f) => formData.append("files", f));
       const res = await fetch("/api/extract-pliego", { method: "POST", body: formData });
       const json = await res.json();
       if (!json.success) {
@@ -150,7 +150,7 @@ export default function ApuProjectsPage() {
 
     setPliegoMessage("Proyecto y " + partidasToInsert.length + " partidas creadas correctamente.");
     setPliegoResult(null);
-    setPliegoFile(null);
+    setPliegoFiles([]);
     setPliegoSaving(false);
     if (companyId) await loadProjects(companyId);
   }
@@ -217,11 +217,14 @@ export default function ApuProjectsPage() {
           Sube el pliego licitatorio. La IA extraera el proyecto y todas las partidas para que las revises antes de guardar.
         </p>
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-          <input type="file" accept="application/pdf" onChange={(e) => setPliegoFile(e.target.files?.[0] ?? null)} style={{ ...theme.inputStyle, flex: 1, minWidth: 220 }} />
-          <button onClick={analyzePliego} disabled={pliegoAnalyzing || !pliegoFile} style={{ ...theme.buttonStyle, padding: "10px 20px", opacity: pliegoAnalyzing || !pliegoFile ? 0.6 : 1 }}>
+          <input type="file" accept="application/pdf" multiple onChange={(e) => setPliegoFiles(Array.from(e.target.files ?? []))} style={{ ...theme.inputStyle, flex: 1, minWidth: 220 }} />
+          <button onClick={analyzePliego} disabled={pliegoAnalyzing || pliegoFiles.length === 0} style={{ ...theme.buttonStyle, padding: "10px 20px", opacity: pliegoAnalyzing || pliegoFiles.length === 0 ? 0.6 : 1 }}>
             {pliegoAnalyzing ? "Analizando..." : "Analizar Pliego con IA"}
           </button>
         </div>
+        {pliegoFiles.length > 0 && (
+          <p style={{ marginTop: 8, fontSize: 12, color: "#8B93A7" }}>{pliegoFiles.length} archivo(s) seleccionado(s): {pliegoFiles.map((f) => f.name).join(", ")}</p>
+        )}
         {pliegoMessage && <p style={{ marginTop: 10, fontSize: 13, color: pliegoMessage.includes("Error") ? "#f87171" : theme.accent }}>{pliegoMessage}</p>}
 
         {pliegoResult && (
