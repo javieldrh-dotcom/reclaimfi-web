@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
@@ -61,7 +61,7 @@ export default function PriceIndicesPage() {
   const inputStyle = { ...theme.inputStyle, fontSize: 20 };
   return (
     <VerticalPageLayout vertical="accounting" title="Indices de Precios por Pais" subtitle="Estos indices se usan para calcular el REPOMO y la reexpresion por inflacion (NIC 29 / NIF B-10)" fullWidth>
-      <div style={{ maxWidth: 600 }}>
+      <div style={{ maxWidth: 600, margin: "0 auto" }}>
         <select value={countryCode} onChange={(e) => setCountryCode(e.target.value)} style={inputStyle}>
           {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
         </select>

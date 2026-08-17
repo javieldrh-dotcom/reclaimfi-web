@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
@@ -48,7 +48,7 @@ export default function SpecialTaxpayerPage() {
 
   return (
     <VerticalPageLayout vertical="accounting" title="Contribuyente Especial" subtitle="Configuracion del regimen de Sujeto Pasivo Especial y Agente de Retencion de IVA" fullWidth>
-      <div style={{ maxWidth: 700 }}>
+      <div style={{ maxWidth: 700, margin: "0 auto" }}>
         <label style={{ fontSize: 18, color: theme.accent, fontWeight: 700 }}>RIF de la Empresa</label>
         <input value={taxId} onChange={(e) => setTaxId(e.target.value)} style={{ ...inputStyle, marginTop: 6 }} placeholder="J-00000000-0" />
 

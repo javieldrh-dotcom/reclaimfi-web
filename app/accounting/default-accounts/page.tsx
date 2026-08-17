@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
@@ -61,7 +61,7 @@ export default function DefaultAccountsPage() {
 
   return (
     <VerticalPageLayout vertical="accounting" title="Configuracion de Cuentas por Defecto" subtitle="Define una vez las cuentas que se usaran automaticamente en Compras, Ventas y otros modulos - evita tener que elegir cuentas en cada transaccion" fullWidth>
-      <div style={{ maxWidth: 600 }}>
+      <div style={{ maxWidth: 600, margin: "0 auto" }}>
         <div style={{ ...theme.cardStyle, marginBottom: 20 }}>
           <h3 style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginBottom: 16 }}>Compras y Gastos</h3>
           {row("Cuenta de Gasto por Defecto", expenseId, setExpenseId, "EXPENSE")}

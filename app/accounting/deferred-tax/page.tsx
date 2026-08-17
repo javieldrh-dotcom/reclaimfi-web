@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
@@ -86,7 +86,7 @@ export default function DeferredTaxPage() {
   const inputStyle = { ...theme.inputStyle, fontSize: 22 };
   return (
     <VerticalPageLayout vertical="accounting" title="Impuesto Diferido" subtitle="Registro de diferencias temporarias segun NIC 12 - Captura manual, calculo determinado por el contador" fullWidth>
-      <div style={{ maxWidth: 700 }}>
+      <div style={{ maxWidth: 700, margin: "0 auto" }}>
         <p style={{ fontSize: 17, color: "#8B93A7", lineHeight: 1.7 }}>
           El Impuesto Diferido surge cuando hay diferencias entre la base contable y la base fiscal de un activo o pasivo
           (ej. depreciacion, provisiones no deducibles, perdidas fiscales trasladables). Registra aqui el monto que tu

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
@@ -62,7 +62,7 @@ export default function FiscalDeadlinesPage() {
 
   return (
     <VerticalPageLayout vertical="accounting" title="Recordatorios Fiscales" subtitle="Configura tus fechas limite de declaracion y pago para no perder ningun vencimiento" fullWidth>
-      <div style={{ maxWidth: 600 }}>
+      <div style={{ maxWidth: 600, margin: "0 auto" }}>
         <div style={theme.cardStyle}>
           <input value={obligationName} onChange={(e) => setObligationName(e.target.value)} style={inputStyle} placeholder="Nombre de la obligacion (ej. Declaracion IVA)" />
           <div style={{ display: "flex", gap: 10, marginTop: 8 }}>

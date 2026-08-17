@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
@@ -116,7 +116,7 @@ export default function FxRevaluationPage() {
         </div>
       </div>
 
-      <div style={{ maxWidth: 700 }}>
+      <div style={{ maxWidth: 700, margin: "0 auto" }}>
         <input type="date" value={revaluationDate} onChange={(e) => setRevaluationDate(e.target.value)} style={inputStyle} />
         <label style={{ fontSize: 15, color: theme.accent, fontWeight: 700, marginTop: 10, display: "block" }}>Cuenta Monetaria a Revaluar</label>
         <AccountSearchSelect accounts={accounts.filter(a => a.account_type === "ASSET" || a.account_type === "LIABILITY")} value={selectedAccountId} onChange={setSelectedAccountId} placeholder="Buscar cuenta..." />

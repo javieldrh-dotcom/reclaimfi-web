@@ -308,7 +308,7 @@ export default function JournalPage() {
         </div>
       </div>
 
-      <div style={{ marginTop: 16, ...theme.cardStyle, maxWidth: 500 }}>
+      <div style={{ marginTop: 16, ...theme.cardStyle, maxWidth: 500, margin: "16px auto 0" }}>
         <p style={{ fontSize: 14, color: theme.accent, fontWeight: 700, marginBottom: 8 }}>Convencion Contable del Diario</p>
         <div style={{ display: "flex", gap: 8 }}>
           <div onClick={() => changeConvention("REGIONAL_VE")} style={{ padding: "8px 16px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 700, background: accountingConvention === "REGIONAL_VE" ? theme.accent : "transparent", color: accountingConvention === "REGIONAL_VE" ? "#0B0E14" : "#8B93A7", border: accountingConvention === "REGIONAL_VE" ? "none" : "1px solid #1F2937" }}>

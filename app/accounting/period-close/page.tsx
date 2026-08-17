@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
@@ -153,7 +153,7 @@ export default function PeriodClosePage() {
 
   return (
     <VerticalPageLayout vertical="accounting" title="Cierre de Ejercicio" subtitle="Genera el asiento de cierre: lleva Ingresos y Gastos a cero y traslada el resultado a Resultados Acumulados" fullWidth>
-      <div style={{ maxWidth: 600 }}>
+      <div style={{ maxWidth: 600, margin: "0 auto" }}>
         <label style={{ fontSize: 18, color: theme.accent, fontWeight: 700 }}>Inicio del Periodo</label>
         <input type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} style={{ ...inputStyle, marginTop: 6 }} />
         <label style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginTop: 14, display: "block" }}>Fin del Periodo</label>

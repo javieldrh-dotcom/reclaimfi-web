@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useState } from "react";
 import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
@@ -35,7 +35,7 @@ export default function BlockchainLedgerPage() {
 
   return (
     <VerticalPageLayout vertical="accounting" title="Libro Verificable por Blockchain" subtitle="Cada asiento esta encadenado criptograficamente al anterior - verifica si algo fue alterado" fullWidth>
-      <div style={{ maxWidth: 900 }}>
+      <div style={{ maxWidth: 900, margin: "0 auto" }}>
         <button onClick={verifyChain} style={{ ...theme.buttonStyle, fontSize: 18 }}>
           {loading ? "VERIFICANDO..." : "VERIFICAR INTEGRIDAD DE LA CADENA"}
         </button>

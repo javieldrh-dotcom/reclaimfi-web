@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
@@ -78,7 +78,7 @@ export default function IslrEstimatedPage() {
 
   return (
     <VerticalPageLayout vertical="accounting" title="ISLR - Declaracion Estimada" subtitle="Anticipo de impuestos - Art. 80 Ley de ISLR / Art. 156-164 Reglamento - Obligatoria si el enriquecimiento neto del año anterior supero 1.500 U.T." fullWidth>
-      <div style={{ maxWidth: 700 }}>
+      <div style={{ maxWidth: 700, margin: "0 auto" }}>
         <p style={{ fontSize: 16, color: "#8B93A7", lineHeight: 1.7, ...theme.cardStyle }}>
           La Declaracion Estimada es un anticipo de ISLR calculado sobre el 80% del enriquecimiento neto del ejercicio
           anterior. Del impuesto resultante, solo se entera el 75%, fraccionado en hasta 6 porciones mensuales.

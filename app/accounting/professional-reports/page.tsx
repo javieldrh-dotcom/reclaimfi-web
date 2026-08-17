@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useState } from "react";
 import { getVerticalTheme } from "@/app/core/design/tokens";
 import VerticalPageLayout from "@/app/components/VerticalPageLayout";
@@ -864,7 +864,7 @@ export default function ProfessionalReportsPage() {
       )}
 
       {selectedTemplate && (
-        <div style={{ maxWidth: 700 }}>
+        <div style={{ maxWidth: 700, margin: "0 auto" }}>
           <button onClick={() => setSelectedTemplate(null)} style={{ background: "none", border: "1px solid #1F2937", color: "#8B93A7", padding: "6px 16px", borderRadius: 8, fontSize: 14, cursor: "pointer", marginBottom: 20 }}>
             ← Volver al catalogo
           </button>

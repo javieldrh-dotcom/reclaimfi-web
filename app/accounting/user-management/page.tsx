@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
@@ -103,7 +103,7 @@ export default function UserManagementPage() {
 
   return (
     <VerticalPageLayout vertical="accounting" title="Gestion de Usuarios" subtitle="Asigna roles y permisos a los usuarios de esta empresa" fullWidth>
-      <div style={{ maxWidth: 700 }}>
+      <div style={{ maxWidth: 700, margin: "0 auto" }}>
         <p style={{ fontSize: 15, color: "#8B93A7" }}>{companyName}</p>
 
         <div style={{ ...theme.cardStyle, marginTop: 16 }}>

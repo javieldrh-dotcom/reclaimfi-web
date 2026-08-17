@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
@@ -106,7 +106,7 @@ export default function IslrPage() {
 
   return (
     <VerticalPageLayout vertical="accounting" title="ISLR - Declaracion Definitiva Anual" subtitle="Tarifa 2 (Personas Juridicas) - Art. 52 Ley de ISLR - Nucleo simplificado, no incluye fuente extraterritorial ni regimenes especiales" fullWidth>
-      <div style={{ maxWidth: 700 }}>
+      <div style={{ maxWidth: 700, margin: "0 auto" }}>
         <input value={fiscalYear} onChange={(e) => setFiscalYear(e.target.value)} style={inputStyle} placeholder="Ejercicio Fiscal (Año)" />
         <label style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginTop: 14, display: "block" }}>[137] Enriquecimiento Neto o Perdida Fiscal (Utilidad Contable)</label>
         <input type="number" value={accountingNetIncome} onChange={(e) => setAccountingNetIncome(e.target.value)} style={{ ...inputStyle, marginTop: 6 }} />

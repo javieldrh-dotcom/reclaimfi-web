@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
@@ -87,7 +87,7 @@ export default function FinancialNotesPage() {
             const idx = NOTE_TEMPLATE.indexOf(template);
             const isSaved = notes.some((n) => n.title === template.title);
             return (
-              <div key={template.title} style={{ ...theme.cardStyle, marginTop: 14, maxWidth: 800 }}>
+              <div key={template.title} style={{ ...theme.cardStyle, marginTop: 14, maxWidth: 800, margin: "14px auto 0" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <p style={{ fontWeight: 700, color: "white", fontSize: 18 }}>{template.title}</p>
                   {isSaved && <span style={{ fontSize: 13, color: "#4ade80", fontWeight: 700 }}>✓ Completada</span>}

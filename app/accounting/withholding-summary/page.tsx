@@ -168,7 +168,7 @@ export default function WithholdingSummaryPage() {
 
   return (
     <VerticalPageLayout vertical="accounting" title="Resumen de Retenciones" subtitle="Casillas oficiales SENIAT - Consolida retenciones recibidas y efectuadas" fullWidth>
-      <div style={{ maxWidth: 700 }}>
+      <div style={{ maxWidth: 700, margin: "0 auto" }}>
         <p style={{ fontSize: 15, color: "#8B93A7" }}>{companyName} - RIF: {taxAgentRif}</p>
         <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
           <input type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} style={inputStyle} />

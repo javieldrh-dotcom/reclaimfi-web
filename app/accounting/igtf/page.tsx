@@ -98,7 +98,7 @@ export default function IgtfPage() {
         </div>
       </div>
 
-      <div style={{ maxWidth: 700 }}>
+      <div style={{ maxWidth: 700, margin: "0 auto" }}>
         <input type="date" value={transactionDate} onChange={(e) => setTransactionDate(e.target.value)} style={inputStyle} />
         <input value={description} onChange={(e) => setDescription(e.target.value)} style={{ ...inputStyle, marginTop: 8 }} placeholder="Descripcion de la transaccion" />
         <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
