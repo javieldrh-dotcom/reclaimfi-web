@@ -43,7 +43,7 @@ export default function JournalPage() {
   async function loadEntries(cid: string, year: string) {
     let query = supabase
       .from("journal_entries")
-      .select("id, description, entry_date, status, entry_number, reversed_by_entry_id, reversal_of_entry_id")
+      .select("id, description, entry_date, status, entry_number, reversed_by_entry_id, reversal_of_entry_id, exchange_rate")
       .eq("company_id", cid)
       .eq("status", "ACTIVE")
       .order("entry_date", { ascending: true })
@@ -216,16 +216,17 @@ export default function JournalPage() {
       const d = new Date(e.entry_date);
       const yearStr = e.entry_date.slice(0, 4);
       const monthStr = MESES[d.getUTCMonth()];
+      const rateForEntry = e.exchange_rate && e.exchange_rate > 0 ? e.exchange_rate : 1;
       const entryLines = (e.journal_lines ?? []).map((l: any) => ({
         code: presentationMode ? undefined : (l.chart_of_accounts?.account_code ?? ""),
         name: l.chart_of_accounts?.account_name ?? "",
         folio: l.chart_of_accounts?.mayor_folio ?? "-",
-        debit: l.debit || 0,
-        credit: l.credit || 0,
+        debit: (l.debit || 0) * rateForEntry,
+        credit: (l.credit || 0) * rateForEntry,
       }));
       return { year: yearStr, month: monthStr, lines: entryLines, narration: e.description };
     });
-    const doc = generateProfessionalDiarioPdf(companyName, selectedYear, currencyDoc, entryBlocks, 1);
+    const doc = generateProfessionalDiarioPdf(companyName, selectedYear, "Bolivares (Bs)", entryBlocks, 1);
     doc.save("libro-diario-" + selectedYear + ".pdf");
   }
   const inputStyle = theme.inputStyle;

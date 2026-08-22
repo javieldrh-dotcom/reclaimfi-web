@@ -18,6 +18,8 @@ export default function ApBillsPage() {
   const [dueDate, setDueDate] = useState("");
   const [amount, setAmount] = useState("");
   const [message, setMessage] = useState("");
+  const [checkingAnomaly, setCheckingAnomaly] = useState(false);
+  const [anomalyResult, setAnomalyResult] = useState<any>(null);
 
   async function loadBills(cid: string) {
     const { data } = await supabase.from("ap_bills").select("*").eq("company_id", cid).order("issue_date", { ascending: false });
@@ -39,6 +41,31 @@ export default function ApBillsPage() {
     }
     load();
   }, []);
+
+  async function checkAnomaly() {
+    if (!companyId || !vendorName || !billNumber || !amount) {
+      setMessage("Completa proveedor, numero de factura, y monto antes de verificar.");
+      return;
+    }
+    setCheckingAnomaly(true);
+    setAnomalyResult(null);
+    try {
+      const res = await fetch("/api/detect-invoice-anomaly", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ companyId, vendorName, billNumber, issueDate, amount: parseFloat(amount) }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setAnomalyResult({ ...json.result, historicalCount: json.historicalCount });
+      } else {
+        setMessage(json.error || "No se pudo verificar.");
+      }
+    } catch (e: any) {
+      setMessage("Error: " + e.message);
+    }
+    setCheckingAnomaly(false);
+  }
 
   async function createBill() {
     setMessage("");
@@ -135,9 +162,27 @@ export default function ApBillsPage() {
           <option value="">Cuenta de Gasto</option>
           {accounts.filter(a => a.account_type === "EXPENSE").map((a) => <option key={a.id} value={a.id}>{a.account_code} - {a.account_name}</option>)}
         </select>
-        <button onClick={createBill} style={{ ...theme.buttonStyle, marginTop: 16, fontSize: 18 }}>
-          CREAR FACTURA
-        </button>
+        <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+          <button onClick={checkAnomaly} disabled={checkingAnomaly} style={{ ...theme.buttonStyle, fontSize: 16, background: "none", border: "1px solid " + theme.accent, opacity: checkingAnomaly ? 0.6 : 1 }}>
+            {checkingAnomaly ? "Verificando..." : "Verificar Anomalias"}
+          </button>
+          <button onClick={createBill} style={{ ...theme.buttonStyle, fontSize: 18 }}>
+            CREAR FACTURA
+          </button>
+        </div>
+        {anomalyResult && (
+          <div style={{ marginTop: 12, padding: 16, borderRadius: 10, background: anomalyResult.riskLevel === "HIGH" ? "#f8717120" : anomalyResult.riskLevel === "MEDIUM" ? "#facc1520" : "#4ade8020", border: "1px solid " + (anomalyResult.riskLevel === "HIGH" ? "#f87171" : anomalyResult.riskLevel === "MEDIUM" ? "#facc15" : "#4ade80") }}>
+            <p style={{ fontWeight: 700, color: anomalyResult.riskLevel === "HIGH" ? "#f87171" : anomalyResult.riskLevel === "MEDIUM" ? "#facc15" : "#4ade80" }}>
+              Riesgo: {anomalyResult.riskLevel} ({anomalyResult.historicalCount} facturas previas de este proveedor)
+            </p>
+            {anomalyResult.anomalies.length > 0 && (
+              <ul style={{ marginTop: 8, fontSize: 14 }}>
+                {anomalyResult.anomalies.map((a: string, i: number) => <li key={i}>{a}</li>)}
+              </ul>
+            )}
+            <p style={{ marginTop: 8, fontSize: 14, color: "#8B93A7" }}>{anomalyResult.recommendation}</p>
+          </div>
+        )}
         {message && <p style={{ marginTop: 8, fontSize: 18, color: message.includes("Error") ? "#f87171" : theme.accent }}>{message}</p>}
       </div>
 

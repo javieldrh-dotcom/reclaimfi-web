@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
@@ -79,7 +79,7 @@ export default function ReportsPage() {
     if (item.risk.includes("Alto")) {
       recommendation =
         "Immediate forensic investigation recommended.";
-    } else if (item.risk.includes("RevisiÃ³n")) {
+    } else if (item.risk.includes("Revision")) {
       recommendation =
         "Manual compliance review recommended.";
     } else {
@@ -115,7 +115,7 @@ export default function ReportsPage() {
             </h1>
 
             <p className="mt-3 text-gray-500">
-              ReporterÃ­a institucional y trazabilidad AML.
+              Reporteria institucional y trazabilidad AML.
             </p>
 
           </div>
@@ -161,7 +161,7 @@ export default function ReportsPage() {
                   className={`rounded-full px-4 py-2 text-sm ${
                     item.risk.includes("Alto")
                       ? "bg-red-400/10 text-red-300"
-                      : item.risk.includes("RevisiÃ³n")
+                      : item.risk.includes("Revision")
                       ? "bg-yellow-400/10 text-yellow-300"
                       : "bg-green-400/10 text-green-300"
                   }`}
@@ -177,7 +177,7 @@ export default function ReportsPage() {
                 <div className="rounded-2xl border border-white/5 bg-black/30 p-5">
 
                   <p className="text-sm text-gray-500">
-                    Tipo de AuditorÃ­a
+                    Tipo de Auditoria
                   </p>
 
                   <h3 className="mt-3 text-lg font-medium">
@@ -229,16 +229,16 @@ export default function ReportsPage() {
               <div className="mt-8 rounded-2xl border border-cyan-400/10 bg-cyan-400/5 p-6">
 
                 <p className="text-sm text-cyan-300">
-                  RecomendaciÃ³n AGI
+                  Recomendacion AGI
                 </p>
 
                 <p className="mt-4 leading-7 text-gray-300">
 
                   {item.risk.includes("Alto")
-                    ? "Se recomienda investigaciÃ³n inmediata y trazabilidad blockchain avanzada."
-                    : item.risk.includes("RevisiÃ³n")
-                    ? "Se recomienda validaciÃ³n manual por compliance."
-                    : "Actividad preliminar dentro de parÃ¡metros aceptables."
+                    ? "Se recomienda investigacion inmediata y trazabilidad blockchain avanzada."
+                    : item.risk.includes("Revision")
+                    ? "Se recomienda validacion manual por compliance."
+                    : "Actividad preliminar dentro de parametros aceptables."
                   }
 
                 </p>

@@ -1,4 +1,4 @@
-﻿import { createServerClient } from "@supabase/ssr";
+import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 async function hasPermission(supabase: any, userId: string, permissionName: string) {
@@ -57,7 +57,7 @@ export async function updateSession(request: NextRequest) {
 
   const path = request.nextUrl.pathname;
 
-  const protectedRoutes = ["/dashboard", "/accounting", "/admin", "/reports", "/select-module"];
+  const protectedRoutes = ["/dashboard", "/accounting", "/apu", "/admin", "/reports", "/select-module"];
   const isProtectedRoute = protectedRoutes.some((route) => path.startsWith(route));
 
   if (isProtectedRoute && !user) {

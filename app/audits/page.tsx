@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
@@ -105,7 +105,7 @@ export default function AuditsPage() {
                   ${
                     item.risk.includes("Alto")
                       ? "bg-red-400/10 text-red-300"
-                      : item.risk.includes("RevisiÃ³n")
+                      : item.risk.includes("Revision")
                       ? "bg-yellow-400/10 text-yellow-300"
                       : "bg-green-400/10 text-green-300"
                   }

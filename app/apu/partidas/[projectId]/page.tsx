@@ -50,6 +50,9 @@ export default function ApuPartidasPage() {
 
   const [project, setProject] = useState<any>(null);
   const [companyName, setCompanyName] = useState("");
+  const [repName, setRepName] = useState("");
+  const [repId, setRepId] = useState("");
+  const [repPosition, setRepPosition] = useState("");
   const [partidas, setPartidas] = useState<Partida[]>([]);
   const [fsclOptions, setFsclOptions] = useState<FsclOption[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -78,8 +81,11 @@ export default function ApuPartidasPage() {
       const { data: proj } = await supabase.from("apu_projects").select("*").eq("id", projectId).single();
       setProject(proj);
       if (proj?.company_id) {
-        const { data: comp } = await supabase.from("companies").select("name").eq("id", proj.company_id).single();
+        const { data: comp } = await supabase.from("companies").select("name, legal_representative_name, legal_representative_id, legal_representative_position").eq("id", proj.company_id).single();
         setCompanyName(comp?.name ?? "");
+        setRepName(comp?.legal_representative_name ?? "");
+        setRepId(comp?.legal_representative_id ?? "");
+        setRepPosition(comp?.legal_representative_position ?? "");
       }
       const { data: fscl } = await supabase.from("apu_fscl_calculations").select("id, work_system, fscl_factor").eq("apu_project_id", projectId).order("created_at", { ascending: false });
       setFsclOptions(fscl ?? []);
@@ -140,6 +146,61 @@ export default function ApuPartidasPage() {
     await loadSubItems(partidaId);
   }
 
+  const [bulkSuggesting, setBulkSuggesting] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState<{ current: number; total: number } | null>(null);
+
+  async function bulkSuggestAllPartidas() {
+    const pending = partidas.filter((p) => {
+      const items = subItems[p.id];
+      return !items || (items.materials.length === 0 && items.equipment.length === 0 && items.labor.length === 0);
+    });
+    if (pending.length === 0) {
+      setMessage("Todas las partidas ya tienen detalle de costos, no hay nada pendiente de sugerir.");
+      return;
+    }
+    if (!window.confirm("Se va a consultar la IA para " + pending.length + " partidas, una por una. Esto tiene un costo de uso de API y puede tardar varios minutos. Continuar?")) return;
+
+    setBulkSuggesting(true);
+    setBulkProgress({ current: 0, total: pending.length });
+
+    for (let i = 0; i < pending.length; i++) {
+      const p = pending[i];
+      setBulkProgress({ current: i + 1, total: pending.length });
+      try {
+        const res = await fetch("/api/apu-suggest", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ description: p.description }),
+        });
+        const data = await res.json();
+        if (!data?.error && data?.success !== false) {
+          for (const m of data.materials || []) {
+            await supabase.from("apu_partida_materials").insert([{ apu_partida_id: p.id, description: m.description, unit: m.unit, quantity: m.quantity, unit_cost: 0 }]);
+            await ensureInCatalog("MATERIAL", m.description, m.unit);
+          }
+          for (const e of data.equipment || []) {
+            await supabase.from("apu_partida_equipment").insert([{ apu_partida_id: p.id, description: e.description, unit: e.unit, quantity: e.quantity, unit_cost: 0 }]);
+            await ensureInCatalog("EQUIPMENT", e.description, e.unit);
+          }
+          for (const l of data.labor || []) {
+            await supabase.from("apu_partida_labor").insert([{ apu_partida_id: p.id, position_name: l.positionName, quantity: l.quantity, days: l.days, daily_rate: 0 }]);
+            await ensureInCatalog("LABOR", l.positionName, "dia");
+          }
+        }
+      } catch (e) {
+        // continua con la siguiente partida aunque una falle
+      }
+      await new Promise((resolve) => setTimeout(resolve, 800));
+    }
+
+    for (const p of pending) {
+      await loadSubItems(p.id);
+    }
+    setBulkSuggesting(false);
+    setBulkProgress(null);
+    setMessage("Sugerencias de IA aplicadas a " + pending.length + " partidas. Completa los costos unitarios pendientes en el catalogo o en cada partida.");
+  }
+
   async function requestAiSuggestion(partida: Partida) {
     setAiLoading(partida.id);
     setMessage("");
@@ -162,21 +223,45 @@ export default function ApuPartidasPage() {
     }
   }
 
+  async function ensureInCatalog(category: "MATERIAL" | "EQUIPMENT" | "LABOR", description: string, unit: string | null) {
+    if (!project?.company_id || !description) return;
+    const { data: existing } = await supabase
+      .from("apu_price_catalog")
+      .select("id")
+      .eq("company_id", project.company_id)
+      .eq("category", category)
+      .ilike("description", description)
+      .limit(1);
+    if (!existing || existing.length === 0) {
+      await supabase.from("apu_price_catalog").insert([{
+        company_id: project.company_id,
+        category,
+        description,
+        unit: unit || null,
+        unit_cost: 0,
+        notes: "Agregado automaticamente desde sugerencia de IA, precio pendiente",
+      }]);
+    }
+  }
+
   async function applySuggestions(partidaId: string) {
     const s = aiSuggestion[partidaId];
     if (!s) return;
     for (const m of s.materials) {
       await supabase.from("apu_partida_materials").insert([{ apu_partida_id: partidaId, description: m.description, unit: m.unit, quantity: m.quantity, unit_cost: 0 }]);
+      await ensureInCatalog("MATERIAL", m.description, m.unit);
     }
     for (const e of s.equipment) {
       await supabase.from("apu_partida_equipment").insert([{ apu_partida_id: partidaId, description: e.description, unit: e.unit, quantity: e.quantity, unit_cost: 0 }]);
+      await ensureInCatalog("EQUIPMENT", e.description, e.unit);
     }
     for (const l of s.labor) {
       await supabase.from("apu_partida_labor").insert([{ apu_partida_id: partidaId, position_name: l.positionName, quantity: l.quantity, days: l.days, daily_rate: 0 }]);
+      await ensureInCatalog("LABOR", l.positionName, "dia");
     }
     setAiSuggestion((prev) => { const next = { ...prev }; delete next[partidaId]; return next; });
     await loadSubItems(partidaId);
-    setMessage("Sugerencias agregadas. Ahora completa los costos unitarios (la IA no sugiere precios).");
+    setMessage("Sugerencias agregadas y catalogo actualizado. Ahora completa los costos unitarios pendientes (la IA no sugiere precios por si sola).");
   }
 
   function calc(partida: Partida) {
@@ -211,7 +296,7 @@ export default function ApuPartidasPage() {
     }
     setSubItems(freshSubItems);
 
-    const ofertaPartidas = partidas.map((p) => {
+    const ofertaPartidas = partidas.map((p, idx) => {
       const items = freshSubItems[p.id];
       const materialsCost = (items?.materials ?? []).reduce((s, m) => s + (m.quantity || 0) * (m.unit_cost || 0), 0);
       const equipmentCost = (items?.equipment ?? []).reduce((s, e) => s + (e.quantity || 0) * (e.unit_cost || 0), 0);
@@ -223,10 +308,17 @@ export default function ApuPartidasPage() {
       const profit = directCost * ((p.profit_percentage || 0) / 100);
       const unitPrice = directCost + admin + profit;
       return {
+        itemNumber: idx + 1,
         code: p.code,
         description: p.description,
         unit: p.unit,
         quantity: p.quantity,
+        materialsCost,
+        equipmentCost,
+        laborCost,
+        directCost,
+        adminPercentage: p.admin_percentage || 0,
+        profitPercentage: p.profit_percentage || 0,
         unitPrice,
         total: unitPrice * p.quantity,
       };
@@ -237,7 +329,11 @@ export default function ApuPartidasPage() {
       project?.procedure_number ?? "",
       project?.project_description ?? "",
       project?.contracting_entity ?? "",
-      ofertaPartidas
+      ofertaPartidas,
+      16,
+      repName,
+      repId,
+      repPosition
     );
     doc.save("oferta-" + (project?.procedure_number ?? "apu") + ".pdf");
     setPdfGenerating(false);
@@ -248,9 +344,14 @@ export default function ApuPartidasPage() {
   return (
     <VerticalPageLayout vertical="apu" title="Partidas de la Oferta" subtitle={project ? project.procedure_number + " - " + project.project_description : "Cargando..."} fullWidth
       actions={
-        <button onClick={downloadOfertaPdf} disabled={pdfGenerating || partidas.length === 0} style={{ ...theme.buttonStyle, fontSize: 13, padding: "10px 20px", opacity: pdfGenerating || partidas.length === 0 ? 0.6 : 1 }}>
-          {pdfGenerating ? "Generando..." : "Descargar PDF de Oferta"}
-        </button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={bulkSuggestAllPartidas} disabled={bulkSuggesting || partidas.length === 0} style={{ ...theme.buttonStyle, fontSize: 13, padding: "10px 20px", opacity: bulkSuggesting || partidas.length === 0 ? 0.6 : 1 }}>
+            {bulkSuggesting ? "Procesando " + (bulkProgress?.current ?? 0) + "/" + (bulkProgress?.total ?? 0) + "..." : "Sugerir IA para Todas las Partidas"}
+          </button>
+          <button onClick={downloadOfertaPdf} disabled={pdfGenerating || partidas.length === 0} style={{ ...theme.buttonStyle, fontSize: 13, padding: "10px 20px", opacity: pdfGenerating || partidas.length === 0 ? 0.6 : 1 }}>
+            {pdfGenerating ? "Generando..." : "Descargar PDF de Oferta"}
+          </button>
+        </div>
       }
     >
       <div style={{ ...theme.cardStyle, marginBottom: 24 }}>

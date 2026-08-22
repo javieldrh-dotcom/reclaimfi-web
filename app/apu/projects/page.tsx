@@ -23,6 +23,11 @@ export default function ApuProjectsPage() {
   const [pliegoResult, setPliegoResult] = useState<any>(null);
   const [pliegoMessage, setPliegoMessage] = useState("");
   const [pliegoSaving, setPliegoSaving] = useState(false);
+  const [repName, setRepName] = useState("");
+  const [repId, setRepId] = useState("");
+  const [repPosition, setRepPosition] = useState("");
+  const [repMessage, setRepMessage] = useState("");
+  const [repExpanded, setRepExpanded] = useState(false);
 
   async function loadProjects(cid: string) {
     const { data } = await supabase.from("apu_projects").select("*").eq("company_id", cid).order("created_at", { ascending: false });
@@ -45,11 +50,27 @@ export default function ApuProjectsPage() {
         const { data: orderC } = await supabase.from("chart_of_accounts").select("id").eq("company_id", cid).eq("account_type", "ORDER_CREDITOR").ilike("account_name", "%Responsabilidad por Contratos%").single();
         setOrderDebtorAccount(orderD);
         setOrderCreditorAccount(orderC);
+        const { data: compRep } = await supabase.from("companies").select("legal_representative_name, legal_representative_id, legal_representative_position").eq("id", cid).single();
+        setRepName(compRep?.legal_representative_name ?? "");
+        setRepId(compRep?.legal_representative_id ?? "");
+        setRepPosition(compRep?.legal_representative_position ?? "");
         await loadProjects(cid);
       }
     }
     load();
   }, []);
+  async function saveRepresentative() {
+    setRepMessage("");
+    if (!companyId) return;
+    const { error } = await supabase.from("companies").update({
+      legal_representative_name: repName.trim() || null,
+      legal_representative_id: repId.trim() || null,
+      legal_representative_position: repPosition.trim() || null,
+    }).eq("id", companyId);
+    if (error) { setRepMessage("Error: " + error.message); return; }
+    setRepMessage("Guardado. Se usara automaticamente en los PDF de ahora en adelante.");
+  }
+
   async function createProject() {
     setMessage("");
     if (!companyId || !procedureNumber) { setMessage("Completa al menos el numero de procedimiento."); return; }
@@ -211,6 +232,25 @@ export default function ApuProjectsPage() {
 
   return (
     <VerticalPageLayout vertical="apu" title="Licitaciones y Ofertas al Estado" subtitle="Modulo de Analisis de Precios Unitarios (APU) - Aplicable a cualquier pais o moneda" fullWidth>
+      <div style={{ ...theme.cardStyle, maxWidth: 900, margin: "0 auto 20px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }} onClick={() => setRepExpanded(!repExpanded)}>
+          <h3 style={{ fontSize: 15, color: theme.accent, fontWeight: 700 }}>
+            Datos del Representante Legal (para firma en PDF) {repName && "- " + repName}
+          </h3>
+          <span style={{ fontSize: 12, color: theme.accent }}>{repExpanded ? "Ocultar" : "Editar"}</span>
+        </div>
+        {repExpanded && (
+          <div style={{ marginTop: 12 }}>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <input value={repName} onChange={(e) => setRepName(e.target.value)} style={{ ...theme.inputStyle, flex: 1, minWidth: 200 }} placeholder="Nombre y Apellido" />
+              <input value={repId} onChange={(e) => setRepId(e.target.value)} style={{ ...theme.inputStyle, flex: 1, minWidth: 150 }} placeholder="Cedula de Identidad" />
+              <input value={repPosition} onChange={(e) => setRepPosition(e.target.value)} style={{ ...theme.inputStyle, flex: 1, minWidth: 180 }} placeholder="Cargo / Representante Legal" />
+            </div>
+            <button onClick={saveRepresentative} style={{ ...theme.buttonStyle, marginTop: 10, padding: "8px 16px", fontSize: 13 }}>Guardar</button>
+            {repMessage && <p style={{ marginTop: 8, fontSize: 12, color: repMessage.includes("Error") ? "#f87171" : theme.accent }}>{repMessage}</p>}
+          </div>
+        )}
+      </div>
       <div style={{ ...theme.cardStyle, maxWidth: 900, margin: "0 auto 24px", border: "1px solid " + theme.accent }}>
         <h3 style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginBottom: 6 }}>Crear Proyecto desde Pliego (PDF)</h3>
         <p style={{ fontSize: 13, color: "#8B93A7", marginBottom: 12 }}>

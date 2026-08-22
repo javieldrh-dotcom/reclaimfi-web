@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import { supabase } from "@/app/lib/supabase";
 import { generateForensicReport, EngagementType } from "@/app/core/reports/generateForensicReport";
 
@@ -15,6 +16,8 @@ export default function CaseReportPage() {
   const [assets, setAssets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [narrative, setNarrative] = useState("");
+  const [generatingNarrative, setGeneratingNarrative] = useState(false);
 
   const [engagementType, setEngagementType] = useState<EngagementType>("COMPILATION");
   const [auditorName, setAuditorName] = useState("");
@@ -101,6 +104,26 @@ export default function CaseReportPage() {
     setAssets(updated);
   }
 
+  async function generateNarrative() {
+    setGeneratingNarrative(true);
+    try {
+      const res = await fetch("/api/unified-narrative", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ caseId }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setNarrative(json.narrative);
+      } else {
+        setNarrative("Error: " + json.error);
+      }
+    } catch (e: any) {
+      setNarrative("Error: " + e.message);
+    }
+    setGeneratingNarrative(false);
+  }
+
   function handleDownload() {
     if (!caseData) return;
     const auditorInfo = includeSignature
@@ -149,6 +172,46 @@ export default function CaseReportPage() {
         <p><strong>Titulo:</strong> {caseData.title ?? "N/D"}</p>
         <p><strong>Nivel de riesgo:</strong> {caseData.risk_level ?? "N/D"}</p>
         <p><strong>Eventos en cadena de custodia:</strong> {ledgerEntries.length}</p>
+      </div>
+
+      <Link
+        href={"/reports/" + caseId + "/reconstruct"}
+        style={{
+          display: "inline-block",
+          marginTop: 20,
+          padding: "12px 24px",
+          background: "none",
+          border: "1px solid #7dd3fc",
+          color: "#7dd3fc",
+          borderRadius: 10,
+          textDecoration: "none",
+          fontWeight: 700,
+        }}
+      >
+        Reconstruir Contabilidad desde Evidencia
+      </Link>
+
+      <div style={{ marginTop: 20 }}>
+        <button
+          onClick={generateNarrative}
+          disabled={generatingNarrative}
+          style={{
+            padding: "12px 24px",
+            background: "#7dd3fc",
+            color: "black",
+            fontWeight: 900,
+            borderRadius: 10,
+            border: "none",
+            cursor: "pointer",
+          }}
+        >
+          {generatingNarrative ? "Generando..." : "Generar Narrativa Forense Unificada (Papel + Blockchain)"}
+        </button>
+        {narrative && (
+          <div style={{ marginTop: 16, padding: 20, background: "#0d1117", borderRadius: 12, border: "1px solid #1a3050", lineHeight: 1.8, whiteSpace: "pre-wrap" }}>
+            {narrative}
+          </div>
+        )}
       </div>
 
       <div style={{ marginTop: 30 }}>

@@ -6,6 +6,7 @@ const navItems = [
   { href: "/apu/financial-qualification", label: "CALIFICACION FINANCIERA" },
   { href: "/apu/cost-summary", label: "RESUMEN DE COSTO" },
   { href: "/apu/fscl", label: "CALCULADORA FSCL" },
+  { href: "/apu/price-catalog", label: "CATALOGO DE PRECIOS" },
 ];
 export default function ApuLayout({ children }: { children: React.ReactNode }) {
   return (
