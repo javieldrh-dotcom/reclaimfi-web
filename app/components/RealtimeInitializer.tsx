@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect } from "react";
 import { initializeRealtimeGraphBridge } from "@/app/lib/realtime/realtimeGraphBridge";
 
@@ -10,4 +9,3 @@ export default function RealtimeInitializer() {
 
   return null;
 }
-
