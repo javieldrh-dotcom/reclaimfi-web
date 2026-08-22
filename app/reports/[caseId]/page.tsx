@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/app/lib/supabase";
 import { generateForensicReport, EngagementType } from "@/app/core/reports/generateForensicReport";
+import EvidenceManager from "@/app/components/EvidenceManager";
 
 export default function CaseReportPage() {
   const params = useParams();
@@ -190,6 +191,8 @@ export default function CaseReportPage() {
       >
         Reconstruir Contabilidad desde Evidencia
       </Link>
+
+      <EvidenceManager caseId={caseId} />
 
       <div style={{ marginTop: 20 }}>
         <button
