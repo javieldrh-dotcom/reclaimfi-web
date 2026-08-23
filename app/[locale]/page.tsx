@@ -84,6 +84,31 @@ export default function HomePage() {
         .fade-in-up.in-view {
           opacity: 1;
           transform: translateY(0);
+        @keyframes ctaBreathe {
+          0%, 100% { box-shadow: 0 10px 30px rgba(250,204,21,0.45); transform: scale(1); }
+          50% { box-shadow: 0 14px 42px rgba(250,204,21,0.65); transform: scale(1.02); }
+        }
+        .cta-breathe { animation: ctaBreathe 2.6s ease-in-out infinite; }
+        @keyframes livePulseDot {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.4; transform: scale(1.3); }
+        }
+        .live-dot {
+          display: inline-block;
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          margin-right: 6px;
+          animation: livePulseDot 1.6s ease-in-out infinite;
+        }
+        @keyframes staggerFade {
+          from { opacity: 0; transform: translateX(-8px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+        .stagger-row {
+          animation: staggerFade 0.5s ease forwards;
+          opacity: 0;
+        }
         }
         @keyframes pulseGlow {
           0%, 100% { opacity: 0.5; }
@@ -200,7 +225,7 @@ export default function HomePage() {
           {t("subheadline")}
         </p>
         <div style={{ marginTop: 44, display: "flex", gap: 18, justifyContent: "center", flexWrap: "wrap" }}>
-          <Link href="/login" className="cta-button" style={{ padding: "20px 48px", background: yellowBrand, color: bg, borderRadius: 14, textDecoration: "none", fontSize: 20, fontWeight: 800, boxShadow: "0 10px 30px " + yellowBrand + "45" }}>
+          <Link href="/login" className="cta-button cta-breathe" style={{ padding: "20px 48px", background: yellowBrand, color: bg, borderRadius: 14, textDecoration: "none", fontSize: 20, fontWeight: 800, boxShadow: "0 10px 30px " + yellowBrand + "45" }}>
             {t("cta")}
           </Link>
         </div>
@@ -223,7 +248,7 @@ export default function HomePage() {
                 ["03-08", "5102-01 Sueldos", "1.200", ""],
                 ["03-08", "1102-01 Banco", "", "1.200"],
               ].map((row, i) => (
-                <div key={i} style={{ display: "grid", gridTemplateColumns: "70px 1fr 80px 80px", gap: 8, padding: "8px 0", color: "#0F172A", borderBottom: i < 3 ? "1px solid #E2E8F0" : "none" }}>
+                <div key={i} className="stagger-row" style={{ display: "grid", gridTemplateColumns: "70px 1fr 80px 80px", gap: 8, padding: "8px 0", color: "#0F172A", borderBottom: i < 3 ? "1px solid #E2E8F0" : "none", animationDelay: (i * 0.15) + "s" }}>
                   <span>{row[0]}</span><span>{row[1]}</span><span>{row[2]}</span><span>{row[3]}</span>
                 </div>
               ))}
@@ -235,7 +260,7 @@ export default function HomePage() {
             <p style={{ fontSize: 13, fontWeight: 800, color: cyan, textTransform: "uppercase", letterSpacing: 1 }}>Cadena Verificable</p>
             <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 10 }}>
               {[1, 2, 3, 4].map((n) => (
-                <div key={n} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div key={n} className="stagger-row" style={{ display: "flex", alignItems: "center", gap: 10, animationDelay: (n * 0.15) + "s" }}>
                   <div style={{ width: 32, height: 32, borderRadius: 8, background: green + "18", display: "flex", alignItems: "center", justifyContent: "center" }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={green} strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg></div>
                   <div style={{ flex: 1, height: 10, background: "#F1F5F9", borderRadius: 6, overflow: "hidden" }}>
                     <div style={{ width: "100%", height: "100%", background: cyan + "40" }} />
@@ -244,7 +269,7 @@ export default function HomePage() {
                 </div>
               ))}
             </div>
-            <p style={{ marginTop: 16, fontSize: 13, color: "#64748B" }}>Integridad 100% verificada</p>
+            <p style={{ marginTop: 16, fontSize: 13, color: "#64748B" }}><span className="live-dot" style={{ background: green }} />Integridad 100% verificada</p>
           </div>
 
           {/* Hyperinflation mockup */}
