@@ -355,9 +355,17 @@ export default function HomePage() {
         </Link>
       </section>
 
-      {/* FAQ */}
-      <section style={{ padding: "90px 40px", background: bgCard, borderTop: "1px solid " + cardBorder }}>
-        <div style={{ maxWidth: 820, margin: "0 auto" }}>
+      <section style={{ position: "relative", overflow: "hidden", padding: "150px 40px 90px", background: bgCard, borderTop: "1px solid " + cardBorder }}>
+        <svg viewBox="0 0 1200 220" preserveAspectRatio="none" style={{ position: "absolute", top: 0, left: 0, width: "100%", height: 180, zIndex: 0 }}>
+          <defs>
+            <linearGradient id="paintGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={amber} stopOpacity="0.9" />
+              <stop offset="100%" stopColor="#EA580C" stopOpacity="0.85" />
+            </linearGradient>
+          </defs>
+          <path fill="url(#paintGrad)" d="M0,0 L1200,0 L1200,55 C1160,55 1150,95 1120,95 C1100,95 1095,60 1070,60 C1045,60 1035,170 1000,170 C980,170 975,75 945,75 L760,75 C735,75 725,140 695,140 C675,140 668,65 640,65 L430,65 C405,65 398,120 368,120 C348,120 342,55 315,55 L150,55 C125,55 118,100 90,100 C70,100 65,50 40,50 L0,50 Z" />
+        </svg>
+        <div style={{ maxWidth: 820, margin: "0 auto", position: "relative", zIndex: 1 }}>
           <div style={{ textAlign: "center" }}>
             <div className="label-badge" style={labelStyle(cyan)}>{t("faqLabel")}</div>
             <h2 style={sectionTitleStyle}>{t("faqTitle")}</h2>
