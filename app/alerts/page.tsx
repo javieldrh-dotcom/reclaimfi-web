@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
@@ -16,7 +16,7 @@ export default function AlertsPage() {
       const { data, error } = await supabase
         .from("wallets")
         .select("*")
-        .in("risk_level", ["High Risk", "Medium Risk"])
+        .in("risk_level", ["HIGH", "MEDIUM"])
         .order("created_at", { ascending: false });
 
       if (error) {
@@ -50,17 +50,17 @@ export default function AlertsPage() {
           <div>
 
             <h1 className="text-5xl font-bold text-red-400">
-              Alerts Center
+              Centro de Alertas
             </h1>
 
             <p className="mt-4 text-gray-500">
-              AML intelligence and suspicious activity escalation.
+              Inteligencia AML y escalamiento de actividad sospechosa.
             </p>
 
           </div>
 
           <div className="rounded-2xl border border-red-400/20 bg-red-400/10 px-5 py-3 text-red-300">
-            AML MONITORING
+            MONITOREO AML
           </div>
 
         </div>
@@ -71,13 +71,13 @@ export default function AlertsPage() {
           {loading ? (
 
             <div className="rounded-3xl border border-white/5 bg-white/[0.03] p-10 text-center text-gray-500">
-              Loading AML alerts...
+              Cargando alertas AML...
             </div>
 
           ) : alerts.length === 0 ? (
 
             <div className="rounded-3xl border border-white/5 bg-white/[0.03] p-10 text-center text-gray-500">
-              No AML alerts detected.
+              No se detectaron alertas AML.
             </div>
 
           ) : (
@@ -98,7 +98,7 @@ export default function AlertsPage() {
                     </h2>
 
                     <p className="mt-3 text-gray-400">
-                      Behavioral anomaly and suspicious transaction activity detected.
+                      Anomalia de comportamiento y actividad de transaccion sospechosa detectada.
                     </p>
 
                   </div>
@@ -107,7 +107,7 @@ export default function AlertsPage() {
                     className={
                       "rounded-2xl px-5 py-3 text-sm font-semibold " +
 
-                      (item.risk_level === "High Risk"
+                      (item.risk_level === "HIGH"
                         ? "bg-red-500/20 text-red-300"
                         : "bg-yellow-500/20 text-yellow-300")
                     }
@@ -123,7 +123,7 @@ export default function AlertsPage() {
                   <div className="rounded-2xl border border-white/5 bg-black/30 p-5">
 
                     <p className="text-sm text-gray-500">
-                      Score
+                      Puntaje
                     </p>
 
                     <h3 className="mt-3 text-3xl font-bold">
@@ -135,7 +135,7 @@ export default function AlertsPage() {
                   <div className="rounded-2xl border border-white/5 bg-black/30 p-5">
 
                     <p className="text-sm text-gray-500">
-                      Behavior
+                      Comportamiento
                     </p>
 
                     <h3 className="mt-3 text-xl font-semibold">
@@ -147,7 +147,7 @@ export default function AlertsPage() {
                   <div className="rounded-2xl border border-white/5 bg-black/30 p-5">
 
                     <p className="text-sm text-gray-500">
-                      Activity
+                      Actividad
                     </p>
 
                     <h3 className="mt-3 text-xl font-semibold">
@@ -159,7 +159,7 @@ export default function AlertsPage() {
                   <div className="rounded-2xl border border-white/5 bg-black/30 p-5">
 
                     <p className="text-sm text-gray-500">
-                      Connections
+                      Conexiones
                     </p>
 
                     <h3 className="mt-3 text-xl font-semibold">
@@ -178,7 +178,7 @@ export default function AlertsPage() {
                   </p>
 
                   <div className="rounded-xl border border-red-400/20 bg-red-400/10 px-4 py-2 text-sm text-red-300">
-                    AGI Escalation Active
+                    Escalamiento AGI Activo
                   </div>
 
                 </div>
