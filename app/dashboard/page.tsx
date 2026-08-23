@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -126,6 +126,9 @@ export default function DashboardPage() {
           <Link href="/compliance" className={tabStyle("compliance")}>COMPLIANCE</Link>
           <Link href="/reports" className={tabStyle("reports")}>FORENSIC REPORTS</Link>
           <Link href="/history" className={tabStyle("history")}>HISTORY</Link>
+          <Link href="/dashboard/audit" className={tabStyle("audit")}>INTEGRIDAD DE EVIDENCIA</Link>
+          <Link href="/dashboard/graph" className={tabStyle("graph")}>GRAFO FORENSE</Link>
+          <Link href="/security" className={tabStyle("security")}>SEGURIDAD DE CUENTA</Link>
         </div>
       </aside>
 
