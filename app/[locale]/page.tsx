@@ -207,14 +207,14 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* BENTO GRID - product mockups */}
-      <section style={{ padding: "20px 40px 100px", maxWidth: 1200, margin: "0 auto" }}>
-        <div className="responsive-grid-2" style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr", gap: 24 }}>
+      {/* BENTO GRID - product mockups (light mode) */}
+      <section style={{ position: "relative", padding: "60px 40px 100px", background: "#F1F5F9" }}>
+        <div className="responsive-grid-2" style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr", gap: 24, maxWidth: 1200, margin: "0 auto" }}>
           {/* Diario mockup - large */}
-          <div className="hover-lift fade-in-up bento-card" style={{ background: bgCard, borderRadius: 24, padding: 32, border: "1px solid " + cardBorder, boxShadow: "0 20px 50px rgba(0,0,0,0.5)" }}>
+          <div className="hover-lift fade-in-up bento-card" style={{ background: "#FFFFFF", borderRadius: 24, padding: 32, border: "1px solid #E2E8F0", boxShadow: "0 20px 50px rgba(15,23,42,0.08)" }}>
             <p style={{ fontSize: 13, fontWeight: 800, color: indigo, textTransform: "uppercase", letterSpacing: 1 }}>Libro Diario</p>
-            <div className="diario-table" style={{ marginTop: 16, background: bg, borderRadius: 14, padding: 20, fontFamily: "'IBM Plex Mono', monospace", fontSize: 13 }}>
-              <div style={{ display: "grid", gridTemplateColumns: "70px 1fr 80px 80px", gap: 8, color: inkSoft, fontWeight: 700, paddingBottom: 8, borderBottom: "1px solid " + cardBorder }}>
+            <div className="diario-table" style={{ marginTop: 16, background: "#F8FAFC", borderRadius: 14, padding: 20, fontFamily: "'IBM Plex Mono', monospace", fontSize: 13 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "70px 1fr 80px 80px", gap: 8, color: "#64748B", fontWeight: 700, paddingBottom: 8, borderBottom: "1px solid #E2E8F0" }}>
                 <span>Fecha</span><span>Cuenta</span><span>Debe</span><span>Haber</span>
               </div>
               {[
@@ -223,7 +223,7 @@ export default function HomePage() {
                 ["03-08", "5102-01 Sueldos", "1.200", ""],
                 ["03-08", "1102-01 Banco", "", "1.200"],
               ].map((row, i) => (
-                <div key={i} style={{ display: "grid", gridTemplateColumns: "70px 1fr 80px 80px", gap: 8, padding: "8px 0", color: ink, borderBottom: i < 3 ? "1px solid " + cardBorder : "none" }}>
+                <div key={i} style={{ display: "grid", gridTemplateColumns: "70px 1fr 80px 80px", gap: 8, padding: "8px 0", color: "#0F172A", borderBottom: i < 3 ? "1px solid #E2E8F0" : "none" }}>
                   <span>{row[0]}</span><span>{row[1]}</span><span>{row[2]}</span><span>{row[3]}</span>
                 </div>
               ))}
@@ -231,43 +231,43 @@ export default function HomePage() {
           </div>
 
           {/* Blockchain mockup */}
-          <div className="hover-lift fade-in-up bento-card" style={{ background: bgCard, borderRadius: 24, padding: 32, border: "1px solid " + cardBorder, boxShadow: "0 20px 50px rgba(0,0,0,0.5)" }}>
+          <div className="hover-lift fade-in-up bento-card" style={{ background: "#FFFFFF", borderRadius: 24, padding: 32, border: "1px solid #E2E8F0", boxShadow: "0 20px 50px rgba(15,23,42,0.08)" }}>
             <p style={{ fontSize: 13, fontWeight: 800, color: cyan, textTransform: "uppercase", letterSpacing: 1 }}>Cadena Verificable</p>
             <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 10 }}>
               {[1, 2, 3, 4].map((n) => (
                 <div key={n} style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <div style={{ width: 32, height: 32, borderRadius: 8, background: green + "18", display: "flex", alignItems: "center", justifyContent: "center" }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={green} strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg></div>
-                  <div style={{ flex: 1, height: 10, background: bg, borderRadius: 6, overflow: "hidden" }}>
-                    <div style={{ width: "100%", height: "100%", background: cyan + "30" }} />
+                  <div style={{ flex: 1, height: 10, background: "#F1F5F9", borderRadius: 6, overflow: "hidden" }}>
+                    <div style={{ width: "100%", height: "100%", background: cyan + "40" }} />
                   </div>
-                  <span style={{ fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", color: inkSoft }}>SHA-256</span>
+                  <span style={{ fontSize: 11, fontFamily: "'IBM Plex Mono', monospace", color: "#64748B" }}>SHA-256</span>
                 </div>
               ))}
             </div>
-            <p style={{ marginTop: 16, fontSize: 13, color: inkSoft }}>Integridad 100% verificada</p>
+            <p style={{ marginTop: 16, fontSize: 13, color: "#64748B" }}>Integridad 100% verificada</p>
           </div>
 
           {/* Hyperinflation mockup */}
-          <div className="hover-lift fade-in-up bento-card" style={{ background: bgCard, borderRadius: 24, padding: 32, border: "1px solid " + cardBorder, boxShadow: "0 20px 50px rgba(0,0,0,0.5)", gridColumn: "span 1" }}>
+          <div className="hover-lift fade-in-up bento-card" style={{ background: "#FFFFFF", borderRadius: 24, padding: 32, border: "1px solid #E2E8F0", boxShadow: "0 20px 50px rgba(15,23,42,0.08)", gridColumn: "span 1" }}>
             <p style={{ fontSize: 13, fontWeight: 800, color: amber, textTransform: "uppercase", letterSpacing: 1 }}>Reexpresion Automatica</p>
             <div style={{ marginTop: 20, display: "flex", alignItems: "center", justifyContent: "space-between", fontFamily: "'IBM Plex Mono', monospace" }}>
               <div>
-                <p style={{ fontSize: 11, color: inkSoft }}>Historico</p>
-                <p style={{ fontSize: 20, fontWeight: 700, color: inkSoft, textDecoration: "line-through" }}>100.00</p>
+                <p style={{ fontSize: 11, color: "#64748B" }}>Historico</p>
+                <p style={{ fontSize: 20, fontWeight: 700, color: "#94A3B8", textDecoration: "line-through" }}>100.00</p>
               </div>
               <span style={{ display: "inline-flex", alignItems: "center" }}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={amber} strokeWidth="2.5"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg></span>
               <div>
-                <p style={{ fontSize: 11, color: inkSoft }}>Reexpresado</p>
+                <p style={{ fontSize: 11, color: "#64748B" }}>Reexpresado</p>
                 <p style={{ fontSize: 20, fontWeight: 800, color: amber }}>488.122...</p>
               </div>
             </div>
           </div>
 
           {/* Multi-region mockup */}
-          <div className="hover-lift fade-in-up bento-card" style={{ background: "linear-gradient(135deg, " + indigo + ", " + cyan + ")", borderRadius: 24, padding: 32, color: bg, display: "flex", flexDirection: "column", justifyContent: "center", boxShadow: "0 20px 60px " + indigo + "45" }}>
-            <p style={{ fontSize: 13, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1, opacity: 0.8 }}>17 idiomas</p>
+          <div className="hover-lift fade-in-up bento-card" style={{ background: "linear-gradient(135deg, " + indigo + ", " + cyan + ")", borderRadius: 24, padding: 32, color: "#FFFFFF", display: "flex", flexDirection: "column", justifyContent: "center", boxShadow: "0 20px 60px " + indigo + "35" }}>
+            <p style={{ fontSize: 13, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1, opacity: 0.85 }}>17 idiomas</p>
             <p style={{ fontSize: 28, fontWeight: 800, marginTop: 10, fontFamily: "'IBM Plex Serif', serif" }}>5 continentes</p>
-            <p style={{ fontSize: 15, marginTop: 10, opacity: 0.85, lineHeight: 1.6 }}>Una plataforma que se adapta a cada region, no al reves.</p>
+            <p style={{ fontSize: 15, marginTop: 10, opacity: 0.9, lineHeight: 1.6 }}>Una plataforma que se adapta a cada region, no al reves.</p>
           </div>
         </div>
       </section>
