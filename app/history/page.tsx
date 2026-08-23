@@ -13,7 +13,7 @@ export default function HistoryPage() {
     async function fetchWallets() {
 
       const { data, error } = await supabase
-        .from("wallets")
+        .from("wallet_addresses")
         .select("*")
         .order("created_at", { ascending: false });
 
@@ -159,19 +159,19 @@ export default function HistoryPage() {
                     </td>
 
                     <td className="px-6 py-5">
-                      {wallet.score}
+                      {wallet.metadata?.score}
                     </td>
 
                     <td className="px-6 py-5">
-                      {wallet.behavior}
+                      {wallet.metadata?.behavior}
                     </td>
 
                     <td className="px-6 py-5">
-                      {wallet.activity}
+                      {wallet.metadata?.activity}
                     </td>
 
                     <td className="px-6 py-5">
-                      {wallet.connections}
+                      {wallet.metadata?.connections}
                     </td>
 
                     <td className="px-6 py-5 text-gray-500">

@@ -33,13 +33,16 @@ export default function BlockchainPage() {
         return;
       }
 
-      const { error: dbError } = await supabase.from("wallets").insert([{
+      const { error: dbError } = await supabase.from("wallet_addresses").insert([{
         address: wallet.trim(),
+        blockchain: "BTC",
         risk_level: json.analysis.riskLevel,
-        score: json.ofacSanctioned ? 0 : (json.analysis.riskLevel === "HIGH" ? 25 : json.analysis.riskLevel === "MEDIUM" ? 60 : 90),
-        behavior: json.analysis.behavior,
-        activity: json.ofacSanctioned ? "OFAC Sanctioned" : "Normal",
-        connections: json.txCount,
+        metadata: {
+          score: json.ofacSanctioned ? 0 : (json.analysis.riskLevel === "HIGH" ? 25 : json.analysis.riskLevel === "MEDIUM" ? 60 : 90),
+          behavior: json.analysis.behavior,
+          activity: json.ofacSanctioned ? "OFAC Sanctioned" : "Normal",
+          connections: json.txCount,
+        },
       }]);
       if (dbError) console.error("[Supabase Error]", dbError);
 

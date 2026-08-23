@@ -14,7 +14,7 @@ export default function AlertsPage() {
     async function fetchAlerts() {
 
       const { data, error } = await supabase
-        .from("wallets")
+        .from("wallet_addresses")
         .select("*")
         .in("risk_level", ["HIGH", "MEDIUM"])
         .order("created_at", { ascending: false });
@@ -127,7 +127,7 @@ export default function AlertsPage() {
                     </p>
 
                     <h3 className="mt-3 text-3xl font-bold">
-                      {item.score}
+                      {item.metadata?.score}
                     </h3>
 
                   </div>
@@ -139,7 +139,7 @@ export default function AlertsPage() {
                     </p>
 
                     <h3 className="mt-3 text-xl font-semibold">
-                      {item.behavior}
+                      {item.metadata?.behavior}
                     </h3>
 
                   </div>
@@ -151,7 +151,7 @@ export default function AlertsPage() {
                     </p>
 
                     <h3 className="mt-3 text-xl font-semibold">
-                      {item.activity}
+                      {item.metadata?.activity}
                     </h3>
 
                   </div>
@@ -163,7 +163,7 @@ export default function AlertsPage() {
                     </p>
 
                     <h3 className="mt-3 text-xl font-semibold">
-                      {item.connections}
+                      {item.metadata?.connections}
                     </h3>
 
                   </div>
