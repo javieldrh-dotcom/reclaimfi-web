@@ -121,9 +121,29 @@ export default function HomePage() {
         @media (max-width: 480px) {
           .hero-title { font-size: 28px !important; }
         }
-          .hero-title { font-size: 32px !important; }
+        @keyframes dotDrift {
+          0% { background-position: 0 0; }
+          100% { background-position: 60px 60px; }
+        }
+        .bg-texture {
+          position: fixed;
+          inset: 0;
+          background-image: radial-gradient(circle, rgba(148,163,184,0.14) 1px, transparent 1px);
+          background-size: 34px 34px;
+          animation: dotDrift 40s linear infinite;
+          pointer-events: none;
+          z-index: 0;
+          opacity: 0.5;
+        }
+        .ambient-glow {
+          position: absolute;
+          border-radius: 50%;
+          filter: blur(90px);
+          pointer-events: none;
+          z-index: 0;
         }
       `}</style>
+      <div className="bg-texture" />
       <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "24px 56px", borderBottom: "1px solid " + cardBorder, flexWrap: "wrap", gap: 16, background: "rgba(10,14,22,0.85)", backdropFilter: "blur(12px)", position: "sticky", top: 0, zIndex: 50 }}>
         <div style={{ fontSize: 24, fontWeight: 800, color: yellowBrand, fontFamily: "'IBM Plex Serif', serif" }}>
           {tNav("brand")}
@@ -253,8 +273,9 @@ export default function HomePage() {
       </section>
 
       {/* DIFFERENTIATOR MESSAGE */}
-      <section style={{ padding: "70px 40px", background: bgCard, borderTop: "1px solid " + cardBorder, borderBottom: "1px solid " + cardBorder }}>
-        <div style={{ maxWidth: 900, margin: "0 auto", textAlign: "center" }}>
+      <section style={{ position: "relative", overflow: "hidden", padding: "70px 40px", background: bgCard, borderTop: "1px solid " + cardBorder, borderBottom: "1px solid " + cardBorder }}>
+        <div className="ambient-glow" style={{ top: "-20%", left: "30%", width: "40%", height: "160%", background: green + "18" }} />
+        <div style={{ maxWidth: 900, margin: "0 auto", textAlign: "center", position: "relative", zIndex: 1 }}>
           <div className="label-badge" style={labelStyle(green)}>{t("differentiatorLabel")}</div>
           <h2 style={{ ...sectionTitleStyle, fontSize: 38 }}>{t("differentiatorTitle")}</h2>
           <p style={{ marginTop: 22, fontSize: 20, color: inkSoft, lineHeight: 1.8 }}>{t("differentiatorDesc")}</p>
@@ -296,8 +317,9 @@ export default function HomePage() {
       </section>
 
       {/* SECURITY */}
-      <section style={{ padding: "90px 40px", background: green + "08" }}>
-        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+      <section style={{ position: "relative", overflow: "hidden", padding: "90px 40px", background: green + "08" }}>
+        <div className="ambient-glow" style={{ bottom: "-15%", right: "10%", width: "45%", height: "130%", background: indigo + "14" }} />
+        <div style={{ maxWidth: 1100, margin: "0 auto", position: "relative", zIndex: 1 }}>
           <div style={{ textAlign: "center" }}>
             <div className="label-badge" style={labelStyle(green)}>{t("securityLabel")}</div>
             <h2 style={sectionTitleStyle}>{t("securityTitle")}</h2>
