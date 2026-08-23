@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
@@ -47,17 +47,17 @@ export default function HistoryPage() {
           <div>
 
             <h1 className="text-5xl font-bold text-cyan-400">
-              Wallet History
+              Historial de Wallets
             </h1>
 
             <p className="mt-4 text-gray-500">
-              Historical blockchain intelligence and forensic analysis.
+              Inteligencia historica de blockchain y analisis forense.
             </p>
 
           </div>
 
           <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-5 py-3 text-cyan-300">
-            LIVE TRACKING
+            SEGUIMIENTO EN VIVO
           </div>
 
         </div>
@@ -113,7 +113,7 @@ export default function HistoryPage() {
                     colSpan={7}
                     className="px-6 py-10 text-center text-gray-500"
                   >
-                    Loading wallet intelligence...
+                    Cargando inteligencia de wallets...
                   </td>
 
                 </tr>
@@ -126,7 +126,7 @@ export default function HistoryPage() {
                     colSpan={7}
                     className="px-6 py-10 text-center text-gray-500"
                   >
-                    No wallet intelligence found.
+                    No se encontro inteligencia de wallets.
                   </td>
 
                 </tr>
@@ -148,9 +148,9 @@ export default function HistoryPage() {
                       className={
                         "px-6 py-5 font-semibold " +
 
-                        (wallet.risk_level === "High Risk"
+                        (wallet.risk_level === "HIGH"
                           ? "text-red-400"
-                          : wallet.risk_level === "Medium Risk"
+                          : wallet.risk_level === "MEDIUM"
                           ? "text-yellow-400"
                           : "text-green-400")
                       }
