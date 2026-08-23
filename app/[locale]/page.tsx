@@ -84,6 +84,7 @@ export default function HomePage() {
         .fade-in-up.in-view {
           opacity: 1;
           transform: translateY(0);
+        }
         @keyframes ctaBreathe {
           0%, 100% { box-shadow: 0 10px 30px rgba(250,204,21,0.45); transform: scale(1); }
           50% { box-shadow: 0 14px 42px rgba(250,204,21,0.65); transform: scale(1.02); }
@@ -130,7 +131,6 @@ export default function HomePage() {
           width: 40%; height: 100%;
           background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
           animation: shimmerSweep 3.5s ease-in-out infinite;
-        }
         }
         @keyframes pulseGlow {
           0%, 100% { opacity: 0.5; }
