@@ -41,7 +41,7 @@ export default function CashFlowPage() {
       const netMove = (l.debit || 0) - (l.credit || 0);
       if (acc.account_type === "REVENUE") revenue += (l.credit || 0) - (l.debit || 0);
       else if (acc.account_type === "EXPENSE") expense += (l.debit || 0) - (l.credit || 0);
-      else if (acc.cash_flow_category === "OPERATING" && acc.account_name.toLowerCase().includes("cliente")) arDelta += netMove;
+      else if (acc.cash_flow_category === "OPERATING" && acc.account_name.toLowerCase().includes("cliente")) arDelta += -netMove;
       else if (acc.cash_flow_category === "OPERATING" && acc.account_name.toLowerCase().includes("proveedor")) apDelta += -netMove;
       else if (acc.cash_flow_category === "INVESTING") investingDelta += netMove;
       else if (acc.cash_flow_category === "FINANCING") financingDelta += -netMove;
