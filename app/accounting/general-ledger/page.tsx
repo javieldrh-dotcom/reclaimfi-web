@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
@@ -45,7 +45,6 @@ export default function GeneralLedgerPage() {
 
   async function loadMovements(accountId: string) {
     setSelectedAccountId(accountId);
-    setDisplayLimit(50);
     setDisplayLimit(50);
     setLoadingMovements(true);
     const acc = accounts.find((a) => a.id === accountId);
@@ -170,7 +169,7 @@ export default function GeneralLedgerPage() {
                       <td style={{ padding: 10, fontSize: 22 }}>{m.date}</td>
                       <td style={{ padding: 10, fontSize: 22 }}>{m.description}</td>
                       <td style={{ padding: 10, textAlign: "right", fontSize: 22, ...theme.numberStyle }}>{m.debit > 0 ? m.debit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : ""}</td>
-                      <td style={{ padding: 10, textAlign: "right", fontSize: 22, ...theme.numberStyle }}>{m.credit > 0 ? m.credit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : ""}</td>
+                      <td style={{ padding: 10, textAlign: "right", fontWeight: 700, fontSize: 22, ...theme.numberStyle }}>{m.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span style={{ fontSize: 13, fontWeight: 400, color: "#8B93A7" }}>({m.balance > 0 ? "Deudor" : m.balance < 0 ? "Acreedor" : "Saldado"})</span></td>
                       <td style={{ padding: 10, textAlign: "right", fontWeight: 700, fontSize: 22, ...theme.numberStyle }}>{m.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     </tr>
                   ))}
