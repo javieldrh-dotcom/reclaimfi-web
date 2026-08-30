@@ -139,7 +139,7 @@ export default function EquityStatementPage() {
           <span>(+/-) Resultado del Ejercicio</span>
           <span style={theme.numberStyle}>{netResult.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
         </div>
-        <div style={{ marginTop: 24, padding: 18, background: "#0B0E14", borderRadius: 12, display: "flex", justifyContent: "space-between", fontSize: 24, fontWeight: 900, color: "#4ade80" }}>
+        <div style={{ marginTop: 24, padding: 18, background: "#0B0E14", borderRadius: 12, display: "flex", justifyContent: "space-between", fontSize: 24, fontWeight: 900, color: totalEquityAfter >= 0 ? "#4ade80" : "#f87171" }}>
           <span>Patrimonio Final</span>
           <span style={theme.numberStyle}>{totalEquityAfter.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
         </div>
