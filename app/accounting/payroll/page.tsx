@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
@@ -226,7 +226,7 @@ export default function PayrollPage() {
             <input type="date" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} style={inputStyle} />
           </div>
           <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
-            <select value={payrollCurrency} onChange={(e) => setPayrollCurrency(e.target.value)} style={inputStyle}>
+            <select value={payrollCurrency} onChange={(e) => { setPayrollCurrency(e.target.value); if (e.target.value === "USD") setPayrollExchangeRate("1"); }} style={inputStyle}>
               <option value="USD">USD</option>
               <option value="VES">VES (Bolivares)</option>
             </select>
