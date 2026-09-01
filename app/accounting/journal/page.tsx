@@ -169,12 +169,6 @@ export default function JournalPage() {
     await loadAvailableYears(companyId);
     if (companyId) await loadEntries(companyId, selectedYear);
   }
-  async function voidEntry(entryId: string) {
-    const reason = window.prompt("Motivo de la anulacion:");
-    if (!reason) return;
-    await supabase.from("journal_entries").update({ status: "VOIDED", voided_at: new Date().toISOString(), void_reason: reason }).eq("id", entryId);
-    if (companyId) await loadEntries(companyId, selectedYear);
-  }
 
   async function reverseEntry(entry: any) {
     if (!companyId) return;
@@ -328,11 +322,11 @@ export default function JournalPage() {
             {selectedYear === "TODOS" ? "Todos los Ejercicios" : "Ejercicio Fiscal " + selectedYear}
           </h2>
           {entries.slice(0, displayLimit).map((e) => (
-            <div key={e.id} style={{ ...theme.cardStyle, marginTop: 12, opacity: e.status === "VOIDED" ? 0.5 : 1 }}>
+            <div key={e.id} style={{ ...theme.cardStyle, marginTop: 12 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontWeight: 700, fontSize: 22 }}>
                   Nº{e.entry_number ?? "S/N"} - {e.entry_date} - {e.description}
-                  {e.status === "VOIDED" && <span style={{ color: "#F87171", marginLeft: 8, fontSize: 16 }}>[ANULADO]</span>}
+
                 </span>
                 {e.status === "ACTIVE" && (
                   <div style={{ display: "flex", gap: 8 }}>
