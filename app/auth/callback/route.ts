@@ -1,5 +1,11 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { createClient } from "@/app/lib/supabase/server";
+
+// Dueno de la plataforma (ver app/admin/layout.tsx): no es un cliente, es
+// quien opera y prueba el negocio. No debe quedar sujeto a las mismas
+// restricciones de suscripcion/rol que un cliente normal.
+const PLATFORM_OWNER_EMAIL = "javiel.ramirez@gmail.com";
+const PLATFORM_OWNER_ID = "a56f197e-a532-4d3c-9f08-5b5b3a4d7b7a";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -13,6 +19,13 @@ export async function GET(request: Request) {
     if (!error && data?.user) {
       if (explicitRedirect) {
         return NextResponse.redirect(`${origin}${explicitRedirect}`);
+      }
+
+      const isOwner =
+        data.user.id === PLATFORM_OWNER_ID ||
+        data.user.email?.toLowerCase() === PLATFORM_OWNER_EMAIL;
+      if (isOwner) {
+        return NextResponse.redirect(`${origin}/select-module`);
       }
 
       const { data: assignments } = await supabase
