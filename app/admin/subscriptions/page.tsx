@@ -1,18 +1,56 @@
-﻿"use client";
+"use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
 
 export default function SubscriptionsAdminPage() {
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [processingId, setProcessingId] = useState<string | null>(null);
 
   async function loadSubscriptions() {
     const { data } = await supabase
       .from("subscriptions")
-      .select("*, companies(name), subscription_plans(plan_name, monthly_price_usd), payment_methods(method_name)")
+      .select("*, companies(name, owner_id), subscription_plans(plan_name, monthly_price_usd), payment_methods(method_name)")
       .order("requested_at", { ascending: false });
     setSubscriptions(data ?? []);
     setLoading(false);
+  }
+
+  // Al aprobar un pago, la suscripcion queda ACTIVE pero eso por si solo NO
+  // le da acceso a ningun modulo: el acceso real lo controla la tabla
+  // user_role_assignments (ver app/auth/callback/route.ts). Esta funcion
+  // cierra ese hueco: ademas de activar la suscripcion, le otorga al dueno
+  // de la empresa el rol ADMIN sobre su propia empresa, si todavia no tiene
+  // ningun rol asignado ahi (mismo patron que app/admin/companies/new).
+  async function grantAccessIfMissing(companyId: string | null | undefined, ownerId: string | null | undefined): Promise<string | null> {
+    if (!companyId || !ownerId) {
+      return "No se pudo otorgar acceso: falta la empresa o el propietario de esta suscripcion.";
+    }
+    const { data: existing, error: existingError } = await supabase
+      .from("user_role_assignments")
+      .select("id")
+      .eq("user_id", ownerId)
+      .eq("company_id", companyId)
+      .maybeSingle();
+    if (existingError) {
+      return "No se pudo verificar el acceso existente: " + existingError.message;
+    }
+    if (existing) return null;
+
+    const { data: adminRole, error: roleError } = await supabase.from("user_roles").select("id").eq("name", "ADMIN").single();
+    if (roleError || !adminRole) {
+      return "No se pudo otorgar acceso: no se encontro el rol ADMIN (" + (roleError?.message ?? "") + ").";
+    }
+    const { error: insertError } = await supabase.from("user_role_assignments").insert([{
+      user_id: ownerId,
+      role_id: adminRole.id,
+      company_id: companyId,
+    }]);
+    if (insertError) {
+      return "La suscripcion se activo, pero no se pudo otorgar el acceso al modulo: " + insertError.message;
+    }
+    return null;
   }
 
   useEffect(() => {
@@ -25,11 +63,25 @@ export default function SubscriptionsAdminPage() {
     await loadSubscriptions();
   }
 
-  async function extendSubscription(id: string) {
+  async function extendSubscription(sub: any) {
+    setActionMessage(null);
+    setProcessingId(sub.id);
     const newExpiry = new Date();
     newExpiry.setDate(newExpiry.getDate() + 30);
-    await supabase.from("subscriptions").update({ status: "ACTIVE", expires_at: newExpiry.toISOString().slice(0, 10) }).eq("id", id);
+    const { error } = await supabase.from("subscriptions").update({ status: "ACTIVE", expires_at: newExpiry.toISOString().slice(0, 10) }).eq("id", sub.id);
+    if (error) {
+      setActionMessage("Error al activar la suscripcion: " + error.message);
+      setProcessingId(null);
+      return;
+    }
+    const accessError = await grantAccessIfMissing(sub.company_id, sub.companies?.owner_id);
+    if (accessError) {
+      setActionMessage(accessError);
+    } else {
+      setActionMessage("Suscripcion activada y acceso otorgado correctamente.");
+    }
     await loadSubscriptions();
+    setProcessingId(null);
   }
 
   function isExpired(sub: any) {
@@ -48,6 +100,12 @@ export default function SubscriptionsAdminPage() {
   return (
     <div style={{ padding: 40, color: "white", background: "#0B0E14", minHeight: "100vh", fontFamily: "'IBM Plex Sans', sans-serif" }}>
       <h1 style={{ fontSize: 28, fontWeight: 900, color: "#2DD4BF", fontFamily: "'IBM Plex Serif', serif" }}>Administracion de Suscripciones</h1>
+
+      {actionMessage && (
+        <div style={{ marginTop: 16, padding: "12px 16px", borderRadius: 10, maxWidth: 900, background: actionMessage.startsWith("Error") || actionMessage.startsWith("No se pudo") || actionMessage.includes("no se pudo") ? "#F8717115" : "#2DD4BF15", border: "1px solid " + (actionMessage.startsWith("Error") || actionMessage.startsWith("No se pudo") || actionMessage.includes("no se pudo") ? "#F8717140" : "#2DD4BF40"), color: actionMessage.startsWith("Error") || actionMessage.startsWith("No se pudo") || actionMessage.includes("no se pudo") ? "#F87171" : "#2DD4BF", fontSize: 14 }}>
+          {actionMessage}
+        </div>
+      )}
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16, marginTop: 24, maxWidth: 900 }}>
         <div style={cardStyle}>
@@ -84,8 +142,8 @@ export default function SubscriptionsAdminPage() {
             </div>
             <div style={{ display: "flex", gap: 8 }}>
               {(isExpired(s) || s.status === "PENDING_PAYMENT") && (
-                <button onClick={() => extendSubscription(s.id)} style={{ background: "none", border: "1px solid #2DD4BF", color: "#2DD4BF", padding: "6px 14px", borderRadius: 8, fontSize: 13, cursor: "pointer" }}>
-                  Confirmar 30 dias
+                <button onClick={() => extendSubscription(s)} disabled={processingId === s.id} style={{ background: "none", border: "1px solid #2DD4BF", color: "#2DD4BF", padding: "6px 14px", borderRadius: 8, fontSize: 13, cursor: processingId === s.id ? "default" : "pointer", opacity: processingId === s.id ? 0.6 : 1 }}>
+                  {processingId === s.id ? "Procesando..." : "Confirmar 30 dias"}
                 </button>
               )}
               {s.status === "ACTIVE" && (
