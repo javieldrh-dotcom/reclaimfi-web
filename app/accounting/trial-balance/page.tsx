@@ -99,7 +99,7 @@ export default function TrialBalancePage() {
               <tr key={r.code} style={{ borderBottom: idx < rows.length - 1 ? "1px solid #1F2937" : "none" }}>
                 <td style={{ padding: "16px 20px", ...theme.numberStyle, color: "#8B93A7", fontSize: 14 }}>{r.code}</td>
                 <td style={{ padding: "16px 20px", fontSize: 20, lineHeight: 1.6 }}>
-                  <Link href={"/accounting/ledger/" + r.id} style={{ color: theme.accent, textDecoration: "none", fontWeight: 500 }}>
+                  <Link href={"/accounting/general-ledger?account=" + r.id} style={{ color: theme.accent, textDecoration: "none", fontWeight: 500 }}>
                     {r.name}
                   </Link>
                 </td>
