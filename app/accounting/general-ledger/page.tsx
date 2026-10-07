@@ -1,11 +1,14 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
 import VerticalPageLayout from "@/app/components/VerticalPageLayout";
 import { generateFinancialStatementPdf } from "@/app/core/reports/generateFinancialStatementPdf";
 
-export default function GeneralLedgerPage() {
+function GeneralLedgerContent() {
+  const searchParams = useSearchParams();
+  const requestedAccountId = searchParams.get("account");
   const theme = getVerticalTheme("accounting");
   const [companyName, setCompanyName] = useState("");
   const [currency, setCurrency] = useState("USD");
@@ -32,22 +35,27 @@ export default function GeneralLedgerPage() {
 
       const { data: accountsData } = await supabase
         .from("chart_of_accounts")
-        .select("id, account_code, account_name, account_type")
+        .select("id, account_code, account_name, account_type, mayor_folio, mayor_folio_continuation")
         .eq("company_id", cid)
         .not("account_type", "in", "(ORDER_DEBTOR,ORDER_CREDITOR)")
         .order("account_code");
 
       setAccounts(accountsData ?? []);
       setLoading(false);
+
+      if (requestedAccountId && (accountsData ?? []).some((a: any) => a.id === requestedAccountId)) {
+        await loadMovements(requestedAccountId, accountsData ?? []);
+      }
     }
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function loadMovements(accountId: string) {
+  async function loadMovements(accountId: string, accountsList: any[] = accounts) {
     setSelectedAccountId(accountId);
     setDisplayLimit(50);
     setLoadingMovements(true);
-    const acc = accounts.find((a) => a.id === accountId);
+    const acc = accountsList.find((a) => a.id === accountId);
     setContinuationFolio(acc?.mayor_folio_continuation ? String(acc.mayor_folio_continuation) : "");
     const { data } = await supabase
       .from("journal_lines")
@@ -169,8 +177,8 @@ export default function GeneralLedgerPage() {
                       <td style={{ padding: 10, fontSize: 22 }}>{m.date}</td>
                       <td style={{ padding: 10, fontSize: 22 }}>{m.description}</td>
                       <td style={{ padding: 10, textAlign: "right", fontSize: 22, ...theme.numberStyle }}>{m.debit > 0 ? m.debit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : ""}</td>
+                      <td style={{ padding: 10, textAlign: "right", fontSize: 22, ...theme.numberStyle }}>{m.credit > 0 ? m.credit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : ""}</td>
                       <td style={{ padding: 10, textAlign: "right", fontWeight: 700, fontSize: 22, ...theme.numberStyle }}>{m.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span style={{ fontSize: 13, fontWeight: 400, color: "#8B93A7" }}>({m.balance > 0 ? "Deudor" : m.balance < 0 ? "Acreedor" : "Saldado"})</span></td>
-                      <td style={{ padding: 10, textAlign: "right", fontWeight: 700, fontSize: 22, ...theme.numberStyle }}>{m.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -188,5 +196,13 @@ export default function GeneralLedgerPage() {
         </div>
       </div>
     </VerticalPageLayout>
+  );
+}
+
+export default function GeneralLedgerPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 40, color: "#7dd3fc" }}>Cargando...</div>}>
+      <GeneralLedgerContent />
+    </Suspense>
   );
 }
