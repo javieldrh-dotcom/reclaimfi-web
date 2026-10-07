@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/app/lib/supabase";
@@ -59,8 +59,31 @@ function SubscribePageContent() {
           createSubscription: function (data: any, actions: any) {
             return actions.subscription.create({ plan_id: selectedPlan.paypal_plan_id });
           },
-          onApprove: function (data: any) {
-            setMessage("Suscripcion PayPal iniciada correctamente. ID: " + data.subscriptionID);
+          onApprove: async function (data: any) {
+            setMessage("Verificando tu suscripcion con PayPal...");
+            try {
+              const res = await fetch("/api/subscriptions/paypal-confirm", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  paypalSubscriptionId: data.subscriptionID,
+                  planId: selectedPlan.id,
+                  industrySector,
+                }),
+              });
+              const result = await res.json();
+              if (!result.success) {
+                setMessage("Error: " + result.error);
+                return;
+              }
+              if (result.companyId) setCompanyId(result.companyId);
+              setMessage("Suscripcion activada. Redirigiendo...");
+              const redirectMap: Record<string, string> = { RECLAIMFI: "/dashboard", CONTABILIDAD: "/accounting", APU: "/apu/projects", COMPLETO: "/select-module" };
+              const redirectTo = redirectMap[selectedPlan.plan_code] ?? "/select-module";
+              setTimeout(() => { router.push(redirectTo); }, 1500);
+            } catch (err: any) {
+              setMessage("Error al confirmar la suscripcion de PayPal: " + err.message);
+            }
           },
         }).render("#paypal-button-container");
       }
@@ -102,37 +125,18 @@ function SubscribePageContent() {
       setMessage("Selecciona un plan y un metodo de pago.");
       return;
     }
-
-    let effectiveCompanyId = companyId;
-
-    if (!effectiveCompanyId) {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData?.user) { setMessage("Error: sesion no valida."); return; }
-
-      const { data: newCompanyRows, error: companyError } = await supabase.from("companies").insert([{
-        name: "Mi Empresa",
-        owner_id: userData.user.id,
-        industry_sector: industrySector,
-        country: "VE",
-        functional_currency: "USD",
-      }]).select("id");
-
-      if (companyError || !newCompanyRows || newCompanyRows.length === 0) { setMessage("Error al crear tu empresa: " + companyError?.message); return; }
-        const newCompany = newCompanyRows[0];
-
-      const { error: ucError } = await supabase.from("user_companies").insert([{ user_id: userData.user.id, company_id: newCompany.id }]);
-
-      const { data: baseAccounts } = await supabase.from("chart_of_accounts").select("account_code, account_name, account_type, sector").eq("company_id", "32dcf25d-12e4-45f5-9de0-9dfef2c54bef").in("sector", ["GENERIC", industrySector]);
-      if (baseAccounts && baseAccounts.length > 0) {
-        const newAccounts = baseAccounts.map((a: any) => ({ ...a, company_id: newCompany.id }));
-        await supabase.from("chart_of_accounts").insert(newAccounts);
-      }
-
-      effectiveCompanyId = newCompany.id;
-      setCompanyId(newCompany.id);
+    if (selectedMethod.method_code === "PAYPAL") {
+      setMessage("Usa el boton de PayPal para confirmar tu suscripcion.");
+      return;
     }
 
-    let receiptUrl = null;
+    setMessage("Procesando tu solicitud...");
+
+    // Subir el comprobante (si lo hay) es solo almacenamiento de archivo: no
+    // otorga acceso por si mismo. La decision de activar la suscripcion
+    // siempre se toma en el servidor (ver /api/subscriptions/request), nunca
+    // aqui en el cliente.
+    let receiptUrl: string | null = null;
     if (receiptFile) {
       const fileName = Date.now() + "-" + receiptFile.name;
       const { error: uploadError } = await supabase.storage.from("payment-receipts").upload(fileName, receiptFile);
@@ -141,51 +145,26 @@ function SubscribePageContent() {
       receiptUrl = urlData.publicUrl;
     }
 
-    const isProvisional = receiptUrl !== null;
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 5);
-
-    const { error } = await supabase.from("subscriptions").insert([{
-      company_id: effectiveCompanyId,
-      plan_id: selectedPlan.id,
-      payment_method_id: selectedMethod.id,
-      status: isProvisional ? "ACTIVE" : "PENDING_PAYMENT",
-      receipt_url: receiptUrl,
-      approved_at: isProvisional ? new Date().toISOString() : null,
-      expires_at: isProvisional ? expiresAt.toISOString().slice(0, 10) : null,
-    }]);
-
-    if (error) { setMessage("Error: " + error.message); return; }
-
-    if (isProvisional && selectedPlan) {
-      try {
-        const { data: userData } = await supabase.auth.getUser();
-        if (userData?.user && effectiveCompanyId) {
-          const { data: existingRoles } = await supabase
-            .from("user_role_assignments")
-            .select("id")
-            .eq("user_id", userData.user.id)
-            .eq("company_id", effectiveCompanyId);
-          if (!existingRoles || existingRoles.length === 0) {
-            const roleMap: Record<string, string> = { RECLAIMFI: "AUDITOR", CONTABILIDAD: "CONTADOR", APU: "CONTADOR", COMPLETO: "ADMIN" };
-            const roleName = roleMap[selectedPlan.plan_code] ?? "SOLO_LECTURA";
-            const { data: roleData } = await supabase.from("user_roles").select("id").eq("name", roleName).limit(1);
-            if (roleData && roleData.length > 0) {
-              await supabase.from("user_role_assignments").insert([{ user_id: userData.user.id, role_id: roleData[0].id, company_id: effectiveCompanyId }]);
-            }
-          }
-        }
-      } catch (roleError) {
-        console.error("No se pudo asignar rol automaticamente:", roleError);
+    try {
+      const res = await fetch("/api/subscriptions/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          planId: selectedPlan.id,
+          paymentMethodId: selectedMethod.id,
+          receiptUrl,
+          industrySector,
+        }),
+      });
+      const result = await res.json();
+      if (!result.success) {
+        setMessage("Error: " + result.error);
+        return;
       }
-    }
-
-    setMessage(isProvisional ? "Acceso activado por 5 dias mientras se verifica tu pago. Redirigiendo..." : "Solicitud registrada. Realiza el pago y envia tu comprobante para activar tu acceso.");
-
-    if (isProvisional) {
-      const redirectMap: Record<string, string> = { RECLAIMFI: "/dashboard", CONTABILIDAD: "/accounting", APU: "/apu/projects", COMPLETO: "/select-module" };
-      const redirectTo = redirectMap[selectedPlan.plan_code] ?? "/select-module";
-      setTimeout(() => { router.push(redirectTo); }, 2000);
+      if (result.companyId) setCompanyId(result.companyId);
+      setMessage(result.message);
+    } catch (err: any) {
+      setMessage("Error al registrar tu solicitud: " + err.message);
     }
   }
 
