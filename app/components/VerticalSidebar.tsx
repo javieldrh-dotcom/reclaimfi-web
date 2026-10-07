@@ -1,8 +1,9 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { getVerticalTheme } from "@/app/core/design/tokens";
+import { supabase } from "@/app/lib/supabase";
 
 interface NavItem {
   href: string;
@@ -26,9 +27,18 @@ function isGroup(entry: NavEntry): entry is NavGroup {
 
 export default function VerticalSidebar({ vertical, brandName, navItems }: Props) {
   const pathname = usePathname();
+  const router = useRouter();
   const theme = getVerticalTheme(vertical);
   const [openGroup, setOpenGroup] = useState<string | null>(null);
+  const [signingOut, setSigningOut] = useState(false);
   const navRef = useRef<HTMLDivElement>(null);
+
+  async function handleLogout() {
+    setSigningOut(true);
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  }
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -64,6 +74,7 @@ export default function VerticalSidebar({ vertical, brandName, navItems }: Props
           {brandName}
         </div>
 
+        <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap", flex: 1 }}>
         {navItems.map((entry) => {
           if (isGroup(entry)) {
             const isOpen = openGroup === entry.groupLabel;
@@ -116,6 +127,30 @@ export default function VerticalSidebar({ vertical, brandName, navItems }: Props
             </Link>
           );
         })}
+        </div>
+
+        <button
+          onClick={handleLogout}
+          disabled={signingOut}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "8px 14px",
+            borderRadius: 8,
+            fontSize: 14,
+            fontWeight: 600,
+            background: "transparent",
+            border: "1px solid " + theme.border,
+            color: "#B0B8C8",
+            cursor: signingOut ? "default" : "pointer",
+            opacity: signingOut ? 0.6 : 1,
+            whiteSpace: "nowrap",
+            marginLeft: 12,
+          }}
+        >
+          {signingOut ? "Saliendo..." : "Cerrar Sesion"}
+        </button>
       </div>
     </div>
   );
