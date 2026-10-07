@@ -15,11 +15,20 @@ interface JournalEntryBlock {
   narration: string;
 }
 
+interface AccountSummaryRow {
+  code?: string;
+  name: string;
+  folio: number | string;
+  debit: number;
+  credit: number;
+}
+
 const NAVY: [number, number, number] = [30, 58, 95];
 const SOFT_GRAY: [number, number, number] = [90, 106, 133];
 const INK: [number, number, number] = [20, 20, 20];
+const GOLD: [number, number, number] = [202, 138, 4];
 
-export function generateProfessionalDiarioPdf(companyName: string, exerciseYear: string, currency: string, entries: JournalEntryBlock[], startingFolio: number = 1) {
+export function generateProfessionalDiarioPdf(companyName: string, exerciseYear: string, currency: string, entries: JournalEntryBlock[], startingFolio: number = 1, accountSummary: AccountSummaryRow[] = []) {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   let y = 20;
@@ -159,6 +168,89 @@ export function generateProfessionalDiarioPdf(companyName: string, exerciseYear:
       closePage(false);
     }
   });
+
+  function drawAccountSummary() {
+    if (accountSummary.length === 0) return;
+
+    const rowHeight = 7;
+    const headerHeight = 24;
+    const neededHeight = headerHeight + accountSummary.length * rowHeight + 16;
+    if (y + neededHeight > 270) {
+      doc.addPage();
+      y = 20;
+    } else {
+      y += 10;
+    }
+
+    doc.setDrawColor(...GOLD);
+    doc.setLineWidth(0.6);
+    doc.line(15, y, pageWidth - 15, y);
+    y += 8;
+
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...NAVY);
+    doc.text("RESUMEN POR CUENTA", 15, y);
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...SOFT_GRAY);
+    doc.text("Ejercicio " + exerciseYear + " · Excepción del Art. 34, Código de Comercio", pageWidth - 15, y, { align: "right" });
+    y += 7;
+
+    doc.setFillColor(245, 247, 250);
+    doc.rect(15, y - 4, pageWidth - 30, 7, "F");
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...NAVY);
+    doc.text("FOL.", 18, y);
+    doc.text("CUENTA", 32, y);
+    doc.text("DEBE", pageWidth - 60, y, { align: "right" });
+    doc.text("HABER", pageWidth - 36, y, { align: "right" });
+    doc.text("SALDO", pageWidth - 15, y, { align: "right" });
+    y += 7;
+
+    let totalDebit = 0;
+    let totalCredit = 0;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.5);
+    accountSummary.forEach((row, idx) => {
+      if (y > 275) {
+        doc.addPage();
+        y = 20;
+      }
+      if (idx % 2 === 0) {
+        doc.setFillColor(250, 251, 252);
+        doc.rect(15, y - 4, pageWidth - 30, rowHeight, "F");
+      }
+      const balance = row.debit - row.credit;
+      doc.setTextColor(...SOFT_GRAY);
+      doc.text(String(row.folio ?? "-"), 18, y);
+      doc.setTextColor(...INK);
+      doc.text((row.code ? row.code + " - " : "") + row.name, 32, y, { maxWidth: pageWidth - 100 });
+      doc.text(row.debit > 0 ? row.debit.toLocaleString(undefined, { minimumFractionDigits: 2 }) : "", pageWidth - 60, y, { align: "right" });
+      doc.text(row.credit > 0 ? row.credit.toLocaleString(undefined, { minimumFractionDigits: 2 }) : "", pageWidth - 36, y, { align: "right" });
+      doc.setFont("helvetica", "bold");
+      doc.text((balance >= 0 ? "D " : "A ") + Math.abs(balance).toLocaleString(undefined, { minimumFractionDigits: 2 }), pageWidth - 15, y, { align: "right" });
+      doc.setFont("helvetica", "normal");
+      totalDebit += row.debit;
+      totalCredit += row.credit;
+      y += rowHeight;
+    });
+
+    doc.setDrawColor(...GOLD);
+    doc.setLineWidth(0.4);
+    doc.line(15, y, pageWidth - 15, y);
+    y += 6;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(...NAVY);
+    doc.text("TOTALES", 32, y);
+    doc.text(totalDebit.toLocaleString(undefined, { minimumFractionDigits: 2 }), pageWidth - 60, y, { align: "right" });
+    doc.text(totalCredit.toLocaleString(undefined, { minimumFractionDigits: 2 }), pageWidth - 36, y, { align: "right" });
+    doc.setTextColor(...INK);
+  }
+
+  drawAccountSummary();
 
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
