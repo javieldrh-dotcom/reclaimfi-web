@@ -143,11 +143,37 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "Error al registrar la suscripcion: " + insertResult.error.message }, { status: 500 });
     }
 
+    // La fila en `subscriptions` por si sola NO otorga acceso a ningun modulo:
+    // el acceso real lo controla user_role_assignments (ver app/auth/callback/route.ts).
+    // Si el usuario todavia no tiene ningun rol en esta empresa, le damos ADMIN
+    // (mismo patron que app/admin/companies/new), para que no quede con el pago
+    // activo pero sin poder entrar a la plataforma.
+    let accessWarning: string | null = null;
+    const { data: existingRole } = await supabase
+      .from("user_role_assignments")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("company_id", companyId)
+      .maybeSingle();
+    if (!existingRole) {
+      const { data: adminRole, error: roleError } = await supabase.from("user_roles").select("id").eq("name", "ADMIN").single();
+      if (adminRole) {
+        const { error: assignError } = await supabase.from("user_role_assignments").insert([{
+          user_id: user.id,
+          role_id: adminRole.id,
+          company_id: companyId,
+        }]);
+        if (assignError) accessWarning = "La suscripcion se activo, pero no se pudo otorgar el acceso automaticamente: " + assignError.message;
+      } else {
+        accessWarning = "La suscripcion se activo, pero no se encontro el rol ADMIN para otorgar el acceso: " + (roleError?.message ?? "");
+      }
+    }
+
     return NextResponse.json({
       success: true,
       subscriptionId: insertResult.data.id,
       companyId,
-      message: "Suscripcion de PayPal verificada y activada correctamente.",
+      message: accessWarning ?? "Suscripcion de PayPal verificada y activada correctamente.",
     });
   } catch (error: any) {
     console.error("PAYPAL CONFIRM ERROR:", error);
