@@ -8,6 +8,50 @@ import AccountSearchSelect from "@/app/components/AccountSearchSelect";
 import { generateProfessionalDiarioPdf } from "@/app/core/reports/generateProfessionalDiarioPdf";
 interface Account { id: string; account_code: string; account_name: string; }
 interface Line { account_id: string; debit: string; credit: string; }
+
+const DIARIO_DATE_FORMATTER = new Intl.DateTimeFormat("es-VE", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+
+function formatDiarioDate(dateStr: string): string {
+  const d = new Date(dateStr + "T00:00:00Z");
+  if (isNaN(d.getTime())) return dateStr;
+  const formatted = DIARIO_DATE_FORMATTER.format(d);
+  return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+}
+
+function groupEntriesByDay(entriesList: any[]): { date: string; items: any[] }[] {
+  const groups: { date: string; items: any[] }[] = [];
+  entriesList.forEach((e) => {
+    const last = groups[groups.length - 1];
+    if (last && last.date === e.entry_date) {
+      last.items.push(e);
+    } else {
+      groups.push({ date: e.entry_date, items: [e] });
+    }
+  });
+  return groups;
+}
+
+function summarizeByAccount(entriesList: any[]): { code: string; name: string; folio: number | string; debit: number; credit: number }[] {
+  const map: Record<string, { code: string; name: string; folio: number | string; debit: number; credit: number }> = {};
+  entriesList.forEach((e) => {
+    (e.journal_lines ?? []).forEach((l: any) => {
+      const acc = l.chart_of_accounts;
+      if (!acc) return;
+      const key = acc.id ?? acc.account_code;
+      if (!map[key]) {
+        map[key] = { code: acc.account_code, name: acc.account_name, folio: acc.mayor_folio ?? "-", debit: 0, credit: 0 };
+      }
+      map[key].debit += l.debit || 0;
+      map[key].credit += l.credit || 0;
+    });
+  });
+  return Object.values(map).sort((a, b) => {
+    const fa = typeof a.folio === "number" ? a.folio : Infinity;
+    const fb = typeof b.folio === "number" ? b.folio : Infinity;
+    return fa - fb;
+  });
+}
+
 export default function JournalPage() {
   const theme = getVerticalTheme("accounting");
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -220,7 +264,21 @@ export default function JournalPage() {
       }));
       return { year: yearStr, month: monthStr, lines: entryLines, narration: e.description };
     });
-    const doc = generateProfessionalDiarioPdf(companyName, selectedYear, "Bolivares (Bs)", entryBlocks, 1);
+    const summaryMap: Record<string, { code?: string; name: string; folio: number | string; debit: number; credit: number }> = {};
+    entryBlocks.forEach((block) => {
+      block.lines.forEach((l: any) => {
+        const key = l.folio + "|" + (l.code || "") + "|" + l.name;
+        if (!summaryMap[key]) summaryMap[key] = { code: l.code, name: l.name, folio: l.folio, debit: 0, credit: 0 };
+        summaryMap[key].debit += l.debit;
+        summaryMap[key].credit += l.credit;
+      });
+    });
+    const accountSummary = Object.values(summaryMap).sort((a, b) => {
+      const fa = typeof a.folio === "number" ? a.folio : Infinity;
+      const fb = typeof b.folio === "number" ? b.folio : Infinity;
+      return fa - fb;
+    });
+    const doc = generateProfessionalDiarioPdf(companyName, selectedYear, "Bolivares (Bs)", entryBlocks, 1, accountSummary);
     doc.save("libro-diario-" + selectedYear + ".pdf");
   }
   const inputStyle = theme.inputStyle;
@@ -321,32 +379,51 @@ export default function JournalPage() {
           <h2 style={{ fontSize: 26, color: theme.accent, fontFamily: theme.titleStyle.fontFamily, fontWeight: 700 }}>
             {selectedYear === "TODOS" ? "Todos los Ejercicios" : "Ejercicio Fiscal " + selectedYear}
           </h2>
-          {entries.slice(0, displayLimit).map((e) => (
-            <div key={e.id} style={{ ...theme.cardStyle, marginTop: 12 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontWeight: 700, fontSize: 22 }}>
-                  Nº{e.entry_number ?? "S/N"} - {e.entry_date} - {e.description}
 
-                </span>
-                {e.status === "ACTIVE" && (
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <button onClick={() => startEdit(e)} style={{ background: "none", border: "1px solid " + theme.accent, color: theme.accent, padding: "4px 12px", borderRadius: 8, fontSize: 13, cursor: "pointer" }}>
-                      Editar
-                    </button>
-                    <button onClick={() => reverseEntry(e)} style={{ background: "none", border: "1px solid #FB923C", color: "#FB923C", padding: "4px 12px", borderRadius: 8, fontSize: 13, cursor: "pointer" }}>
-                      Reversar
-                    </button>
-                  </div>
-                )}
+          {groupEntriesByDay(entries.slice(0, displayLimit)).map((day) => (
+            <div key={day.date} style={{ marginTop: 22 }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 10 }}>
+                <div style={{ width: 6, height: 20, background: theme.accent, borderRadius: 3 }} />
+                <h3 style={{ margin: 0, fontFamily: theme.titleStyle.fontFamily, fontSize: 19, fontWeight: 600, color: theme.textPrimary, textTransform: "capitalize" }}>
+                  {formatDiarioDate(day.date)}
+                </h3>
               </div>
-              {(e.journal_lines ?? []).map((l: any, idx: number) => (
-                <div key={idx} style={{ display: "flex", justifyContent: "space-between", fontSize: 20, color: "#B0B8C8", marginTop: 6, paddingLeft: 12 }}>
-                  <span>{presentationMode ? l.chart_of_accounts?.account_name : "Fol." + (l.chart_of_accounts?.mayor_folio ?? "-") + " · " + l.chart_of_accounts?.account_code + " - " + l.chart_of_accounts?.account_name}</span>
-                  <span style={theme.numberStyle}>{l.debit > 0 ? "Debe: " + l.debit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "Haber: " + l.credit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              {day.items.map((e) => (
+                <div key={e.id} style={{ ...theme.cardStyle, marginTop: 12, marginLeft: 18 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
+                    <span style={{ fontWeight: 700, fontSize: 18, color: theme.textPrimary }}>
+                      Asiento Nº{e.entry_number ?? "S/N"}
+                      {e.status !== "ACTIVE" && <span style={{ color: "#F87171", fontWeight: 600, fontSize: 13 }}> · ANULADO</span>}
+                    </span>
+                    <span style={{ fontSize: 14, color: theme.textSecondary, fontStyle: "italic" }}>{e.description}</span>
+                    {e.status === "ACTIVE" && (
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <button onClick={() => startEdit(e)} style={{ background: "none", border: "1px solid " + theme.accent, color: theme.accent, padding: "4px 12px", borderRadius: 8, fontSize: 13, cursor: "pointer" }}>
+                          Editar
+                        </button>
+                        <button onClick={() => reverseEntry(e)} style={{ background: "none", border: "1px solid #FB923C", color: "#FB923C", padding: "4px 12px", borderRadius: 8, fontSize: 13, cursor: "pointer" }}>
+                          Reversar
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ marginTop: 10 }}>
+                    {(e.journal_lines ?? []).map((l: any, idx: number) => (
+                      <div key={idx} style={{ display: "flex", justifyContent: "space-between", fontSize: 15, color: theme.textSecondary, padding: "6px 0", borderBottom: "1px solid " + theme.border + "55" }}>
+                        <span style={{ paddingLeft: l.debit > 0 ? 0 : 18 }}>{presentationMode ? l.chart_of_accounts?.account_name : "Fol. " + (l.chart_of_accounts?.mayor_folio ?? "-") + " · " + l.chart_of_accounts?.account_code + " — " + l.chart_of_accounts?.account_name}</span>
+                        <span style={{ ...theme.numberStyle, whiteSpace: "nowrap" }}>{l.debit > 0 ? "Debe: " + l.debit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "Haber: " + l.credit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid " + theme.border, display: "flex", justifyContent: "flex-end", gap: 24 }}>
+                    <span style={{ fontSize: 13, color: theme.textSecondary }}>Debe: <span style={{ ...theme.numberStyle, color: theme.textPrimary, fontWeight: 600 }}>{(e.journal_lines ?? []).reduce((s: number, l: any) => s + (l.debit || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></span>
+                    <span style={{ fontSize: 13, color: theme.textSecondary }}>Haber: <span style={{ ...theme.numberStyle, color: theme.textPrimary, fontWeight: 600 }}>{(e.journal_lines ?? []).reduce((s: number, l: any) => s + (l.credit || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></span>
+                  </div>
                 </div>
               ))}
             </div>
           ))}
+
           {entries.length > displayLimit && (
             <div style={{ textAlign: "center", marginTop: 20 }}>
               <button onClick={() => setDisplayLimit(displayLimit + 50)} style={{ background: "none", border: "1px solid " + theme.accent, color: theme.accent, padding: "10px 24px", borderRadius: 10, fontSize: 15, cursor: "pointer" }}>
@@ -354,6 +431,52 @@ export default function JournalPage() {
               </button>
             </div>
           )}
+
+          {(() => {
+            const summary = summarizeByAccount(entries);
+            if (summary.length === 0) return null;
+            const totalDebit = summary.reduce((s, r) => s + r.debit, 0);
+            const totalCredit = summary.reduce((s, r) => s + r.credit, 0);
+            return (
+              <div style={{ marginTop: 36, background: "linear-gradient(180deg, " + theme.surface + " 0%, " + theme.background + " 100%)", border: "1px solid " + theme.accent + "55", borderRadius: 16, padding: "26px 28px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 10, marginBottom: 16 }}>
+                  <h2 style={{ margin: 0, fontFamily: theme.titleStyle.fontFamily, fontSize: 22, fontWeight: 700, color: theme.accent }}>Resumen por Cuenta</h2>
+                  <span style={{ fontSize: 13, color: theme.textSecondary }}>
+                    {selectedYear === "TODOS" ? "Todos los ejercicios" : "Ejercicio " + selectedYear} · Excepción del Art. 34, Código de Comercio
+                  </span>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "70px minmax(0,1fr) 130px 130px 140px", gap: 16, padding: "0 4px 10px", borderBottom: "1px solid " + theme.border, fontSize: 12, letterSpacing: "0.04em", textTransform: "uppercase", color: theme.textSecondary, fontWeight: 600 }}>
+                  <span>Folio</span><span>Cuenta</span><span style={{ textAlign: "right" }}>Debe</span><span style={{ textAlign: "right" }}>Haber</span><span style={{ textAlign: "right" }}>Saldo</span>
+                </div>
+                {summary.map((row) => {
+                  const balance = row.debit - row.credit;
+                  return (
+                    <div key={row.code} style={{ display: "grid", gridTemplateColumns: "70px minmax(0,1fr) 130px 130px 140px", gap: 16, padding: "10px 4px", borderBottom: "1px solid " + theme.border + "33", alignItems: "center" }}>
+                      <span style={{ ...theme.numberStyle, fontSize: 13, color: theme.textSecondary }}>{row.folio}</span>
+                      <span style={{ fontSize: 14, color: theme.textPrimary }}>
+                        {!presentationMode && <span style={{ color: theme.textSecondary, fontSize: 12, fontFamily: theme.numberStyle.fontFamily }}>{row.code} </span>}
+                        {row.name}
+                      </span>
+                      <span style={{ ...theme.numberStyle, textAlign: "right", fontSize: 14 }}>{row.debit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      <span style={{ ...theme.numberStyle, textAlign: "right", fontSize: 14 }}>{row.credit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      <span style={{ ...theme.numberStyle, textAlign: "right", fontSize: 14, fontWeight: 600, color: theme.textPrimary }}>
+                        {(balance >= 0 ? "Deudor " : "Acreedor ") + Math.abs(balance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  );
+                })}
+                <div style={{ display: "grid", gridTemplateColumns: "70px minmax(0,1fr) 130px 130px 140px", gap: 16, padding: "14px 4px 0", marginTop: 4, borderTop: "2px solid " + theme.accent }}>
+                  <span /><span style={{ fontSize: 14, fontWeight: 700, color: theme.textPrimary }}>Totales</span>
+                  <span style={{ ...theme.numberStyle, textAlign: "right", fontSize: 15, fontWeight: 700, color: theme.accent }}>{totalDebit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  <span style={{ ...theme.numberStyle, textAlign: "right", fontSize: 15, fontWeight: 700, color: theme.accent }}>{totalCredit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  <span />
+                </div>
+                <p style={{ marginTop: 18, fontSize: 12, color: theme.textSecondary, fontStyle: "italic" }}>
+                  El folio del Mayor se asigna por orden cronológico de primera aparición de cada cuenta. Este resumen cubre {entries.length > displayLimit ? "los asientos cargados de " : "todo "}{selectedYear === "TODOS" ? "el histórico mostrado." : "el ejercicio " + selectedYear + "."}
+                </p>
+              </div>
+            );
+          })()}
         </div>
       )}
     </VerticalPageLayout>
