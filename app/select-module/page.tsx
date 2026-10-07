@@ -1,8 +1,14 @@
-﻿"use client";
+"use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/app/lib/supabase";
 import AuroraBackground from "@/app/components/AuroraBackground";
+
+// Dueno de la plataforma (ver app/admin/layout.tsx): puede entrar a
+// cualquier modulo para operar y probar el negocio, sin depender de tener
+// una suscripcion o un rol asignado como si fuera un cliente mas.
+const PLATFORM_OWNER_EMAIL = "javiel.ramirez@gmail.com";
+const PLATFORM_OWNER_ID = "a56f197e-a532-4d3c-9f08-5b5b3a4d7b7a";
 
 export default function SelectModulePage() {
   const [permissions, setPermissions] = useState<string[]>([]);
@@ -12,6 +18,16 @@ export default function SelectModulePage() {
     async function load() {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData?.user) { setLoading(false); return; }
+
+      const isOwner =
+        userData.user.id === PLATFORM_OWNER_ID ||
+        userData.user.email?.toLowerCase() === PLATFORM_OWNER_EMAIL;
+      if (isOwner) {
+        setPermissions(["VIEW_RECLAIMFI", "VIEW_ACCOUNTING", "VIEW_APU"]);
+        setLoading(false);
+        return;
+      }
+
       const { data: assignments } = await supabase
         .from("user_role_assignments")
         .select("role_id")
