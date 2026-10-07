@@ -1,6 +1,12 @@
-﻿import { redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { createClient } from "@/app/lib/supabase/server";
 import RealtimeInitializer from "@/app/components/RealtimeInitializer";
+
+// Dueno de la plataforma (ver app/admin/layout.tsx): opera y prueba el
+// negocio, no es un cliente, asi que no debe quedar atrapado por el mismo
+// candado de suscripcion/rol que protege este modulo para clientes.
+const PLATFORM_OWNER_EMAIL = "javiel.ramirez@gmail.com";
+const PLATFORM_OWNER_ID = "a56f197e-a532-4d3c-9f08-5b5b3a4d7b7a";
 
 export default async function DashboardLayout({
   children,
@@ -13,6 +19,18 @@ export default async function DashboardLayout({
   } = await supabase.auth.getUser();
   if (!user) {
     redirect("/login");
+  }
+
+  const isOwner =
+    user!.id === PLATFORM_OWNER_ID ||
+    user!.email?.toLowerCase() === PLATFORM_OWNER_EMAIL;
+  if (isOwner) {
+    return (
+      <>
+        <RealtimeInitializer />
+        {children}
+      </>
+    );
   }
 
   const { data: userCompany } = await supabase
