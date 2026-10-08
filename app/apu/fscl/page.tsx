@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
@@ -26,6 +26,15 @@ export default function FsclCalculatorPage() {
   const [clinicaAmount, setClinicaAmount] = useState("0");
   const [message, setMessage] = useState("");
   const [savedCalculations, setSavedCalculations] = useState<any[]>([]);
+  // Antes "Guardar" siempre insertaba una fila nueva. Si el usuario corregia un
+  // dato de un calculo ya guardado, no estaba editando: quedaba un duplicado y
+  // el calculo original (incorrecto) seguia disponible para usarse en partidas.
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  async function loadCalculations(projectId: string) {
+    const { data } = await supabase.from("apu_fscl_calculations").select("*").eq("apu_project_id", projectId).order("created_at", { ascending: false });
+    setSavedCalculations(data ?? []);
+  }
 
   useEffect(() => {
     async function load() {
@@ -41,6 +50,42 @@ export default function FsclCalculatorPage() {
     }
     load();
   }, []);
+
+  useEffect(() => {
+    if (selectedProject) loadCalculations(selectedProject);
+    else setSavedCalculations([]);
+  }, [selectedProject]);
+
+  function editCalculation(calc: any) {
+    setEditingId(calc.id);
+    setWorkSystem(calc.work_system ?? "5X2-36-DIA");
+    setDailyBasicSalary(String(calc.daily_basic_salary ?? ""));
+    setCalendarDays(String(calc.calendar_days ?? "365"));
+    setNonWorkedDays(String(calc.non_worked_days ?? "104"));
+    setIsaPercentage(String(calc.isa_percentage ?? "0"));
+    setTravelTimeAmount(String(calc.travel_time_amount ?? "0"));
+    setPreavisoDays(String(calc.preaviso_days ?? "60"));
+    setAntiguedadLegalDays(String(calc.antiguedad_legal_days ?? "30"));
+    setAntiguedadContractualDays(String(calc.antiguedad_contractual_days ?? "0"));
+    setVacacionesDays(String(calc.vacaciones_days ?? "27"));
+    setBonoVacacionalDays(String(calc.bono_vacacional_days ?? "60"));
+    setUtilidadesDays(String(calc.utilidades_days ?? "120"));
+    setEppAmount(String(calc.epp_amount ?? "0"));
+    setAguaHieloAmount(String(calc.agua_hielo_amount ?? "0"));
+    setClinicaAmount(String(calc.clinica_amount ?? "0"));
+    setMessage("");
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+  }
+
+  async function deleteCalculation(id: string) {
+    if (!window.confirm("Eliminar este calculo FSCL guardado? Si alguna partida lo tiene asignado, quedara sin factor (x1).")) return;
+    await supabase.from("apu_fscl_calculations").delete().eq("id", id);
+    if (editingId === id) setEditingId(null);
+    if (selectedProject) await loadCalculations(selectedProject);
+  }
   function calculateFscl() {
     const sb = parseFloat(dailyBasicSalary) || 0;
     const calDays = parseFloat(calendarDays) || 365;
@@ -86,8 +131,7 @@ export default function FsclCalculatorPage() {
     if (!selectedProject || !dailyBasicSalary) { setMessage("Selecciona un proyecto y el salario basico."); return; }
 
     const r = calculateFscl();
-
-    const { error } = await supabase.from("apu_fscl_calculations").insert([{
+    const payload = {
       apu_project_id: selectedProject,
       work_system: workSystem,
       daily_basic_salary: parseFloat(dailyBasicSalary),
@@ -112,10 +156,16 @@ export default function FsclCalculatorPage() {
       sub_total_terceros: r.subTotalTerceros,
       total_daily_cost: r.totalDailyCost,
       fscl_factor: r.factor,
-    }]);
+    };
+
+    const { error } = editingId
+      ? await supabase.from("apu_fscl_calculations").update(payload).eq("id", editingId)
+      : await supabase.from("apu_fscl_calculations").insert([payload]);
 
     if (error) { setMessage("Error: " + error.message); return; }
-    setMessage("Calculo FSCL guardado. Factor: " + r.factor.toFixed(4));
+    setMessage((editingId ? "Calculo FSCL actualizado. " : "Calculo FSCL guardado. ") + "Factor: " + r.factor.toFixed(4));
+    setEditingId(null);
+    await loadCalculations(selectedProject);
   }
 
   const inputStyle = { ...theme.inputStyle, fontSize: 20 };
@@ -176,10 +226,39 @@ export default function FsclCalculatorPage() {
           <p style={{ fontSize: 26, fontWeight: 900, color: "#4ade80", marginTop: 12 }}>Factor FSCL: {r.factor.toFixed(4)}</p>
         </div>
 
-        <button onClick={saveCalculation} style={{ ...theme.buttonStyle, marginTop: 20, fontSize: 18 }}>
-          GUARDAR CALCULO FSCL
-        </button>
+        <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+          <button onClick={saveCalculation} style={{ ...theme.buttonStyle, fontSize: 18 }}>
+            {editingId ? "ACTUALIZAR CALCULO FSCL" : "GUARDAR CALCULO FSCL"}
+          </button>
+          {editingId && (
+            <button onClick={cancelEdit} style={{ padding: "0 20px", background: "none", border: "1px solid " + theme.border, color: "#B0B8C8", borderRadius: 8, fontSize: 16, cursor: "pointer" }}>
+              Cancelar Edicion
+            </button>
+          )}
+        </div>
         {message && <p style={{ marginTop: 8, fontSize: 18, color: message.includes("Error") ? "#f87171" : theme.accent }}>{message}</p>}
+
+        {selectedProject && savedCalculations.length > 0 && (
+          <div style={{ marginTop: 30 }}>
+            <h3 style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginBottom: 10 }}>Calculos Guardados en este Proyecto</h3>
+            {savedCalculations.map((c) => (
+              <div key={c.id} style={{ ...theme.cardStyle, marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div>
+                  <p style={{ fontSize: 15, fontWeight: 600 }}>{c.work_system} — Salario base: {c.daily_basic_salary}</p>
+                  <p style={{ fontSize: 13, color: "#8B93A7", marginTop: 2 }}>Factor FSCL: {Number(c.fscl_factor).toFixed(4)}</p>
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button onClick={() => editCalculation(c)} style={{ padding: "6px 14px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 6, fontSize: 13, cursor: "pointer" }}>
+                    Editar
+                  </button>
+                  <button onClick={() => deleteCalculation(c.id)} style={{ padding: "6px 14px", background: "none", border: "1px solid #f87171", color: "#f87171", borderRadius: 6, fontSize: 13, cursor: "pointer" }}>
+                    Eliminar
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </VerticalPageLayout>
   );
