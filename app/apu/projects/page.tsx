@@ -4,6 +4,7 @@ import Link from "next/link";
 import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
 import VerticalPageLayout from "@/app/components/VerticalPageLayout";
+import { calcPartidaCost } from "@/app/core/apu/calcPartida";
 
 export default function ApuProjectsPage() {
   const theme = getVerticalTheme("apu");
@@ -28,6 +29,11 @@ export default function ApuProjectsPage() {
   const [repPosition, setRepPosition] = useState("");
   const [repMessage, setRepMessage] = useState("");
   const [repExpanded, setRepExpanded] = useState(false);
+  // Antes el 15%/10% de admin/utilidad para las partidas extraidas por IA del
+  // pliego quedaba fijo en el codigo, sin importar lo que el usuario realmente
+  // quisiera ofertar. Ahora son valores por defecto editables antes de confirmar.
+  const [pliegoDefaultAdmin, setPliegoDefaultAdmin] = useState("15");
+  const [pliegoDefaultProfit, setPliegoDefaultProfit] = useState("10");
 
   async function loadProjects(cid: string) {
     const { data } = await supabase.from("apu_projects").select("*").eq("company_id", cid).order("created_at", { ascending: false });
@@ -155,8 +161,8 @@ export default function ApuProjectsPage() {
       description: p.description,
       unit: p.unit,
       quantity: p.quantity || 0,
-      admin_percentage: 15,
-      profit_percentage: 10,
+      admin_percentage: parseFloat(pliegoDefaultAdmin) || 0,
+      profit_percentage: parseFloat(pliegoDefaultProfit) || 0,
     }));
 
     if (partidasToInsert.length > 0) {
@@ -191,15 +197,9 @@ export default function ApuProjectsPage() {
       const { data: mats } = await supabase.from("apu_partida_materials").select("quantity, unit_cost").eq("apu_partida_id", p.id);
       const { data: equips } = await supabase.from("apu_partida_equipment").select("quantity, unit_cost").eq("apu_partida_id", p.id);
       const { data: labs } = await supabase.from("apu_partida_labor").select("quantity, days, daily_rate").eq("apu_partida_id", p.id);
-      const materialsCost = (mats ?? []).reduce((s: number, m: any) => s + (m.quantity || 0) * (m.unit_cost || 0), 0);
-      const equipmentCost = (equips ?? []).reduce((s: number, e: any) => s + (e.quantity || 0) * (e.unit_cost || 0), 0);
       const fscl = (fsclOptions ?? []).find((f: any) => f.id === p.fscl_calculation_id);
-      const factor = fscl ? fscl.fscl_factor : 1;
-      const laborCost = (labs ?? []).reduce((s: number, l: any) => s + (l.quantity || 0) * (l.days || 0) * (l.daily_rate || 0) * factor, 0);
-      const directCost = materialsCost + equipmentCost + laborCost;
-      const admin = directCost * ((p.admin_percentage || 0) / 100);
-      const profit = directCost * ((p.profit_percentage || 0) / 100);
-      grandTotal += (directCost + admin + profit) * (p.quantity || 0);
+      const c = calcPartidaCost(mats, equips, labs, fscl?.fscl_factor, p.admin_percentage, p.profit_percentage, p.quantity);
+      grandTotal += c.total;
     }
 
     if (grandTotal === 0) {
@@ -252,6 +252,58 @@ export default function ApuProjectsPage() {
     if (companyId) await loadProjects(companyId);
   }
 
+  // Antes no existia forma de revertir una adjudicacion: si el proyecto se caia o
+  // se cancelaba despues de marcarse como ADJUDICADO, el compromiso quedaba
+  // registrado en Cuentas de Orden para siempre, sin poder deshacerlo desde aqui.
+  // Se busca el asiento original por su descripcion (no se guarda su id en
+  // apu_projects) y se genera un asiento de reverso, igual que en el Diario.
+  async function unawardProject(project: any) {
+    if (!companyId) return;
+    if (!window.confirm("Esto revertira la adjudicacion: se creara un asiento de reverso del compromiso contractual en Cuentas de Orden y el proyecto volvera a estado DRAFT. Confirmar?")) return;
+
+    const { data: originalEntry } = await supabase
+      .from("journal_entries")
+      .select("id, entry_number, journal_lines(account_id, debit, credit)")
+      .eq("company_id", companyId)
+      .eq("status", "ACTIVE")
+      .is("reversed_by_entry_id", null)
+      .ilike("description", "Compromiso Contractual - Oferta " + project.procedure_number + "%")
+      .order("entry_number", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!originalEntry) {
+      alert("No se encontro automaticamente el asiento original del compromiso contractual (puede haber sido reversado o editado ya). Revisalo manualmente en el Diario antes de cambiar el estado del proyecto.");
+      return;
+    }
+
+    const { data: lastEntry } = await supabase.from("journal_entries").select("entry_number").eq("company_id", companyId).eq("status", "ACTIVE").not("entry_number", "is", null).order("entry_number", { ascending: false }).limit(1).maybeSingle();
+    const nextNumber = (lastEntry?.entry_number || 0) + 1;
+
+    const { data: newEntry, error: entryError } = await supabase.from("journal_entries").insert([{
+      company_id: companyId,
+      description: "Reverso Compromiso Contractual - Oferta " + project.procedure_number + " - " + (project.contracting_entity ?? ""),
+      entry_date: new Date().toISOString().slice(0, 10),
+      entry_number: nextNumber,
+      reversal_of_entry_id: originalEntry.id,
+    }]).select("id").single();
+    if (entryError || !newEntry) { alert("Error al crear el reverso: " + entryError?.message); return; }
+
+    const reversedLines = (originalEntry.journal_lines ?? []).map((l: any) => ({
+      journal_entry_id: newEntry.id,
+      account_id: l.account_id,
+      debit: l.credit || 0,
+      credit: l.debit || 0,
+    }));
+    await supabase.from("journal_lines").insert(reversedLines);
+    await supabase.from("journal_entries").update({ reversed_by_entry_id: newEntry.id }).eq("id", originalEntry.id);
+
+    await supabase.from("apu_projects").update({ status: "DRAFT" }).eq("id", project.id);
+
+    setMessage("Adjudicacion revertida (reverso Nº" + nextNumber + "). El proyecto volvio a estado DRAFT.");
+    if (companyId) await loadProjects(companyId);
+  }
+
   const inputStyle = { ...theme.inputStyle, fontSize: 20 };
 
   return (
@@ -300,6 +352,13 @@ export default function ApuProjectsPage() {
             <input value={pliegoResult.projectDescription || ""} onChange={(e) => updatePliegoField("projectDescription", e.target.value)} style={{ ...theme.inputStyle, marginBottom: 8 }} placeholder="Descripcion del proyecto" />
             <input value={pliegoResult.contractingEntity || ""} onChange={(e) => updatePliegoField("contractingEntity", e.target.value)} style={{ ...theme.inputStyle, marginBottom: 12 }} placeholder="Ente contratante" />
 
+            <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 12 }}>
+              <label style={{ fontSize: 13, color: "#8B93A7" }}>Admin % (todas las partidas)</label>
+              <input type="number" value={pliegoDefaultAdmin} onChange={(e) => setPliegoDefaultAdmin(e.target.value)} style={{ ...theme.inputStyle, fontSize: 13, padding: 8, width: 80 }} />
+              <label style={{ fontSize: 13, color: "#8B93A7" }}>Utilidad % (todas las partidas)</label>
+              <input type="number" value={pliegoDefaultProfit} onChange={(e) => setPliegoDefaultProfit(e.target.value)} style={{ ...theme.inputStyle, fontSize: 13, padding: 8, width: 80 }} />
+            </div>
+
             <p style={{ fontSize: 13, color: "#8B93A7", marginBottom: 8 }}>{(pliegoResult.partidas || []).length} partidas encontradas:</p>
             <div style={{ maxHeight: 400, overflowY: "auto" }}>
               {(pliegoResult.partidas || []).map((p: any, i: number) => (
@@ -345,6 +404,11 @@ export default function ApuProjectsPage() {
                 {p.status === "DRAFT" && (
                   <button onClick={() => awardProject(p)} style={{ padding: "8px 16px", background: "none", border: "1px solid #4ade80", color: "#4ade80", borderRadius: 8, fontSize: 15, cursor: "pointer" }}>
                     Marcar como Adjudicado
+                  </button>
+                )}
+                {p.status === "AWARDED" && (
+                  <button onClick={() => unawardProject(p)} style={{ padding: "8px 16px", background: "none", border: "1px solid #f87171", color: "#f87171", borderRadius: 8, fontSize: 15, cursor: "pointer" }}>
+                    Revertir Adjudicacion
                   </button>
                 )}
               </div>
