@@ -76,10 +76,17 @@ export default function ApBillsPage() {
 
     const amt = parseFloat(amount);
 
+    // Mismo patron que purchase-book/sales-book: si no se asigna el numero
+    // aqui queda NULL, y dos facturas podrian terminar con el mismo numero
+    // (o sin numero) si algo mas en la base de datos tambien lo calcula.
+    const { data: lastJournalEntry } = await supabase.from("journal_entries").select("entry_number").eq("company_id", companyId).eq("status", "ACTIVE").not("entry_number", "is", null).order("entry_number", { ascending: false }).limit(1).maybeSingle();
+    const journalNextNumber = (lastJournalEntry?.entry_number || 0) + 1;
+
     const { data: entry, error: entryError } = await supabase.from("journal_entries").insert([{
       company_id: companyId,
       description: "Factura Proveedor " + billNumber + " - " + vendorName,
       entry_date: issueDate,
+      entry_number: journalNextNumber,
     }]).select("id").single();
 
     if (entryError || !entry) { setMessage("Error al crear asiento: " + entryError?.message); return; }
@@ -120,7 +127,7 @@ export default function ApBillsPage() {
     if (!window.confirm("Se creara un asiento contable de reverso (cifras invertidas). El registro original permanecera intacto. Confirmar?")) return;
     const { data: origEntry } = await supabase.from("journal_entries").select("entry_number, description").eq("id", journalEntryId).single();
     const { data: origLines } = await supabase.from("journal_lines").select("account_id, debit, credit").eq("journal_entry_id", journalEntryId);
-    const { data: lastEntry } = await supabase.from("journal_entries").select("entry_number").eq("company_id", companyId).order("entry_number", { ascending: false }).limit(1).maybeSingle();
+    const { data: lastEntry } = await supabase.from("journal_entries").select("entry_number").eq("company_id", companyId).eq("status", "ACTIVE").not("entry_number", "is", null).order("entry_number", { ascending: false }).limit(1).maybeSingle();
     const nextNumber = (lastEntry?.entry_number || 0) + 1;
     const today = new Date().toISOString().slice(0, 10);
     const { data: newEntry, error: entryError } = await supabase.from("journal_entries").insert([{
