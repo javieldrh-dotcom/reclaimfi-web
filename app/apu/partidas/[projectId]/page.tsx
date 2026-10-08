@@ -5,6 +5,7 @@ import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
 import VerticalPageLayout from "@/app/components/VerticalPageLayout";
 import { generateApuOfertaPdf } from "@/app/core/reports/generateApuOfertaPdf";
+import { calcPartidaCost } from "@/app/core/apu/calcPartida";
 
 interface Partida {
   id: string;
@@ -267,16 +268,8 @@ export default function ApuPartidasPage() {
   function calc(partida: Partida) {
     const items = subItems[partida.id];
     if (!items) return { materialsCost: 0, equipmentCost: 0, laborCost: 0, directCost: 0, admin: 0, profit: 0, unitPrice: 0, total: 0, factor: 1 };
-    const materialsCost = items.materials.reduce((s, m) => s + (m.quantity || 0) * (m.unit_cost || 0), 0);
-    const equipmentCost = items.equipment.reduce((s, e) => s + (e.quantity || 0) * (e.unit_cost || 0), 0);
     const fscl = fsclOptions.find((f) => f.id === partida.fscl_calculation_id);
-    const factor = fscl ? fscl.fscl_factor : 1;
-    const laborCost = items.labor.reduce((s, l) => s + (l.quantity || 0) * (l.days || 0) * (l.daily_rate || 0) * factor, 0);
-    const directCost = materialsCost + equipmentCost + laborCost;
-    const admin = directCost * ((partida.admin_percentage || 0) / 100);
-    const profit = directCost * ((partida.profit_percentage || 0) / 100);
-    const unitPrice = directCost + admin + profit;
-    return { materialsCost, equipmentCost, laborCost, directCost, admin, profit, unitPrice, total: unitPrice * partida.quantity, factor };
+    return calcPartidaCost(items.materials, items.equipment, items.labor, fscl?.fscl_factor, partida.admin_percentage, partida.profit_percentage, partida.quantity);
   }
 
   const [pdfGenerating, setPdfGenerating] = useState(false);
@@ -298,29 +291,22 @@ export default function ApuPartidasPage() {
 
     const ofertaPartidas = partidas.map((p, idx) => {
       const items = freshSubItems[p.id];
-      const materialsCost = (items?.materials ?? []).reduce((s, m) => s + (m.quantity || 0) * (m.unit_cost || 0), 0);
-      const equipmentCost = (items?.equipment ?? []).reduce((s, e) => s + (e.quantity || 0) * (e.unit_cost || 0), 0);
       const fscl = fsclOptions.find((f) => f.id === p.fscl_calculation_id);
-      const factor = fscl ? fscl.fscl_factor : 1;
-      const laborCost = (items?.labor ?? []).reduce((s, l) => s + (l.quantity || 0) * (l.days || 0) * (l.daily_rate || 0) * factor, 0);
-      const directCost = materialsCost + equipmentCost + laborCost;
-      const admin = directCost * ((p.admin_percentage || 0) / 100);
-      const profit = directCost * ((p.profit_percentage || 0) / 100);
-      const unitPrice = directCost + admin + profit;
+      const c = calcPartidaCost(items?.materials, items?.equipment, items?.labor, fscl?.fscl_factor, p.admin_percentage, p.profit_percentage, p.quantity);
       return {
         itemNumber: idx + 1,
         code: p.code,
         description: p.description,
         unit: p.unit,
         quantity: p.quantity,
-        materialsCost,
-        equipmentCost,
-        laborCost,
-        directCost,
+        materialsCost: c.materialsCost,
+        equipmentCost: c.equipmentCost,
+        laborCost: c.laborCost,
+        directCost: c.directCost,
         adminPercentage: p.admin_percentage || 0,
         profitPercentage: p.profit_percentage || 0,
-        unitPrice,
-        total: unitPrice * p.quantity,
+        unitPrice: c.unitPrice,
+        total: c.total,
       };
     });
 
