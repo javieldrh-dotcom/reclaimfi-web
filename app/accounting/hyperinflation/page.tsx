@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
@@ -41,7 +41,6 @@ export default function HyperinflationPage() {
   }
 
   async function calculateRestatement() {
-    alert("Fecha de Reexpresion que se va a usar: " + reportDate);
     if (!companyId) return;
     setLoading(true);
     setMessage("");
@@ -159,7 +158,10 @@ export default function HyperinflationPage() {
       const acc = cfAccMap[l.account_id];
       if (!acc) return;
       const netMove = (l.debit || 0) - (l.credit || 0);
-      if (acc.cash_flow_category === "OPERATING" && acc.account_name.toLowerCase().includes("cliente")) arDelta += netMove;
+      // Un aumento en Cuentas por Cobrar (mas debitos que creditos) consume
+      // efectivo, igual que un aumento en Cuentas por Pagar lo libera: debe
+      // restarse del flujo operativo, no sumarse (mismo signo que apDelta).
+      if (acc.cash_flow_category === "OPERATING" && acc.account_name.toLowerCase().includes("cliente")) arDelta += -netMove;
       else if (acc.cash_flow_category === "OPERATING" && acc.account_name.toLowerCase().includes("proveedor")) apDelta += -netMove;
       else if (acc.cash_flow_category === "INVESTING") investingDelta += netMove;
       else if (acc.cash_flow_category === "FINANCING") financingDelta += -netMove;
