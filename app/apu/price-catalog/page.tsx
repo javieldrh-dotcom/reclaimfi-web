@@ -99,9 +99,18 @@ export default function PriceCatalogPage() {
   }
 
   async function selectQuote(itemId: string, quoteId: string, cost: number) {
-    await supabase.from("apu_price_quotes").update({ is_selected: false }).eq("catalog_item_id", itemId);
-    await supabase.from("apu_price_quotes").update({ is_selected: true }).eq("id", quoteId);
-    await supabase.from("apu_price_catalog").update({ unit_cost: cost }).eq("id", itemId);
+    // Antes esto hacia 2 updates separados sin revisar errores: si el primero
+    // (desmarcar las demas) tenia exito pero el segundo (marcar la elegida) fallaba,
+    // ninguna cotizacion quedaba seleccionada, sin ningun aviso al usuario.
+    const { error: markError } = await supabase.from("apu_price_quotes").update({ is_selected: true }).eq("id", quoteId);
+    if (markError) { setMessage("Error al seleccionar la cotizacion: " + markError.message); return; }
+
+    const { error: unmarkError } = await supabase.from("apu_price_quotes").update({ is_selected: false }).eq("catalog_item_id", itemId).neq("id", quoteId);
+    if (unmarkError) { setMessage("La cotizacion se marco, pero hubo un error al desmarcar las demas: " + unmarkError.message); }
+
+    const { error: priceError } = await supabase.from("apu_price_catalog").update({ unit_cost: cost }).eq("id", itemId);
+    if (priceError) { setMessage("La cotizacion se selecciono, pero hubo un error al actualizar el costo del catalogo: " + priceError.message); }
+
     await loadQuotes(itemId);
     if (companyId) await loadItems(companyId);
   }
