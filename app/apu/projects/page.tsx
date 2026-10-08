@@ -180,6 +180,11 @@ export default function ApuProjectsPage() {
     if (!window.confirm("Marcar este proyecto como ADJUDICADO y registrar el compromiso contractual?")) return;
 
     const { data: partidas } = await supabase.from("apu_partidas").select("*").eq("apu_project_id", project.id);
+    // Se traen los calculos FSCL del proyecto para aplicar el factor a la mano de
+    // obra, igual que en la pantalla de Partidas y en el Resumen de Costo. Antes
+    // este calculo NO aplicaba el factor FSCL, por lo que el compromiso contractual
+    // registrado en Cuentas de Orden quedaba por debajo del monto realmente ofertado.
+    const { data: fsclOptions } = await supabase.from("apu_fscl_calculations").select("id, fscl_factor").eq("apu_project_id", project.id);
 
     let grandTotal = 0;
     for (const p of partidas ?? []) {
@@ -188,7 +193,9 @@ export default function ApuProjectsPage() {
       const { data: labs } = await supabase.from("apu_partida_labor").select("quantity, days, daily_rate").eq("apu_partida_id", p.id);
       const materialsCost = (mats ?? []).reduce((s: number, m: any) => s + (m.quantity || 0) * (m.unit_cost || 0), 0);
       const equipmentCost = (equips ?? []).reduce((s: number, e: any) => s + (e.quantity || 0) * (e.unit_cost || 0), 0);
-      const laborCost = (labs ?? []).reduce((s: number, l: any) => s + (l.quantity || 0) * (l.days || 0) * (l.daily_rate || 0), 0);
+      const fscl = (fsclOptions ?? []).find((f: any) => f.id === p.fscl_calculation_id);
+      const factor = fscl ? fscl.fscl_factor : 1;
+      const laborCost = (labs ?? []).reduce((s: number, l: any) => s + (l.quantity || 0) * (l.days || 0) * (l.daily_rate || 0) * factor, 0);
       const directCost = materialsCost + equipmentCost + laborCost;
       const admin = directCost * ((p.admin_percentage || 0) / 100);
       const profit = directCost * ((p.profit_percentage || 0) / 100);
@@ -205,26 +212,43 @@ export default function ApuProjectsPage() {
       return;
     }
 
-    await supabase.from("apu_projects").update({ status: "AWARDED" }).eq("id", project.id);
+    // El asiento se crea ANTES de marcar el proyecto como ADJUDICADO. Antes era al
+    // reves: si la creacion del asiento fallaba, el proyecto quedaba marcado como
+    // ADJUDICADO sin ningun registro contable y sin forma de reintentarlo, porque
+    // el boton "Marcar como Adjudicado" solo aparece para proyectos en estado DRAFT.
+    const { data: lastEntry } = await supabase.from("journal_entries").select("entry_number").eq("company_id", companyId).eq("status", "ACTIVE").not("entry_number", "is", null).order("entry_number", { ascending: false }).limit(1).maybeSingle();
+    const nextNumber = (lastEntry?.entry_number || 0) + 1;
 
     const { data: entry, error: entryError } = await supabase.from("journal_entries").insert([{
       company_id: companyId,
       description: "Compromiso Contractual - Oferta " + project.procedure_number + " - " + (project.contracting_entity ?? ""),
       entry_date: new Date().toISOString().slice(0, 10),
+      entry_number: nextNumber,
     }]).select("id").single();
 
     if (entryError || !entry) {
-      setMessage("Proyecto adjudicado, pero hubo un error al generar el asiento: " + entryError?.message);
-      if (companyId) await loadProjects(companyId);
+      setMessage("No se pudo registrar el compromiso contractual, el proyecto NO fue marcado como adjudicado. Error: " + entryError?.message);
       return;
     }
 
-    await supabase.from("journal_lines").insert([
+    const { error: linesError } = await supabase.from("journal_lines").insert([
       { journal_entry_id: entry.id, account_id: orderDebtorAccount.id, debit: grandTotal, credit: 0 },
       { journal_entry_id: entry.id, account_id: orderCreditorAccount.id, debit: 0, credit: grandTotal },
     ]);
 
-    setMessage("Proyecto adjudicado. Compromiso contractual por " + grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " registrado en Cuentas de Orden.");
+    if (linesError) {
+      setMessage("No se pudo registrar el compromiso contractual, el proyecto NO fue marcado como adjudicado. Error: " + linesError.message);
+      return;
+    }
+
+    const { error: statusError } = await supabase.from("apu_projects").update({ status: "AWARDED" }).eq("id", project.id);
+    if (statusError) {
+      setMessage("El asiento se registro (Nº" + nextNumber + "), pero hubo un error al actualizar el estado del proyecto: " + statusError.message);
+      if (companyId) await loadProjects(companyId);
+      return;
+    }
+
+    setMessage("Proyecto adjudicado (asiento Nº" + nextNumber + "). Compromiso contractual por " + grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " registrado en Cuentas de Orden.");
     if (companyId) await loadProjects(companyId);
   }
 
