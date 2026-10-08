@@ -162,6 +162,13 @@ export default function JournalPage() {
   function totalDebit() { return lines.reduce((s, l) => s + (parseFloat(l.debit) || 0), 0); }
   function totalCredit() { return lines.reduce((s, l) => s + (parseFloat(l.credit) || 0), 0); }
   function startEdit(entry: any) {
+    // Un asiento ya reversado no debe poder editarse: su reverso quedo fijo
+    // con los montos originales, asi que cambiar el original aqui lo deja
+    // descuadrado frente a su propio reverso.
+    if (entry.reversed_by_entry_id) {
+      alert("Este asiento ya fue reversado y no se puede editar. Si necesitas corregirlo, registra un nuevo asiento.");
+      return;
+    }
     setEditingEntryId(entry.id);
     setDescription(entry.description);
     setEntryDateInput(entry.entry_date);
@@ -394,16 +401,21 @@ export default function JournalPage() {
                     <span style={{ fontWeight: 700, fontSize: 18, color: theme.textPrimary }}>
                       Asiento Nº{e.entry_number ?? "S/N"}
                       {e.status !== "ACTIVE" && <span style={{ color: "#F87171", fontWeight: 600, fontSize: 13 }}> · ANULADO</span>}
+                      {e.reversed_by_entry_id && <span style={{ color: "#FB923C", fontWeight: 600, fontSize: 13 }}> · REVERSADO</span>}
                     </span>
                     <span style={{ fontSize: 14, color: theme.textSecondary, fontStyle: "italic" }}>{e.description}</span>
                     {e.status === "ACTIVE" && (
                       <div style={{ display: "flex", gap: 8 }}>
-                        <button onClick={() => startEdit(e)} style={{ background: "none", border: "1px solid " + theme.accent, color: theme.accent, padding: "4px 12px", borderRadius: 8, fontSize: 13, cursor: "pointer" }}>
-                          Editar
-                        </button>
-                        <button onClick={() => reverseEntry(e)} style={{ background: "none", border: "1px solid #FB923C", color: "#FB923C", padding: "4px 12px", borderRadius: 8, fontSize: 13, cursor: "pointer" }}>
-                          Reversar
-                        </button>
+                        {!e.reversed_by_entry_id && (
+                          <button onClick={() => startEdit(e)} style={{ background: "none", border: "1px solid " + theme.accent, color: theme.accent, padding: "4px 12px", borderRadius: 8, fontSize: 13, cursor: "pointer" }}>
+                            Editar
+                          </button>
+                        )}
+                        {!e.reversed_by_entry_id && (
+                          <button onClick={() => reverseEntry(e)} style={{ background: "none", border: "1px solid #FB923C", color: "#FB923C", padding: "4px 12px", borderRadius: 8, fontSize: 13, cursor: "pointer" }}>
+                            Reversar
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
