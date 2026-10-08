@@ -31,9 +31,15 @@ export default function BalanceSheetPage() {
         .in("account_type", ["ASSET", "LIABILITY", "EQUITY", "REVENUE", "EXPENSE"]);
       const accountsMap: Record<string, any> = {};
       (accountsData ?? []).forEach((a: any) => { accountsMap[a.id] = a; });
+      const accountIds = (accountsData ?? []).map((a: any) => a.id);
+      // Sin .in("account_id", accountIds) esta consulta trae journal_lines de
+      // TODAS las empresas de la base de datos (solo quedaria contenida por
+      // las reglas de seguridad de Supabase/RLS); se filtra aqui igual que en
+      // cash-flow y bank-reconciliation para no depender solo de eso.
       const { data: lines } = await supabase
         .from("journal_lines")
         .select("debit, credit, account_id, journal_entries!inner(status)")
+        .in("account_id", accountIds)
         .eq("journal_entries.status", "ACTIVE");
       const grouped: Record<string, any> = {};
       let revenue = 0;
