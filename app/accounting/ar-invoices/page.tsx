@@ -97,7 +97,16 @@ export default function ArInvoicesPage() {
   async function reverseInvoice(invoiceId: string, journalEntryId: string | null, customerNameLocal: string) {
     if (!companyId || !journalEntryId) return;
     const { data: checkEntry } = await supabase.from("journal_entries").select("reversed_by_entry_id").eq("id", journalEntryId).single();
-    if (checkEntry?.reversed_by_entry_id) { alert("Este asiento ya fue reversado anteriormente."); return; }
+    if (checkEntry?.reversed_by_entry_id) {
+      // El asiento ya fue reversado, pero probablemente desde el Diario
+      // directamente (no desde este boton), por lo que la factura se quedo
+      // sin actualizar. Se sincroniza el estado aqui en vez de dejarla
+      // huerfana en "PENDING" con un asiento que ya no existe contablemente.
+      await supabase.from("ar_invoices").update({ status: "REVERSED" }).eq("id", invoiceId);
+      alert("Este asiento ya habia sido reversado anteriormente (probablemente desde el Diario). Se actualizo el estado de la factura a REVERSED para que coincida.");
+      if (companyId) await loadInvoices(companyId);
+      return;
+    }
     if (!window.confirm("Se creara un asiento contable de reverso (cifras invertidas). El registro original permanecera intacto. Confirmar?")) return;
     const { data: origEntry } = await supabase.from("journal_entries").select("entry_number, description").eq("id", journalEntryId).single();
     const { data: origLines } = await supabase.from("journal_lines").select("account_id, debit, credit").eq("journal_entry_id", journalEntryId);
