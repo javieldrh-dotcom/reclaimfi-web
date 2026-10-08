@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
@@ -133,7 +133,12 @@ export default function InventoryBookPage() {
     (accountsData ?? []).forEach((a: any) => { accountsMap[a.id] = a; });
     const accountIds = (accountsData ?? []).map((a: any) => a.id);
 
-    const { data: lines } = await supabase.from("journal_lines").select("debit, credit, account_id, journal_entries!inner(status)").in("account_id", accountIds).eq("journal_entries.status", "ACTIVE");
+    // Falta lte("journal_entries.entry_date", periodEnd): sin esto, el
+    // Balance de Situacion archivado para este cierre incluye movimientos
+    // posteriores a la fecha de cierre (si ya se registraron asientos de un
+    // periodo mas reciente), dejando el historico archivado desincronizado
+    // de lo que realmente era el saldo en esa fecha.
+    const { data: lines } = await supabase.from("journal_lines").select("debit, credit, account_id, journal_entries!inner(status, entry_date)").in("account_id", accountIds).eq("journal_entries.status", "ACTIVE").lte("journal_entries.entry_date", periodEnd);
     const balances: Record<string, number> = {};
     (lines ?? []).forEach((l: any) => {
       const acc = accountsMap[l.account_id];
