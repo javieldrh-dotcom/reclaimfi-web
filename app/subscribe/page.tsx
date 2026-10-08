@@ -23,13 +23,17 @@ function SubscribePageContent() {
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [industrySector, setIndustrySector] = useState("GENERIC");
 
+  const [authChecked, setAuthChecked] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(true);
+
   useEffect(() => {
     async function load() {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData?.user) return;
-      const { data: uc } = await supabase.from("user_companies").select("company_id").eq("user_id", userData.user.id).order("last_active_at", { ascending: false }).limit(1).single();
-      setCompanyId(uc?.company_id ?? null);
-
+      // Los planes y metodos de pago son catalogo publico, no dependen del
+      // usuario: antes quedaban cargados DESPUES de verificar la sesion, con un
+      // "return" temprano si no habia sesion activa. Si el usuario llegaba sin
+      // sesion (cookie vencida, enlace abierto en otro navegador, etc.), la
+      // pagina se quedaba en "Cargando metodos de pago..." para siempre, sin
+      // ningun aviso de que el problema era no estar logeado.
       const { data: plansData } = await supabase.from("subscription_plans").select("*").order("monthly_price_usd");
       setPlans(plansData ?? []);
       if (preselectedPlanCode) {
@@ -39,6 +43,12 @@ function SubscribePageContent() {
 
       const { data: methodsData } = await supabase.from("payment_methods").select("*").eq("is_active", true);
       setPaymentMethods(methodsData ?? []);
+
+      const { data: userData } = await supabase.auth.getUser();
+      setAuthChecked(true);
+      if (!userData?.user) { setIsLoggedIn(false); return; }
+      const { data: uc } = await supabase.from("user_companies").select("company_id").eq("user_id", userData.user.id).order("last_active_at", { ascending: false }).limit(1).single();
+      setCompanyId(uc?.company_id ?? null);
     }
     load();
   }, []);
@@ -121,6 +131,10 @@ function SubscribePageContent() {
 
   async function requestSubscription() {
     setMessage("");
+    if (authChecked && !isLoggedIn) {
+      setMessage("Debes iniciar sesion antes de solicitar una suscripcion. Inicia sesion y vuelve a esta pagina.");
+      return;
+    }
     if (!selectedPlan || !selectedMethod) {
       setMessage("Selecciona un plan y un metodo de pago.");
       return;
@@ -280,6 +294,15 @@ function SubscribePageContent() {
         </div>
         {paymentMethods.length === 0 && (
           <p style={{ marginTop: 20, color: "#8B93A7", fontSize: 15 }}>Cargando metodos de pago...</p>
+        )}
+
+        {authChecked && !isLoggedIn && (
+          <div style={{ marginTop: 20, padding: 16, background: "#F8717115", border: "1px solid #F8717140", borderRadius: 12, maxWidth: 600 }}>
+            <p style={{ fontSize: 15, color: "#F87171" }}>
+              No tienes una sesion activa. Puedes revisar los planes, pero necesitas{" "}
+              <a href="/login" style={{ color: "#2DD4BF", fontWeight: 700 }}>iniciar sesion</a> antes de confirmar una suscripcion.
+            </p>
+          </div>
         )}
 
         {selectedMethod && (
