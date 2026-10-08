@@ -108,7 +108,7 @@ export default function SalesBookPage() {
     if (!window.confirm("Se creara un asiento contable de reverso (cifras invertidas). El registro fiscal original permanecera intacto. Confirmar?")) return;
     const { data: origEntry } = await supabase.from("journal_entries").select("entry_number, description").eq("id", journalEntryId).single();
     const { data: origLines } = await supabase.from("journal_lines").select("account_id, debit, credit").eq("journal_entry_id", journalEntryId);
-    const { data: lastEntry } = await supabase.from("journal_entries").select("entry_number").eq("company_id", companyId).order("entry_number", { ascending: false }).limit(1).maybeSingle();
+    const { data: lastEntry } = await supabase.from("journal_entries").select("entry_number").eq("company_id", companyId).eq("status", "ACTIVE").not("entry_number", "is", null).order("entry_number", { ascending: false }).limit(1).maybeSingle();
     const nextNumber = (lastEntry?.entry_number || 0) + 1;
     const today = new Date().toISOString().slice(0, 10);
     const { data: newEntry, error: entryError } = await supabase.from("journal_entries").insert([{
