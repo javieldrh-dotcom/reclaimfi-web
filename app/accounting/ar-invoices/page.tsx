@@ -113,6 +113,10 @@ export default function ArInvoicesPage() {
     }));
     await supabase.from("journal_lines").insert(reversedLines);
     await supabase.from("journal_entries").update({ reversed_by_entry_id: newEntry.id }).eq("id", journalEntryId);
+    // Sin esto la factura se queda en "PENDING" para siempre: se puede
+    // marcar "Pagada" despues de haber sido reversada, aunque el asiento
+    // contable ya no exista (quedo anulado por el reverso).
+    await supabase.from("ar_invoices").update({ status: "REVERSED" }).eq("id", invoiceId);
     alert("Reverso creado correctamente (Asiento Nº" + nextNumber + ").");
     if (companyId) await loadInvoices(companyId);
   }
@@ -163,7 +167,7 @@ export default function ArInvoicesPage() {
                   <td style={{ padding: 10, fontSize: 20 }}>{inv.customer_name}</td>
                   <td style={{ padding: 10, fontSize: 20 }}>{inv.due_date}</td>
                   <td style={{ padding: 10, fontSize: 20, ...theme.numberStyle }}>{inv.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                  <td style={{ padding: 10, fontSize: 20, color: inv.status === "PAID" ? "#4ade80" : "#facc15" }}>{inv.status}</td>
+                  <td style={{ padding: 10, fontSize: 20, color: inv.status === "PAID" ? "#4ade80" : inv.status === "REVERSED" ? "#FB923C" : "#facc15" }}>{inv.status}</td>
                   <td style={{ padding: 10 }}>
                     {inv.status === "PENDING" && (
                       <>
