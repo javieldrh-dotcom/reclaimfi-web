@@ -41,8 +41,14 @@ export default function CashFlowPage() {
       const netMove = (l.debit || 0) - (l.credit || 0);
       if (acc.account_type === "REVENUE") revenue += (l.credit || 0) - (l.debit || 0);
       else if (acc.account_type === "EXPENSE") expense += (l.debit || 0) - (l.credit || 0);
-      else if (acc.cash_flow_category === "OPERATING" && acc.account_name.toLowerCase().includes("cliente")) arDelta += -netMove;
-      else if (acc.cash_flow_category === "OPERATING" && acc.account_name.toLowerCase().includes("proveedor")) apDelta += -netMove;
+      // Antes solo se detectaban cuentas cuyo NOMBRE contenia literalmente
+      // "cliente" o "proveedor" (ej. "Cuentas por Cobrar Comerciales" no
+      // calificaba). Ahora se usa el tipo de cuenta dentro de la categoria
+      // OPERATING, asi que cualquier activo operativo (CxC, inventario,
+      // gastos anticipados, credito fiscal de IVA, etc.) o pasivo operativo
+      // (CxP, retenciones por pagar, IVA por pagar, etc.) entra al calculo.
+      else if (acc.cash_flow_category === "OPERATING" && acc.account_type === "ASSET") arDelta += -netMove;
+      else if (acc.cash_flow_category === "OPERATING" && acc.account_type === "LIABILITY") apDelta += -netMove;
       else if (acc.cash_flow_category === "INVESTING") investingDelta += netMove;
       else if (acc.cash_flow_category === "FINANCING") financingDelta += -netMove;
     });
@@ -94,8 +100,8 @@ export default function CashFlowPage() {
           items: [
             { name: "Utilidad del Ejercicio", amount: netIncome },
             { name: "+ Depreciacion (partida no monetaria)", amount: depreciation },
-            { name: "Variacion en Cuentas por Cobrar", amount: arChange },
-            { name: "Variacion en Cuentas por Pagar", amount: apChange },
+            { name: "Variacion en Activos Operativos (CxC, Inventario, etc.)", amount: arChange },
+            { name: "Variacion en Pasivos Operativos (CxP, Retenciones, etc.)", amount: apChange },
           ],
           total: operatingCashFlow,
           totalLabel: "Efectivo Neto de Actividades de Operacion",
@@ -149,8 +155,8 @@ export default function CashFlowPage() {
         <h3 style={{ color: "#4ade80", fontSize: 24, marginBottom: 16, fontWeight: 700 }}>Actividades de Operacion</h3>
         <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", fontSize: 22 }}><span>Utilidad del Ejercicio</span><span style={theme.numberStyle}>{netIncome.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
         <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", fontSize: 22 }}><span>+ Depreciacion</span><span style={theme.numberStyle}>{depreciation.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
-        <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", fontSize: 22 }}><span>Variacion en Cuentas por Cobrar</span><span style={theme.numberStyle}>{arChange.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
-        <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", fontSize: 22 }}><span>Variacion en Cuentas por Pagar</span><span style={theme.numberStyle}>{apChange.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", fontSize: 22 }}><span>Variacion en Activos Operativos (CxC, Inventario, etc.)</span><span style={theme.numberStyle}>{arChange.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", fontSize: 22 }}><span>Variacion en Pasivos Operativos (CxP, Retenciones, etc.)</span><span style={theme.numberStyle}>{apChange.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
         <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", marginTop: 8, borderTop: "1px solid #1F2937", fontWeight: 700, fontSize: 22 }}>
           <span>Efectivo Neto de Operacion</span><span style={theme.numberStyle}>{operatingCashFlow.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
         </div>
