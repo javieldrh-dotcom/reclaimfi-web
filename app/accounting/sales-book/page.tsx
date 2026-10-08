@@ -16,6 +16,7 @@ export default function SalesBookPage() {
   const [arAccountId, setArAccountId] = useState("");
   const [revenueAccountId, setRevenueAccountId] = useState("");
   const [vatPayableAccountId, setVatPayableAccountId] = useState("");
+  const [vatWithheldAccountId, setVatWithheldAccountId] = useState("");
 
   const [entryDate, setEntryDate] = useState(new Date().toISOString().slice(0, 10));
   const [invoiceCurrency, setInvoiceCurrency] = useState("USD");
@@ -53,6 +54,8 @@ export default function SalesBookPage() {
         setAccounts(acc ?? []);
         const vatPayableDefault = (acc ?? []).find((a: any) => a.account_name.toLowerCase().includes("iva por pagar"));
         if (vatPayableDefault) setVatPayableAccountId(vatPayableDefault.id);
+        const vatWithheldDefault = (acc ?? []).find((a: any) => a.account_name.toLowerCase().includes("retencion") && a.account_name.toLowerCase().includes("iva"));
+        if (vatWithheldDefault) setVatWithheldAccountId(vatWithheldDefault.id);
         await loadEntries(cid);
       }
     }
@@ -96,6 +99,7 @@ export default function SalesBookPage() {
     if (target === "revenue") setRevenueAccountId(newAcc.id);
     if (target === "ar") setArAccountId(newAcc.id);
     if (target === "vatpayable") setVatPayableAccountId(newAcc.id);
+    if (target === "vatwithheld") setVatWithheldAccountId(newAcc.id);
   }
   async function reverseEntry(entryId: string, journalEntryId: string, customerNameLocal: string) {
     if (!companyId || !journalEntryId) return;
@@ -148,26 +152,43 @@ export default function SalesBookPage() {
       setMessage("Completa todos los campos obligatorios y las 3 cuentas contables.");
       return;
     }
+    const withheldCheck = parseFloat(withheldByCustomer) || 0;
+    if (withheldCheck > 0 && !vatWithheldAccountId) {
+      setMessage("Hay IVA retenido por el comprador: selecciona la cuenta de Retenciones de IVA Soportadas (es un activo, el credito fiscal que te retuvo el cliente).");
+      return;
+    }
 
     const base = parseFloat(taxableBaseGeneral) || 0;
     const rate = parseFloat(rateGeneral) || 16;
     const nonTaxable = parseFloat(nonTaxableAmount) || 0;
     const debit = isExport ? 0 : base * (rate / 100);
-    const withheld = parseFloat(withheldByCustomer) || 0;
+    const withheld = withheldCheck;
     const totalIncludingVat = base + debit + nonTaxable;
     const netReceivable = totalIncludingVat - withheld;
     const nextNumber = entries.length > 0 ? Math.max(...entries.map((e) => e.entry_number)) + 1 : 1;
+    // Mismo patron que purchase-book: el numero de asiento del Libro Diario es
+    // independiente del numero correlativo del libro fiscal, y se calcula
+    // excluyendo asientos reversados/inactivos para no reutilizar un numero.
+    const { data: lastJournalEntry } = await supabase.from("journal_entries").select("entry_number").eq("company_id", companyId).eq("status", "ACTIVE").not("entry_number", "is", null).order("entry_number", { ascending: false }).limit(1).maybeSingle();
+    const journalNextNumber = (lastJournalEntry?.entry_number || 0) + 1;
 
     const { data: entry, error: entryError } = await supabase.from("journal_entries").insert([{
       company_id: companyId,
       description: "Venta " + invoiceNumber + " - " + customerName,
       entry_date: entryDate,
+      entry_number: journalNextNumber,
     }]).select("id").single();
 
     if (entryError || !entry) { setMessage("Error al crear asiento: " + entryError?.message); return; }
 
     const fxRate = parseFloat(invoiceExchangeRate) || 1;
     const lines = [{ journal_entry_id: entry.id, account_id: arAccountId, debit: netReceivable * fxRate, credit: 0 }];
+    if (withheld > 0) {
+      // El IVA que retuvo el cliente es un credito fiscal a favor del vendedor
+      // (activo), no una reduccion del ingreso ni de la cuenta por cobrar.
+      // Sin esta linea el asiento queda descuadrado por el monto retenido.
+      lines.push({ journal_entry_id: entry.id, account_id: vatWithheldAccountId, debit: withheld * fxRate, credit: 0 });
+    }
     lines.push({ journal_entry_id: entry.id, account_id: revenueAccountId, debit: 0, credit: (base + nonTaxable) * fxRate });
     if (debit > 0) {
       lines.push({ journal_entry_id: entry.id, account_id: vatPayableAccountId, debit: 0, credit: debit * fxRate });
@@ -286,6 +307,16 @@ export default function SalesBookPage() {
         <div style={{ marginTop: 8 }}>
           <input type="number" value={withheldByCustomer} onChange={(e) => setWithheldByCustomer(e.target.value)} style={inputStyle} placeholder="IVA Retenido por el Comprador (manual)" />
         </div>
+        {parseFloat(withheldByCustomer) > 0 && (
+          <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+            <h4 style={{ fontSize: 14, color: "#8B93A7", marginTop: 16, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Retenciones de IVA Soportadas</h4>
+            <select value={vatWithheldAccountId} onChange={(e) => setVatWithheldAccountId(e.target.value)} style={inputStyle}>
+              <option value="">Cuenta de Retenciones de IVA Soportadas (activo)</option>
+              {accounts.filter(a => a.account_type === "ASSET").map((a) => <option key={a.id} value={a.id}>{a.account_code} - {a.account_name}</option>)}
+            </select>
+            <button onClick={() => createNewAccount("ASSET", "vatwithheld")} style={{ padding: "0 16px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 14, whiteSpace: "nowrap" }}>+ Nueva</button>
+          </div>
+        )}
 
         <div style={{ display: "flex", gap: 6, marginTop: 12 }}>
         <h4 style={{ fontSize: 14, color: "#8B93A7", marginTop: 16, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Cobro (Cuenta por Cobrar)</h4>
