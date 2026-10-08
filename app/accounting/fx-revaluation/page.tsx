@@ -57,7 +57,7 @@ export default function FxRevaluationPage() {
     if (!companyId || !selectedAccountId || !foreignAmount || !oldRate || !newRate) { setMessage("Completa todos los campos."); return; }
     if (!gainAccountId || !lossAccountId) { setMessage("Selecciona las cuentas de Diferencia en Cambio (Ganancia y Perdida)."); return; }
 
-    const { data: lastEntry } = await supabase.from("journal_entries").select("entry_number").eq("company_id", companyId).order("entry_number", { ascending: false }).limit(1).maybeSingle();
+    const { data: lastEntry } = await supabase.from("journal_entries").select("entry_number").eq("company_id", companyId).eq("status", "ACTIVE").not("entry_number", "is", null).order("entry_number", { ascending: false }).limit(1).maybeSingle();
     const nextNumber = (lastEntry?.entry_number || 0) + 1;
 
     const account = accounts.find((a) => a.id === selectedAccountId);
