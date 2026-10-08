@@ -52,7 +52,11 @@ export default function TrialBalancePage() {
 
   const totalDebit = rows.reduce((s, r) => s + r.debit, 0);
   const totalCredit = rows.reduce((s, r) => s + r.credit, 0);
-  const isBalanced = totalDebit === totalCredit;
+  // Igualdad exacta de decimales falla con redondeos normales (ej. por tasas
+  // de cambio): un libro realmente cuadrado puede mostrar "Descuadrado" por
+  // una fraccion de centavo. Se usa tolerancia, igual que en otras pantallas
+  // del modulo (sales-book, purchase-book).
+  const isBalanced = Math.abs(totalDebit - totalCredit) < 0.01;
 
   if (loading) return <div style={theme.pageStyle}>Cargando...</div>;
 
