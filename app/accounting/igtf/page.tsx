@@ -51,7 +51,7 @@ export default function IgtfPage() {
     if (!companyId || !description || !transactionAmount) { setMessage("Completa la descripcion y el monto."); return; }
     if (!expenseAccountId || !cashAccountId) { setMessage("Selecciona la Cuenta de Gasto IGTF y la Cuenta de Banco/Caja."); return; }
 
-    const { data: lastEntry } = await supabase.from("journal_entries").select("entry_number").eq("company_id", companyId).order("entry_number", { ascending: false }).limit(1).maybeSingle();
+    const { data: lastEntry } = await supabase.from("journal_entries").select("entry_number").eq("company_id", companyId).eq("status", "ACTIVE").not("entry_number", "is", null).order("entry_number", { ascending: false }).limit(1).maybeSingle();
     const nextNumber = (lastEntry?.entry_number || 0) + 1;
 
     const { data: entry, error: entryError } = await supabase.from("journal_entries").insert([{
