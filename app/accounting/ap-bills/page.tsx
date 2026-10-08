@@ -139,6 +139,10 @@ export default function ApBillsPage() {
     }));
     await supabase.from("journal_lines").insert(reversedLines);
     await supabase.from("journal_entries").update({ reversed_by_entry_id: newEntry.id }).eq("id", journalEntryId);
+    // Sin esto la factura se queda en "PENDING" para siempre: se puede
+    // marcar "Pagada" despues de haber sido reversada, aunque el asiento
+    // contable ya no exista (quedo anulado por el reverso).
+    await supabase.from("ap_bills").update({ status: "REVERSED" }).eq("id", billId);
     alert("Reverso creado correctamente (Asiento Nº" + nextNumber + ").");
     if (companyId) await loadBills(companyId);
   }
@@ -207,7 +211,7 @@ export default function ApBillsPage() {
                   <td style={{ padding: 10, fontSize: 20 }}>{b.vendor_name}</td>
                   <td style={{ padding: 10, fontSize: 20 }}>{b.due_date}</td>
                   <td style={{ padding: 10, fontSize: 20, ...theme.numberStyle }}>{b.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                  <td style={{ padding: 10, fontSize: 20, color: b.status === "PAID" ? "#4ade80" : "#facc15" }}>{b.status}</td>
+                  <td style={{ padding: 10, fontSize: 20, color: b.status === "PAID" ? "#4ade80" : b.status === "REVERSED" ? "#FB923C" : "#facc15" }}>{b.status}</td>
                   <td style={{ padding: 10 }}>
                     {b.status === "PENDING" && (
                       <>
