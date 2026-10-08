@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/app/lib/supabase";
@@ -23,7 +23,11 @@ export default function AccountingDashboard() {
       const accountsMap: Record<string, string> = {};
       (accountsData ?? []).forEach((a: any) => { accountsMap[a.id] = a.account_type; });
       const accountIds = (accountsData ?? []).map((a: any) => a.id);
-      const { data: lines } = await supabase.from("journal_lines").select("debit, credit, account_id").in("account_id", accountIds);
+      // Falta eq("journal_entries.status","ACTIVE") aqui: sin ese filtro, un
+      // asiento reversado o anulado sigue sumando en los totales del
+      // dashboard, que entonces no coinciden con el Balance de Comprobacion
+      // (que si excluye los no-ACTIVE).
+      const { data: lines } = await supabase.from("journal_lines").select("debit, credit, account_id, journal_entries!inner(status)").in("account_id", accountIds).eq("journal_entries.status", "ACTIVE");
       let assets = 0, liabilities = 0, revenue = 0, expense = 0;
       (lines ?? []).forEach((l: any) => {
         const type = accountsMap[l.account_id];
