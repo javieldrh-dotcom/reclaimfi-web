@@ -61,9 +61,16 @@ export default function IslrPage() {
     const expenseAccount = (accounts ?? []).find((a: any) => a.account_name.toLowerCase().includes("gasto de islr"));
     const advanceAccount = (accounts ?? []).find((a: any) => a.account_name.toLowerCase().includes("anticipo de islr"));
     const payableAccount = (accounts ?? []).find((a: any) => a.account_name.toLowerCase() === "islr por pagar");
+    // Cuando los anticipos superan el impuesto del ejercicio, el saldo a
+    // favor es un activo (credito fiscal a recuperar/compensar), no una
+    // reduccion del gasto. Sin esta cuenta el asiento queda descuadrado por
+    // el monto del credito cada vez que netPayable < 0.
+    const receivableAccount = (accounts ?? []).find((a: any) => a.account_name.toLowerCase().includes("islr por cobrar"));
 
     let journalEntryId = null;
-    if (expenseAccount && advanceAccount && payableAccount) {
+    let journalWarning = "";
+    const needsReceivable = r.netPayable < 0;
+    if (expenseAccount && advanceAccount && payableAccount && (!needsReceivable || receivableAccount)) {
       const advances = parseFloat(advancePayments) || 0;
       const { data: entry } = await supabase.from("journal_entries").insert([{
         company_id: companyId,
@@ -76,8 +83,11 @@ export default function IslrPage() {
         const lines = [{ journal_entry_id: entry.id, account_id: expenseAccount.id, debit: r.islrTax, credit: 0 }];
         if (advances > 0) lines.push({ journal_entry_id: entry.id, account_id: advanceAccount.id, debit: 0, credit: advances });
         if (r.netPayable > 0) lines.push({ journal_entry_id: entry.id, account_id: payableAccount.id, debit: 0, credit: r.netPayable });
+        if (r.netPayable < 0 && receivableAccount) lines.push({ journal_entry_id: entry.id, account_id: receivableAccount.id, debit: Math.abs(r.netPayable), credit: 0 });
         await supabase.from("journal_lines").insert(lines);
       }
+    } else if (needsReceivable && !receivableAccount) {
+      journalWarning = " (No se encontro la cuenta 'ISLR por Cobrar': el asiento contable no se genero para no dejarlo descuadrado por el credito a favor. Crea esa cuenta y guarda de nuevo si necesitas el asiento.)";
     }
 
     const { error } = await supabase.from("islr_declarations").insert([{
@@ -94,7 +104,7 @@ export default function IslrPage() {
       net_payable: r.netPayable,
       status: "FILED",
     }]);
-    setMessage(error ? "Error: " + error.message : "Declaracion ISLR guardada correctamente.");
+    setMessage(error ? "Error: " + error.message : "Declaracion ISLR guardada correctamente." + journalWarning);
     if (!error && companyId) {
       const { data: hist } = await supabase.from("islr_declarations").select("*").eq("company_id", companyId).order("fiscal_year", { ascending: false });
       setHistory(hist ?? []);
