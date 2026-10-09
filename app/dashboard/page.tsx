@@ -2,9 +2,26 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/app/lib/supabase";
 
 export default function DashboardPage() {
+  const router = useRouter();
+  const [signingOut, setSigningOut] = useState(false);
+
+  // No existia ningun boton de "cerrar sesion" en ReclaimFi (si en
+  // Contabilidad/APU via VerticalSidebar.tsx). Sin esto, la unica forma de
+  // forzar una sesion nueva era borrar cookies manualmente o usar
+  // incognito - necesario, por ejemplo, tras revocar 2FA desde el panel
+  // de Supabase, para que el cliente deje de usar el estado de sesion
+  // en cache.
+  async function handleLogout() {
+    setSigningOut(true);
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  }
+
   const [stats, setStats] = useState({
     activeCases: 0,
     openCases: 0,
@@ -133,9 +150,7 @@ export default function DashboardPage() {
 
         <div className="space-y-3">
           <Link href="/dashboard" className={tabStyle("command")}>COMMAND CENTER</Link>
-          <Link href="/dashboard" className={tabStyle("command")}>COMMAND CENTER</Link>
           <Link href="/command-center?tab=cases" className={tabStyle("gestion-casos")}>GESTION DE CASOS</Link>
-          <Link href="/ingestion" className={tabStyle("ingestion")}>DATA INGESTION</Link>
           <Link href="/ingestion" className={tabStyle("ingestion")}>DATA INGESTION</Link>
           <Link href="/blockchain" className={tabStyle("blockchain")}>BLOCKCHAIN INTELLIGENCE</Link>
           <Link href="/intel" className={tabStyle("intel")}>INTEL</Link>
@@ -152,6 +167,13 @@ export default function DashboardPage() {
           <Link href="/dashboard/audit/financiero" className={tabStyle("audit-financiero")}>INTEGRIDAD (FINANCIERO)</Link>
           <Link href="/dashboard/graph" className={tabStyle("graph")}>GRAFO FORENSE</Link>
           <Link href="/security" className={tabStyle("security")}>SEGURIDAD DE CUENTA</Link>
+          <button
+            onClick={handleLogout}
+            disabled={signingOut}
+            className="block w-full rounded-md border border-red-500/30 bg-[rgba(255,0,0,0.05)] px-4 py-4 text-left text-sm tracking-[0.12em] text-red-300 transition-all duration-300 hover:bg-red-500/10 hover:border-red-400"
+          >
+            {signingOut ? "CERRANDO SESION..." : "CERRAR SESION"}
+          </button>
         </div>
       </aside>
 
