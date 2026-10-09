@@ -11,6 +11,42 @@ export default function SecurityPage() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // Hasta ahora el unico metodo de acceso era magic link por correo
+  // (signInWithOtp en app/login/page.tsx): no existia ninguna cuenta con
+  // contrasena establecida. Esto permite fijar una, para poder entrar con
+  // email+contrasena ademas del magic link (que se deja como respaldo).
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordMessage, setPasswordMessage] = useState("");
+  const [passwordLoading, setPasswordLoading] = useState(false);
+
+  async function handleSetPassword(e: React.FormEvent) {
+    e.preventDefault();
+    setPasswordMessage("");
+
+    if (newPassword.length < 8) {
+      setPasswordMessage("La contrasena debe tener al menos 8 caracteres.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordMessage("Las contrasenas no coinciden.");
+      return;
+    }
+
+    setPasswordLoading(true);
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    setPasswordLoading(false);
+
+    if (error) {
+      setPasswordMessage("Error: " + error.message);
+      return;
+    }
+
+    setPasswordMessage("Contrasena establecida. Ya puedes entrar con email + contrasena desde /login.");
+    setNewPassword("");
+    setConfirmPassword("");
+  }
+
   async function loadFactors() {
     const { data } = await supabase.auth.mfa.listFactors();
     setFactors(data?.totp ?? []);
@@ -97,6 +133,43 @@ export default function SecurityPage() {
           )}
 
           {message && <p style={{ marginTop: 12, color: message.includes("Error") || message.includes("incorrecto") ? "#f87171" : "#4ade80" }}>{message}</p>}
+        </div>
+
+        <div style={{ background: "#0d1117", border: "1px solid #1a3050", borderRadius: 12, padding: 24, marginTop: 24 }}>
+          <p style={{ fontSize: 18, fontWeight: 700, color: "#7dd3fc" }}>Contrasena de Acceso</p>
+          <p style={{ fontSize: 14, color: "#9ca3af", marginTop: 6 }}>
+            Hoy solo puedes entrar con el enlace magico que llega a tu correo. Establece una contrasena para poder entrar directo con email + contrasena (el enlace magico sigue funcionando como respaldo).
+          </p>
+
+          <form onSubmit={handleSetPassword} style={{ marginTop: 16 }}>
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="Nueva contrasena (minimo 8 caracteres)"
+              style={{ width: "100%", boxSizing: "border-box", background: "#000a16", border: "1px solid #1a3050", borderRadius: 8, padding: 10, color: "white" }}
+            />
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Confirmar contrasena"
+              style={{ width: "100%", boxSizing: "border-box", background: "#000a16", border: "1px solid #1a3050", borderRadius: 8, padding: 10, color: "white", marginTop: 10 }}
+            />
+            <button
+              type="submit"
+              disabled={passwordLoading}
+              style={{ marginTop: 12, background: "#22d3ee", color: "black", fontWeight: 900, padding: "12px 20px", borderRadius: 10, border: "none", cursor: "pointer" }}
+            >
+              {passwordLoading ? "GUARDANDO..." : "ESTABLECER CONTRASENA"}
+            </button>
+          </form>
+
+          {passwordMessage && (
+            <p style={{ marginTop: 12, color: passwordMessage.startsWith("Error") || passwordMessage.includes("no coinciden") || passwordMessage.includes("al menos") ? "#f87171" : "#4ade80" }}>
+              {passwordMessage}
+            </p>
+          )}
         </div>
       </div>
     </div>

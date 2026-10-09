@@ -17,6 +17,16 @@ export default function CommandCenterPage() {
   const [blockchainAlerts, setBlockchainAlerts] = useState(0);
   const [recentAlerts, setRecentAlerts] = useState<any[]>([]);
 
+  // Permite abrir una pestana directa desde otros enlaces (ej. el shortcut
+  // "GESTION DE CASOS" del Dashboard -> /command-center?tab=cases) sin
+  // tener que hacer clic manualmente en el sidebar. Se lee en el cliente
+  // (window.location) en vez de useSearchParams() para no requerir un
+  // Suspense boundary extra, ya que toda la pagina es client-only.
+  useEffect(() => {
+    const tab = new URLSearchParams(window.location.search).get("tab");
+    if (tab) setActiveTab(tab);
+  }, []);
+
   useEffect(() => {
     async function load() {
       const { data: userData } = await supabase.auth.getUser();

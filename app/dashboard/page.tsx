@@ -133,6 +133,9 @@ export default function DashboardPage() {
 
         <div className="space-y-3">
           <Link href="/dashboard" className={tabStyle("command")}>COMMAND CENTER</Link>
+          <Link href="/dashboard" className={tabStyle("command")}>COMMAND CENTER</Link>
+          <Link href="/command-center?tab=cases" className={tabStyle("gestion-casos")}>GESTION DE CASOS</Link>
+          <Link href="/ingestion" className={tabStyle("ingestion")}>DATA INGESTION</Link>
           <Link href="/ingestion" className={tabStyle("ingestion")}>DATA INGESTION</Link>
           <Link href="/blockchain" className={tabStyle("blockchain")}>BLOCKCHAIN INTELLIGENCE</Link>
           <Link href="/intel" className={tabStyle("intel")}>INTEL</Link>
