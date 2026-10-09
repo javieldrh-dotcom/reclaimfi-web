@@ -1,0 +1,34 @@
+-- BLINDAJE DE LA CADENA DE CUSTODIA (event_ledger).
+--
+-- Hasta ahora, la politica event_ledger_insert_own_company permitia a
+-- CUALQUIER usuario autenticado miembro de la empresa del caso insertar
+-- directamente en event_ledger -- incluyendo desde la consola del
+-- navegador, con un hash calculado por el mismo cliente (el algoritmo de
+-- hash es publico, corre en el navegador). Eso anulaba el proposito de un
+-- ledger forense: nada impedia que un usuario fabricara entradas falsas
+-- que "encadenaran" correctamente.
+--
+-- A partir de ahora, event_ledger SOLO se escribe desde el codigo de
+-- servidor usando la service_role key (ver
+-- app/lib/supabase/serviceClient.ts y app/core/ledger-engine.ts), que
+-- bypassa RLS por diseno de Supabase. Por eso aqui NO se crea ninguna
+-- politica INSERT nueva para "authenticated": simplemente se elimina la
+-- unica que existia. Sin ninguna politica INSERT permisiva, PostgREST
+-- rechaza cualquier intento de insertar con el rol "authenticated" (anon +
+-- sesion de usuario), venga del codigo de la app o de alguien escribiendo
+-- directo en la consola del navegador.
+--
+-- La lectura (event_ledger_select_own_company) NO cambia: los miembros de
+-- la empresa siguen pudiendo ver la cadena de custodia de sus propios
+-- casos, solo ya no pueden escribirla directamente.
+--
+-- IMPORTANTE: para que esto funcione, la variable de entorno
+-- SUPABASE_SERVICE_ROLE_KEY debe estar configurada en el entorno de
+-- despliegue (Vercel u otro) -- la consigues en tu panel de Supabase:
+-- Settings -> API -> service_role key (es gratuita, es tu propia clave de
+-- administrador del proyecto). Sin ella, crear casos/alertas/etc seguira
+-- funcionando con normalidad, pero la escritura a event_ledger fallara (se
+-- captura con try/catch y solo queda en los logs del servidor, no bloquea
+-- la operacion principal).
+
+drop policy if exists event_ledger_insert_own_company on public.event_ledger;
