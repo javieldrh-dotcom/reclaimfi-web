@@ -80,7 +80,17 @@ export default function ReconstructAccountingPage() {
       return;
     }
 
-    await supabase.from("user_companies").insert([{ user_id: userData.user.id, company_id: newCompany.id, role: "ADMIN" }]);
+        // Nota: esta membresia es solo para que las politicas de RLS permitan
+    // leer la empresa de reconstruccion (plan de cuentas, asientos,
+    // lineas). NO debe convertirse en la "empresa activa" del usuario -
+    // antes, al no fijar last_active_at, tomaba el valor por defecto de
+    // la tabla (now()), y como el dashboard elige la empresa activa
+    // ordenando por last_active_at descendente, cada reconstruccion
+    // "secuestraba" silenciosamente ese puesto y hacia que los casos
+    // reales del usuario dejaran de aparecer en /dashboard y en
+    // /dashboard/audit/financiero. Se fija explicitamente en el pasado
+    // para que nunca gane esa carrera.
+    await supabase.from("user_companies").insert([{ user_id: userData.user.id, company_id: newCompany.id, role: "ADMIN", last_active_at: "1970-01-01T00:00:00Z" }]);
 
     const uniqueAccounts = new Map<string, { name: string; type: string }>();
     for (const tx of allTransactions) {
