@@ -128,8 +128,15 @@ export default function ApBillsPage() {
       // directamente (no desde este boton), por lo que la factura se quedo
       // sin actualizar. Se sincroniza el estado aqui en vez de dejarla
       // huerfana en "PENDING" con un asiento que ya no existe contablemente.
-      await supabase.from("ap_bills").update({ status: "REVERSED" }).eq("id", billId);
-      alert("Este asiento ya habia sido reversado anteriormente (probablemente desde el Diario). Se actualizo el estado de la factura a REVERSED para que coincida.");
+      // La columna status de ap_bills tiene una restriccion (CHECK) que solo
+      // permite PENDING/PAID/OVERDUE/VOIDED - "REVERSED" no es un valor valido.
+      // Se usa VOIDED (anulada), que ya existe en el esquema para este mismo caso.
+      const { error: syncError } = await supabase.from("ap_bills").update({ status: "VOIDED" }).eq("id", billId);
+      if (syncError) {
+        alert("El asiento ya estaba reversado, pero no se pudo actualizar el estado de la factura. Error de la base de datos: " + syncError.message);
+      } else {
+        alert("Este asiento ya habia sido reversado anteriormente (probablemente desde el Diario). Se actualizo el estado de la factura a VOIDED (Anulada) para que coincida.");
+      }
       if (companyId) await loadBills(companyId);
       return;
     }
@@ -158,8 +165,12 @@ export default function ApBillsPage() {
     // Sin esto la factura se queda en "PENDING" para siempre: se puede
     // marcar "Pagada" despues de haber sido reversada, aunque el asiento
     // contable ya no exista (quedo anulado por el reverso).
-    await supabase.from("ap_bills").update({ status: "REVERSED" }).eq("id", billId);
-    alert("Reverso creado correctamente (Asiento Nº" + nextNumber + ").");
+    const { error: statusSyncError } = await supabase.from("ap_bills").update({ status: "VOIDED" }).eq("id", billId);
+    if (statusSyncError) {
+      alert("El asiento de reverso se creo (Nº" + nextNumber + "), pero no se pudo actualizar el estado de la factura. Error de la base de datos: " + statusSyncError.message);
+    } else {
+      alert("Reverso creado correctamente (Asiento Nº" + nextNumber + ").");
+    }
     if (companyId) await loadBills(companyId);
   }
   const inputStyle = { ...theme.inputStyle, fontSize: 20 };
@@ -227,7 +238,7 @@ export default function ApBillsPage() {
                   <td style={{ padding: 10, fontSize: 20 }}>{b.vendor_name}</td>
                   <td style={{ padding: 10, fontSize: 20 }}>{b.due_date}</td>
                   <td style={{ padding: 10, fontSize: 20, ...theme.numberStyle }}>{b.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                  <td style={{ padding: 10, fontSize: 20, color: b.status === "PAID" ? "#4ade80" : b.status === "REVERSED" ? "#FB923C" : "#facc15" }}>{b.status}</td>
+                  <td style={{ padding: 10, fontSize: 20, color: b.status === "PAID" ? "#4ade80" : b.status === "VOIDED" ? "#FB923C" : "#facc15" }}>{b.status}</td>
                   <td style={{ padding: 10 }}>
                     {b.status === "PENDING" && (
                       <>
