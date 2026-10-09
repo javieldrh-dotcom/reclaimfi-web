@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
 import { verifyLedgerIntegrity } from "@/app/core/verification-engine";
+import BenfordAnalysis from "./BenfordAnalysis";
 
 // Logica compartida entre /dashboard/audit/crypto y
 // /dashboard/audit/financiero: cargar los casos de la empresa activa
@@ -159,6 +160,8 @@ export default function AuditLedgerView({ title, caseTypeFilter, showSectorFilte
           )}
         </div>
       </div>
+
+      {showSectorFilter && selectedCaseId && <BenfordAnalysis caseId={selectedCaseId} />}
     </div>
   );
 }
