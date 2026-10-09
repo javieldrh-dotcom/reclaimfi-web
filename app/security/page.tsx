@@ -20,6 +20,21 @@ export default function SecurityPage() {
   const [passwordMessage, setPasswordMessage] = useState("");
   const [passwordLoading, setPasswordLoading] = useState(false);
 
+  // Supabase exige "AAL2" (haber pasado el segundo factor en la sesion
+  // actual) para poder cambiar contrasena/email cuando el usuario tiene
+  // 2FA activado. El login (magic link o contrasena) hoy solo llega a
+  // AAL1, asi que si hay 2FA activo hace falta este paso extra de
+  // verificacion aqui mismo antes de poder guardar la nueva contrasena.
+  const [aal, setAal] = useState<{ current: string | null; next: string | null } | null>(null);
+  const [stepUpCode, setStepUpCode] = useState("");
+  const [stepUpMessage, setStepUpMessage] = useState("");
+  const [stepUpLoading, setStepUpLoading] = useState(false);
+
+  async function checkAal() {
+    const { data } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    setAal({ current: data?.currentLevel ?? null, next: data?.nextLevel ?? null });
+  }
+
   async function handleSetPassword(e: React.FormEvent) {
     e.preventDefault();
     setPasswordMessage("");
@@ -47,12 +62,45 @@ export default function SecurityPage() {
     setConfirmPassword("");
   }
 
+  async function handleStepUp(e: React.FormEvent) {
+    e.preventDefault();
+    setStepUpMessage("");
+
+    if (!verifiedFactor) {
+      setStepUpMessage("No se encontro un factor 2FA verificado en tu cuenta.");
+      return;
+    }
+    if (!stepUpCode || stepUpCode.length < 6) {
+      setStepUpMessage("Ingresa el codigo de 6 digitos de tu app autenticadora.");
+      return;
+    }
+
+    setStepUpLoading(true);
+    const { data: challengeData, error: challengeError } = await supabase.auth.mfa.challenge({ factorId: verifiedFactor.id });
+    if (challengeError) {
+      setStepUpMessage("Error: " + challengeError.message);
+      setStepUpLoading(false);
+      return;
+    }
+    const { error: verifyError } = await supabase.auth.mfa.verify({ factorId: verifiedFactor.id, challengeId: challengeData.id, code: stepUpCode });
+    if (verifyError) {
+      setStepUpMessage("Codigo incorrecto. Intenta de nuevo.");
+      setStepUpLoading(false);
+      return;
+    }
+
+    setStepUpCode("");
+    setStepUpMessage("");
+    await checkAal();
+    setStepUpLoading(false);
+  }
+
   async function loadFactors() {
     const { data } = await supabase.auth.mfa.listFactors();
     setFactors(data?.totp ?? []);
   }
 
-  useEffect(() => { loadFactors(); }, []);
+  useEffect(() => { loadFactors(); checkAal(); }, []);
 
   async function startEnroll() {
     setMessage("");
@@ -141,29 +189,57 @@ export default function SecurityPage() {
             Hoy solo puedes entrar con el enlace magico que llega a tu correo. Establece una contrasena para poder entrar directo con email + contrasena (el enlace magico sigue funcionando como respaldo).
           </p>
 
-          <form onSubmit={handleSetPassword} style={{ marginTop: 16 }}>
-            <input
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="Nueva contrasena (minimo 8 caracteres)"
-              style={{ width: "100%", boxSizing: "border-box", background: "#000a16", border: "1px solid #1a3050", borderRadius: 8, padding: 10, color: "white" }}
-            />
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Confirmar contrasena"
-              style={{ width: "100%", boxSizing: "border-box", background: "#000a16", border: "1px solid #1a3050", borderRadius: 8, padding: 10, color: "white", marginTop: 10 }}
-            />
-            <button
-              type="submit"
-              disabled={passwordLoading}
-              style={{ marginTop: 12, background: "#22d3ee", color: "black", fontWeight: 900, padding: "12px 20px", borderRadius: 10, border: "none", cursor: "pointer" }}
-            >
-              {passwordLoading ? "GUARDANDO..." : "ESTABLECER CONTRASENA"}
-            </button>
-          </form>
+          {aal && aal.next === "aal2" && aal.current !== "aal2" ? (
+            <div style={{ marginTop: 16 }}>
+              <p style={{ fontSize: 14, color: "#facc15" }}>
+                Tienes 2FA activado: antes de cambiar la contrasena, confirma tu identidad con el codigo de tu app autenticadora.
+              </p>
+              <form onSubmit={handleStepUp} style={{ marginTop: 10 }}>
+                <input
+                  value={stepUpCode}
+                  onChange={(e) => setStepUpCode(e.target.value)}
+                  placeholder="Codigo de 6 digitos"
+                  style={{ width: "100%", boxSizing: "border-box", background: "#000a16", border: "1px solid #1a3050", borderRadius: 8, padding: 10, color: "white" }}
+                />
+                <button
+                  type="submit"
+                  disabled={stepUpLoading}
+                  style={{ marginTop: 10, background: "#facc15", color: "black", fontWeight: 900, padding: "12px 20px", borderRadius: 10, border: "none", cursor: "pointer" }}
+                >
+                  {stepUpLoading ? "VERIFICANDO..." : "VERIFICAR CODIGO"}
+                </button>
+              </form>
+              {stepUpMessage && (
+                <p style={{ marginTop: 12, color: stepUpMessage.startsWith("Error") || stepUpMessage.includes("incorrecto") || stepUpMessage.includes("No se encontro") ? "#f87171" : "#4ade80" }}>
+                  {stepUpMessage}
+                </p>
+              )}
+            </div>
+          ) : (
+            <form onSubmit={handleSetPassword} style={{ marginTop: 16 }}>
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Nueva contrasena (minimo 8 caracteres)"
+                style={{ width: "100%", boxSizing: "border-box", background: "#000a16", border: "1px solid #1a3050", borderRadius: 8, padding: 10, color: "white" }}
+              />
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirmar contrasena"
+                style={{ width: "100%", boxSizing: "border-box", background: "#000a16", border: "1px solid #1a3050", borderRadius: 8, padding: 10, color: "white", marginTop: 10 }}
+              />
+              <button
+                type="submit"
+                disabled={passwordLoading}
+                style={{ marginTop: 12, background: "#22d3ee", color: "black", fontWeight: 900, padding: "12px 20px", borderRadius: 10, border: "none", cursor: "pointer" }}
+              >
+                {passwordLoading ? "GUARDANDO..." : "ESTABLECER CONTRASENA"}
+              </button>
+            </form>
+          )}
 
           {passwordMessage && (
             <p style={{ marginTop: 12, color: passwordMessage.startsWith("Error") || passwordMessage.includes("no coinciden") || passwordMessage.includes("al menos") ? "#f87171" : "#4ade80" }}>
