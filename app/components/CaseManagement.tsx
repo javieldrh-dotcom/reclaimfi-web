@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { createCase, getCases } from "../lib/supabaseCases";
 import { getActiveCompanyContext } from "../lib/activeCompany";
 import { logLedgerEvent } from "../lib/logLedgerEvent";
@@ -199,6 +200,32 @@ export default function CaseManagement() {
                     <span className="rounded-full bg-yellow-500/20 px-5 py-3 text-xs font-black tracking-[0.2em] text-yellow-300">{item.priority}</span>
                     <span className="rounded-full bg-green-500/20 px-5 py-3 text-xs font-black tracking-[0.2em] text-green-300">{item.status}</span>
                   </div>
+                </div>
+
+                {/* Siguientes pasos directos para este caso, para no tener
+                    que ir a otra pagina y volver a buscarlo en un
+                    dropdown. */}
+                <div className="mt-5 flex flex-wrap gap-3 border-t border-blue-500/10 pt-5">
+                  <Link
+                    href={"/reports/" + item.id}
+                    className="rounded-xl border border-cyan-400/30 px-5 py-3 text-xs font-bold tracking-[0.1em] text-cyan-300 transition-all hover:bg-cyan-500/10"
+                  >
+                    Ver Reporte &rarr;
+                  </Link>
+                  {item.case_type !== "BLOCKCHAIN" && (
+                    <Link
+                      href={"/reports/" + item.id + "/reconstruct"}
+                      className="rounded-xl border border-green-400/30 px-5 py-3 text-xs font-bold tracking-[0.1em] text-green-300 transition-all hover:bg-green-500/10"
+                    >
+                      Reconstruir Contabilidad &rarr;
+                    </Link>
+                  )}
+                  <Link
+                    href={(item.case_type === "BLOCKCHAIN" ? "/dashboard/audit/crypto" : "/dashboard/audit/financiero") + "?case=" + item.id}
+                    className="rounded-xl border border-purple-400/30 px-5 py-3 text-xs font-bold tracking-[0.1em] text-purple-300 transition-all hover:bg-purple-500/10"
+                  >
+                    Ver en Auditoria &rarr;
+                  </Link>
                 </div>
               </div>
             ))

@@ -4,17 +4,82 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/app/lib/supabase";
+import CaseManagement from "../components/CaseManagement";
+import AIEngine from "../components/AIEngine";
+import CyberSecurity from "../components/CyberSecurity";
+
+// Punto de entrada unico de ReclaimFi. Antes existian dos paginas
+// separadas llamadas "Command Center" (esta y /command-center) con menus
+// distintos y sin conexion entre si - confuso incluso para quien conoce
+// el sistema por dentro. Se fusionaron en una sola pagina con un solo
+// menu, agrupado por como se usa el sistema en la practica (primero
+// casos, luego inteligencia/monitoreo, luego cumplimiento), no por orden
+// alfabetico de modulos. /command-center ahora redirige aqui para no
+// romper enlaces guardados.
+type NavItem =
+  | { type: "tab"; id: string; label: string }
+  | { type: "link"; href: string; label: string };
+
+interface NavGroup {
+  heading: string | null;
+  items: NavItem[];
+}
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    heading: null,
+    items: [{ type: "tab", id: "inicio", label: "INICIO" }],
+  },
+  {
+    // Orden secuencial real de un caso: crearlo, ingestar datos,
+    // investigar, reconstruir/auditar, reportar.
+    heading: "CASOS",
+    items: [
+      { type: "tab", id: "cases", label: "Gestion de Casos" },
+      { type: "link", href: "/ingestion", label: "Ingesta de Datos" },
+      { type: "link", href: "/investigation", label: "Investigaciones" },
+      { type: "link", href: "/dashboard/audit/crypto", label: "Auditoria (Cripto)" },
+      { type: "link", href: "/dashboard/audit/financiero", label: "Auditoria (Financiero)" },
+      { type: "link", href: "/reports", label: "Reportes Forenses" },
+    ],
+  },
+  {
+    heading: "INTELIGENCIA Y MONITOREO",
+    items: [
+      { type: "link", href: "/blockchain", label: "Blockchain Intelligence" },
+      { type: "link", href: "/aml", label: "AML" },
+      { type: "tab", id: "ai", label: "AI Investigator" },
+      { type: "link", href: "/risk", label: "Risk Engine" },
+      { type: "link", href: "/alerts", label: "Alerts Center" },
+      { type: "link", href: "/tracking", label: "Wallet Tracking" },
+      { type: "tab", id: "cybersecurity", label: "Cyberseguridad" },
+    ],
+  },
+  {
+    heading: "CUMPLIMIENTO",
+    items: [
+      { type: "link", href: "/compliance", label: "Compliance" },
+      { type: "link", href: "/dashboard/graph", label: "Grafo Forense" },
+      { type: "link", href: "/intel", label: "Intel" },
+      { type: "link", href: "/history", label: "History" },
+    ],
+  },
+  {
+    heading: "CUENTA",
+    items: [{ type: "link", href: "/security", label: "Seguridad de la Cuenta" }],
+  },
+];
 
 export default function DashboardPage() {
   const router = useRouter();
+  const [activeTab, setActiveTab] = useState("inicio");
   const [signingOut, setSigningOut] = useState(false);
 
-  // No existia ningun boton de "cerrar sesion" en ReclaimFi (si en
-  // Contabilidad/APU via VerticalSidebar.tsx). Sin esto, la unica forma de
-  // forzar una sesion nueva era borrar cookies manualmente o usar
-  // incognito - necesario, por ejemplo, tras revocar 2FA desde el panel
-  // de Supabase, para que el cliente deje de usar el estado de sesion
-  // en cache.
+  useEffect(() => {
+    const tab = new URLSearchParams(window.location.search).get("tab");
+    if (tab) setActiveTab(tab);
+  }, []);
+
   async function handleLogout() {
     setSigningOut(true);
     await supabase.auth.signOut();
@@ -45,9 +110,6 @@ export default function DashboardPage() {
       const { data: allCases } = await supabase.from("cases").select("*").eq("company_id", cid).order("created_at", { ascending: false });
       const casesList = allCases ?? [];
 
-      // La tabla real se llama "evidences" (no "case_evidence", que no
-      // existe en la base) - este KPI daba error en silencio y siempre
-      // mostraba 0.
       const { count: evidenceCount } = casesList.length > 0
         ? await supabase.from("evidences").select("*", { count: "exact", head: true }).in("case_id", casesList.map((c: any) => c.id))
         : { count: 0 };
@@ -127,9 +189,12 @@ export default function DashboardPage() {
     return () => window.removeEventListener("resize", init);
   }, []);
 
-  const tabStyle = (tab: string) =>
-    `block w-full rounded-md border px-4 py-4 text-left text-sm tracking-[0.12em] transition-all duration-300
-    border-[#1a3050] bg-[rgba(0,85,255,0.05)] text-white hover:bg-cyan-500/10 hover:border-cyan-400`;
+  const navItemStyle = (active: boolean) =>
+    `block w-full rounded-md border px-4 py-3 text-left text-sm tracking-[0.1em] transition-all duration-300 ${
+      active
+        ? "border-cyan-400 bg-cyan-500/20 text-cyan-200"
+        : "border-[#1a3050] bg-[rgba(0,85,255,0.05)] text-white hover:bg-cyan-500/10 hover:border-cyan-400"
+    }`;
 
   const riskColors: Record<string, string> = { HIGH: "#f87171", MEDIUM: "#facc15", LOW: "#4ade80" };
 
@@ -139,38 +204,45 @@ export default function DashboardPage() {
       <div className="absolute inset-0 z-10 bg-black/40" />
 
       <aside className="relative z-20 w-[320px] overflow-y-auto border-r border-cyan-500/20 bg-[#000a16]/70 p-6 backdrop-blur-md">
-        <div className="mb-10 text-center">
+        <div className="mb-8 text-center">
           <h1 className="text-3xl font-black tracking-[0.18em]">
             RECLAIM<span className="text-cyan-400"> FI</span>
           </h1>
           <p className="mt-2 text-xs tracking-[0.35em] text-cyan-500">
-            CENTRAL OPERATIVA v6.0
+            CENTRAL OPERATIVA v7.0
           </p>
         </div>
 
-        <div className="space-y-3">
-          <Link href="/dashboard" className={tabStyle("command")}>COMMAND CENTER</Link>
-          <Link href="/command-center?tab=cases" className={tabStyle("gestion-casos")}>GESTION DE CASOS</Link>
-          <Link href="/ingestion" className={tabStyle("ingestion")}>DATA INGESTION</Link>
-          <Link href="/blockchain" className={tabStyle("blockchain")}>BLOCKCHAIN INTELLIGENCE</Link>
-          <Link href="/intel" className={tabStyle("intel")}>INTEL</Link>
-          <Link href="/investigation" className={tabStyle("investigations")}>INVESTIGATIONS</Link>
-          <Link href="/risk" className={tabStyle("risk")}>RISK ENGINE</Link>
-          <Link href="/alerts" className={tabStyle("alerts")}>ALERTS CENTER</Link>
-          <Link href="/tracking" className={tabStyle("wallet")}>WALLET TRACKING</Link>
-          <Link href="/audits" className={tabStyle("audits")}>AUDITS</Link>
-          <Link href="/compliance" className={tabStyle("compliance")}>COMPLIANCE</Link>
-          <Link href="/aml" className={tabStyle("aml")}>AML</Link>
-          <Link href="/reports" className={tabStyle("reports")}>FORENSIC REPORTS</Link>
-          <Link href="/history" className={tabStyle("history")}>HISTORY</Link>
-          <Link href="/dashboard/audit/crypto" className={tabStyle("audit-crypto")}>INTEGRIDAD (CRIPTO)</Link>
-          <Link href="/dashboard/audit/financiero" className={tabStyle("audit-financiero")}>INTEGRIDAD (FINANCIERO)</Link>
-          <Link href="/dashboard/graph" className={tabStyle("graph")}>GRAFO FORENSE</Link>
-          <Link href="/security" className={tabStyle("security")}>SEGURIDAD DE CUENTA</Link>
+        <div className="space-y-5">
+          {NAV_GROUPS.map((group, gi) => (
+            <div key={gi}>
+              {group.heading && (
+                <p className="mb-2 px-1 text-[10px] font-bold tracking-[0.25em] text-gray-500">{group.heading}</p>
+              )}
+              <div className="space-y-2">
+                {group.items.map((item) =>
+                  item.type === "tab" ? (
+                    <button
+                      key={item.id}
+                      onClick={() => setActiveTab(item.id)}
+                      className={navItemStyle(activeTab === item.id)}
+                    >
+                      {item.label}
+                    </button>
+                  ) : (
+                    <Link key={item.href} href={item.href} className={navItemStyle(false)}>
+                      {item.label}
+                    </Link>
+                  )
+                )}
+              </div>
+            </div>
+          ))}
+
           <button
             onClick={handleLogout}
             disabled={signingOut}
-            className="block w-full rounded-md border border-red-500/30 bg-[rgba(255,0,0,0.05)] px-4 py-4 text-left text-sm tracking-[0.12em] text-red-300 transition-all duration-300 hover:bg-red-500/10 hover:border-red-400"
+            className="block w-full rounded-md border border-red-500/30 bg-[rgba(255,0,0,0.05)] px-4 py-3 text-left text-sm tracking-[0.1em] text-red-300 transition-all duration-300 hover:bg-red-500/10 hover:border-red-400"
           >
             {signingOut ? "CERRANDO SESION..." : "CERRAR SESION"}
           </button>
@@ -178,60 +250,68 @@ export default function DashboardPage() {
       </aside>
 
       <section className="relative z-20 flex-1 overflow-y-auto p-10">
-        <h1 className="text-5xl font-black tracking-[0.12em] text-cyan-300">COMMAND CENTER</h1>
-        <p className="mt-4 text-gray-400">Ecosistema de inteligencia forense</p>
+        {activeTab === "inicio" && (
+          <div>
+            <h1 className="text-5xl font-black tracking-[0.12em] text-cyan-300">COMMAND CENTER</h1>
+            <p className="mt-4 text-gray-400">Ecosistema de inteligencia forense</p>
 
-        <div className="mt-10 grid gap-6 md:grid-cols-3 xl:grid-cols-6">
-          <div className="rounded-xl border border-cyan-400/20 bg-[rgba(13,17,23,0.58)] p-6 backdrop-blur-md">
-            <p className="text-xs tracking-[0.2em] text-cyan-400">CASOS TOTALES</p>
-            <h2 className="mt-3 text-4xl font-black">{stats.activeCases}</h2>
-          </div>
-          <div className="rounded-xl border border-yellow-500/20 bg-[rgba(13,17,23,0.58)] p-6 backdrop-blur-md">
-            <p className="text-xs tracking-[0.2em] text-yellow-400">CASOS ABIERTOS</p>
-            <h2 className="mt-3 text-4xl font-black text-yellow-400">{stats.openCases}</h2>
-          </div>
-          <div className="rounded-xl border border-red-500/20 bg-[rgba(13,17,23,0.58)] p-6 backdrop-blur-md">
-            <p className="text-xs tracking-[0.2em] text-red-400">RIESGO ALTO</p>
-            <h2 className="mt-3 text-4xl font-black text-red-400">{stats.highRisk}</h2>
-          </div>
-          <div className="rounded-xl border border-green-500/20 bg-[rgba(13,17,23,0.58)] p-6 backdrop-blur-md">
-            <p className="text-xs tracking-[0.2em] text-green-400">ARCHIVOS DE EVIDENCIA</p>
-            <h2 className="mt-3 text-4xl font-black text-green-400">{stats.evidenceFiles}</h2>
-          </div>
-          <div className="rounded-xl border border-orange-500/20 bg-[rgba(13,17,23,0.58)] p-6 backdrop-blur-md">
-            <p className="text-xs tracking-[0.2em] text-orange-400">ALERTAS CRITICAS</p>
-            <h2 className="mt-3 text-4xl font-black text-orange-400">{stats.criticalAlerts}</h2>
-          </div>
-          <div className="rounded-xl border border-purple-500/20 bg-[rgba(13,17,23,0.58)] p-6 backdrop-blur-md">
-            <p className="text-xs tracking-[0.2em] text-purple-400">WALLETS RASTREADAS</p>
-            <h2 className="mt-3 text-4xl font-black text-purple-400">{stats.trackedWallets}</h2>
-          </div>
-        </div>
+            <div className="mt-10 grid gap-6 md:grid-cols-3 xl:grid-cols-6">
+              <div className="rounded-xl border border-cyan-400/20 bg-[rgba(13,17,23,0.58)] p-6 backdrop-blur-md">
+                <p className="text-xs tracking-[0.2em] text-cyan-400">CASOS TOTALES</p>
+                <h2 className="mt-3 text-4xl font-black">{stats.activeCases}</h2>
+              </div>
+              <div className="rounded-xl border border-yellow-500/20 bg-[rgba(13,17,23,0.58)] p-6 backdrop-blur-md">
+                <p className="text-xs tracking-[0.2em] text-yellow-400">CASOS ABIERTOS</p>
+                <h2 className="mt-3 text-4xl font-black text-yellow-400">{stats.openCases}</h2>
+              </div>
+              <div className="rounded-xl border border-red-500/20 bg-[rgba(13,17,23,0.58)] p-6 backdrop-blur-md">
+                <p className="text-xs tracking-[0.2em] text-red-400">RIESGO ALTO</p>
+                <h2 className="mt-3 text-4xl font-black text-red-400">{stats.highRisk}</h2>
+              </div>
+              <div className="rounded-xl border border-green-500/20 bg-[rgba(13,17,23,0.58)] p-6 backdrop-blur-md">
+                <p className="text-xs tracking-[0.2em] text-green-400">ARCHIVOS DE EVIDENCIA</p>
+                <h2 className="mt-3 text-4xl font-black text-green-400">{stats.evidenceFiles}</h2>
+              </div>
+              <div className="rounded-xl border border-orange-500/20 bg-[rgba(13,17,23,0.58)] p-6 backdrop-blur-md">
+                <p className="text-xs tracking-[0.2em] text-orange-400">ALERTAS CRITICAS</p>
+                <h2 className="mt-3 text-4xl font-black text-orange-400">{stats.criticalAlerts}</h2>
+              </div>
+              <div className="rounded-xl border border-purple-500/20 bg-[rgba(13,17,23,0.58)] p-6 backdrop-blur-md">
+                <p className="text-xs tracking-[0.2em] text-purple-400">WALLETS RASTREADAS</p>
+                <h2 className="mt-3 text-4xl font-black text-purple-400">{stats.trackedWallets}</h2>
+              </div>
+            </div>
 
-        <h2 className="mt-10 text-2xl font-bold text-cyan-300">Casos Recientes</h2>
-        <div className="mt-4 grid gap-3">
-          {recentCases.length === 0 ? (
-            <p className="text-gray-500">Aun no tienes casos registrados. Crea uno desde Investigations.</p>
-          ) : (
-            recentCases.map((c) => (
-              <Link
-                key={c.id}
-                href={"/reports/" + c.id}
-                className="rounded-xl border border-white/5 bg-[rgba(13,17,23,0.58)] p-5 backdrop-blur-md transition-all hover:border-cyan-400/40"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-cyan-400">{c.case_code}</p>
-                    <h3 className="mt-1 text-lg font-bold text-white">{c.title}</h3>
-                  </div>
-                  <span className="text-sm font-bold" style={{ color: riskColors[c.risk_level] || "#8B93A7" }}>
-                    {c.risk_level}
-                  </span>
-                </div>
-              </Link>
-            ))
-          )}
-        </div>
+            <h2 className="mt-10 text-2xl font-bold text-cyan-300">Casos Recientes</h2>
+            <div className="mt-4 grid gap-3">
+              {recentCases.length === 0 ? (
+                <p className="text-gray-500">Aun no tienes casos registrados. Crea uno en "Gestion de Casos".</p>
+              ) : (
+                recentCases.map((c) => (
+                  <Link
+                    key={c.id}
+                    href={"/reports/" + c.id}
+                    className="rounded-xl border border-white/5 bg-[rgba(13,17,23,0.58)] p-5 backdrop-blur-md transition-all hover:border-cyan-400/40"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-cyan-400">{c.case_code}</p>
+                        <h3 className="mt-1 text-lg font-bold text-white">{c.title}</h3>
+                      </div>
+                      <span className="text-sm font-bold" style={{ color: riskColors[c.risk_level] || "#8B93A7" }}>
+                        {c.risk_level}
+                      </span>
+                    </div>
+                  </Link>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === "cases" && <CaseManagement />}
+        {activeTab === "ai" && <AIEngine />}
+        {activeTab === "cybersecurity" && <CyberSecurity />}
       </section>
     </main>
   );

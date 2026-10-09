@@ -47,6 +47,15 @@ export default function AuditLedgerView({ title, caseTypeFilter, showSectorFilte
     loadCases();
   }, [caseTypeFilter]);
 
+  // Si se llega aqui desde un link directo de un caso (ej. el boton "Ver
+  // en Auditoria" de Gestion de Casos: /dashboard/audit/financiero?case=ID),
+  // se preselecciona ese caso en vez de obligar a buscarlo de nuevo en el
+  // dropdown.
+  useEffect(() => {
+    const caseIdFromUrl = new URLSearchParams(window.location.search).get("case");
+    if (caseIdFromUrl) setSelectedCaseId(caseIdFromUrl);
+  }, []);
+
   const visibleCases = showSectorFilter && sectorFilter !== "TODOS"
     ? cases.filter((c) => c.sector === sectorFilter)
     : cases;
