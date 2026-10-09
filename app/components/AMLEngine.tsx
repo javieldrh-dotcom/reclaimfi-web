@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/app/lib/supabase";
+import { getActiveCompanyContext } from "@/app/lib/activeCompany";
 
 export default function AMLEngine() {
   const [loading, setLoading] = useState(true);
@@ -12,9 +13,14 @@ export default function AMLEngine() {
 
   useEffect(() => {
     async function load() {
-      const { count: total } = await supabase.from("alerts").select("*", { count: "exact", head: true });
-      const { count: critical } = await supabase.from("alerts").select("*", { count: "exact", head: true }).eq("severity", "CRITICAL");
-      const { data: recent } = await supabase.from("alerts").select("*").order("created_at", { ascending: false }).limit(8);
+      const { companyId } = await getActiveCompanyContext();
+      if (!companyId) {
+        setLoading(false);
+        return;
+      }
+      const { count: total } = await supabase.from("alerts").select("*", { count: "exact", head: true }).eq("company_id", companyId);
+      const { count: critical } = await supabase.from("alerts").select("*", { count: "exact", head: true }).eq("company_id", companyId).eq("severity", "CRITICAL");
+      const { data: recent } = await supabase.from("alerts").select("*").eq("company_id", companyId).order("created_at", { ascending: false }).limit(8);
 
       setTotalAlerts(total ?? 0);
       setCriticalCount(critical ?? 0);

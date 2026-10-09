@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
+import { getActiveCompanyContext } from "@/app/lib/activeCompany";
 
 export default function AIEngine() {
   const [loading, setLoading] = useState(true);
@@ -11,9 +12,14 @@ export default function AIEngine() {
 
   useEffect(() => {
     async function load() {
-      const { count: total } = await supabase.from("alerts").select("*", { count: "exact", head: true });
-      const { count: highRisk } = await supabase.from("alerts").select("*", { count: "exact", head: true }).in("severity", ["HIGH", "CRITICAL"]);
-      const { data: recent } = await supabase.from("alerts").select("*").order("created_at", { ascending: false }).limit(7);
+      const { companyId } = await getActiveCompanyContext();
+      if (!companyId) {
+        setLoading(false);
+        return;
+      }
+      const { count: total } = await supabase.from("alerts").select("*", { count: "exact", head: true }).eq("company_id", companyId);
+      const { count: highRisk } = await supabase.from("alerts").select("*", { count: "exact", head: true }).eq("company_id", companyId).in("severity", ["HIGH", "CRITICAL"]);
+      const { data: recent } = await supabase.from("alerts").select("*").eq("company_id", companyId).order("created_at", { ascending: false }).limit(7);
 
       setTotalAlerts(total ?? 0);
       setHighRiskCount(highRisk ?? 0);

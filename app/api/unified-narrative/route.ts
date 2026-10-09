@@ -20,6 +20,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "Caso no encontrado." }, { status: 404 });
     }
 
+    // IDOR: caseId viene del cliente. Sin esta verificacion, cualquier
+    // usuario autenticado de CUALQUIER empresa podia generar la narrativa
+    // forense unificada (hallazgos documentales + wallets) de un caso de
+    // otra empresa con solo conocer/adivinar su UUID.
+    const { data: membership } = await supabase
+      .from("user_companies")
+      .select("id")
+      .eq("user_id", userData.user.id)
+      .eq("company_id", caseData.company_id)
+      .maybeSingle();
+    if (!membership) {
+      return NextResponse.json({ success: false, error: "No tienes acceso a este caso." }, { status: 403 });
+    }
+
     const { data: reconstructionCompany } = await supabase.from("companies").select("id").eq("reconstruction_case_id", caseId).maybeSingle();
 
     let documentaryFindings = "";

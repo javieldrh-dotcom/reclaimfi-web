@@ -33,8 +33,16 @@ export default function BlockchainPage() {
         return;
       }
 
+      const { data: userData } = await supabase.auth.getUser();
+      let cid: string | null = null;
+      if (userData?.user) {
+        const { data: uc } = await supabase.from("user_companies").select("company_id").eq("user_id", userData.user.id).order("last_active_at", { ascending: false }).limit(1).single();
+        cid = uc?.company_id ?? null;
+      }
+
       const { error: dbError } = await supabase.from("wallet_addresses").insert([{
         address: wallet.trim(),
+        company_id: cid,
         blockchain: "BTC",
         risk_level: json.analysis.riskLevel,
         metadata: {

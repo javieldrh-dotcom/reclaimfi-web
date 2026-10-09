@@ -6,6 +6,7 @@ import { getVerticalTheme } from "@/app/core/design/tokens";
 import VerticalPageLayout from "@/app/components/VerticalPageLayout";
 import { generateApuOfertaPdf } from "@/app/core/reports/generateApuOfertaPdf";
 import { calcPartidaCost } from "@/app/core/apu/calcPartida";
+import { getActiveCompanyContext } from "@/app/lib/activeCompany";
 
 interface Partida {
   id: string;
@@ -70,6 +71,7 @@ export default function ApuPartidasPage() {
 
   const [aiLoading, setAiLoading] = useState<string | null>(null);
   const [aiSuggestion, setAiSuggestion] = useState<Record<string, AiSuggestion>>({});
+  const [accessDenied, setAccessDenied] = useState(false);
 
   const loadPartidas = useCallback(async () => {
     const { data } = await supabase.from("apu_partidas").select("*").eq("apu_project_id", projectId).order("created_at", { ascending: true });
@@ -79,15 +81,26 @@ export default function ApuPartidasPage() {
   useEffect(() => {
     async function load() {
       if (!projectId) return;
+
+      // IDOR: projectId viene de la URL. Sin verificar que el proyecto
+      // pertenezca a la empresa activa, cualquier usuario autenticado podia
+      // ver (y agregar/eliminar partidas en) el proyecto APU de otra
+      // empresa con solo conocer/adivinar su UUID.
+      const { companyId } = await getActiveCompanyContext();
       const { data: proj } = await supabase.from("apu_projects").select("*").eq("id", projectId).single();
-      setProject(proj);
-      if (proj?.company_id) {
-        const { data: comp } = await supabase.from("companies").select("name, legal_representative_name, legal_representative_id, legal_representative_position").eq("id", proj.company_id).single();
-        setCompanyName(comp?.name ?? "");
-        setRepName(comp?.legal_representative_name ?? "");
-        setRepId(comp?.legal_representative_id ?? "");
-        setRepPosition(comp?.legal_representative_position ?? "");
+
+      if (!companyId || !proj || proj.company_id !== companyId) {
+        setAccessDenied(true);
+        return;
       }
+
+      setProject(proj);
+      const { data: comp } = await supabase.from("companies").select("name, legal_representative_name, legal_representative_id, legal_representative_position").eq("id", proj.company_id).single();
+      setCompanyName(comp?.name ?? "");
+      setRepName(comp?.legal_representative_name ?? "");
+      setRepId(comp?.legal_representative_id ?? "");
+      setRepPosition(comp?.legal_representative_position ?? "");
+
       const { data: fscl } = await supabase.from("apu_fscl_calculations").select("id, work_system, fscl_factor").eq("apu_project_id", projectId).order("created_at", { ascending: false });
       setFsclOptions(fscl ?? []);
       await loadPartidas();
@@ -327,6 +340,15 @@ export default function ApuPartidasPage() {
 
   const inputStyle = { ...theme.inputStyle, fontSize: 16 };
   const smallInput = { ...theme.inputStyle, fontSize: 14, padding: 8 };
+
+  if (accessDenied) {
+    return (
+      <VerticalPageLayout vertical="apu" title="Partidas de la Oferta" subtitle="Acceso denegado">
+        <p style={{ color: "#f87171", fontSize: 15 }}>No se encontro el proyecto solicitado.</p>
+      </VerticalPageLayout>
+    );
+  }
+
   return (
     <VerticalPageLayout vertical="apu" title="Partidas de la Oferta" subtitle={project ? project.procedure_number + " - " + project.project_description : "Cargando..."} fullWidth
       actions={

@@ -24,9 +24,23 @@ export default function ReportsPage() {
 
   async function fetchReports() {
 
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData?.user) return;
+    const { data: uc } = await supabase.from("user_companies").select("company_id").eq("user_id", userData.user.id).order("last_active_at", { ascending: false }).limit(1).single();
+    const cid = uc?.company_id ?? null;
+    if (!cid) return;
+
+    const { data: casesList } = await supabase.from("cases").select("id").eq("company_id", cid);
+    const caseIds = (casesList ?? []).map((c: any) => c.id);
+    if (caseIds.length === 0) {
+      setEvaluations([]);
+      return;
+    }
+
     const { data, error } = await supabase
       .from("evaluations")
       .select("*")
+      .in("case_id", caseIds)
       .order("id", { ascending: false });
 
     if (error) {
@@ -268,4 +282,3 @@ export default function ReportsPage() {
     </main>
   );
 }
-

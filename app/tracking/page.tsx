@@ -23,13 +23,21 @@ export default function TrackingPage() {
     async function loadCompanies() {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData?.user) return;
-      const { data: ucs } = await supabase.from("user_companies").select("company_id, companies(id, name)").eq("user_id", userData.user.id);
+      const { data: ucs } = await supabase.from("user_companies").select("company_id, last_active_at, companies(id, name)").eq("user_id", userData.user.id).order("last_active_at", { ascending: false });
       const list = (ucs ?? []).map((uc: any) => uc.companies).filter(Boolean);
       setCompanies(list);
-      if (list.length > 0) setSelectedCompanyId(list[0].id);
+      const activeCompanyId = ucs && ucs.length > 0 ? (ucs[0] as any).company_id : null;
+      if (activeCompanyId) setSelectedCompanyId(activeCompanyId);
+      else if (list.length > 0) setSelectedCompanyId(list[0].id);
 
-      const { data: casesList } = await supabase.from("cases").select("id, case_code, title").order("created_at", { ascending: false });
-      setCases(casesList ?? []);
+      if (activeCompanyId) {
+        const { data: casesList } = await supabase
+          .from("cases")
+          .select("id, case_code, title")
+          .eq("company_id", activeCompanyId)
+          .order("created_at", { ascending: false });
+        setCases(casesList ?? []);
+      }
     }
     loadCompanies();
   }, []);

@@ -5,29 +5,19 @@ import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 
 interface EvidenceItem {
-
   id: string;
-
   file_name: string;
-
-  file_url: string;
-
+  file_path: string;
   file_type: string;
-
-  uploaded_at: string;
-
+  created_at: string;
 }
 
 interface Props {
-
   caseId: string;
-
 }
 
 export default function EvidenceManager({
-
   caseId,
-
 }: Props) {
 
   const [file, setFile] =
@@ -39,21 +29,27 @@ export default function EvidenceManager({
   const [evidence, setEvidence] =
     useState<EvidenceItem[]>([]);
 
+  const [openingId, setOpeningId] =
+    useState<string | null>(null);
+
   useEffect(() => {
 
     fetchEvidence();
 
   }, []);
 
+  // La tabla real se llama "evidences" (no "case_evidence", que no existe
+  // en la base), y guarda file_path (la ruta dentro del bucket), no una
+  // file_url. Por eso el insert fallaba siempre antes de esta correccion.
   async function fetchEvidence() {
 
     const { data, error } =
       await supabase
-        .from("case_evidence")
+        .from("evidences")
         .select("*")
         .eq("case_id", caseId)
         .order(
-          "uploaded_at",
+          "created_at",
           { ascending: false }
         );
 
@@ -104,18 +100,13 @@ export default function EvidenceManager({
 
     }
 
-    const { data } =
-      supabase.storage
-        .from("case-evidence")
-        .getPublicUrl(filePath);
-
     const {
       data: { user },
     } = await supabase.auth.getUser();
 
     const { error: insertError } =
       await supabase
-        .from("case_evidence")
+        .from("evidences")
         .insert([
 
           {
@@ -124,8 +115,7 @@ export default function EvidenceManager({
 
             file_name: file.name,
 
-            file_url:
-              data.publicUrl,
+            file_path: filePath,
 
             file_type: file.type,
 
@@ -156,6 +146,26 @@ export default function EvidenceManager({
 
     fetchEvidence();
 
+  }
+
+  // El bucket "case-evidence" guarda evidencia forense potencialmente
+  // sensible; en vez de un enlace publico permanente, se genera una URL
+  // firmada de corta duracion solo cuando alguien pide abrir el archivo.
+  async function openEvidence(item: EvidenceItem) {
+    setOpeningId(item.id);
+    const { data, error } = await supabase.storage
+      .from("case-evidence")
+      .createSignedUrl(item.file_path, 60 * 10);
+
+    setOpeningId(null);
+
+    if (error || !data?.signedUrl) {
+      console.error(error);
+      alert("No se pudo generar el enlace de la evidencia.");
+      return;
+    }
+
+    window.open(data.signedUrl, "_blank");
   }
 
   return (
@@ -239,15 +249,15 @@ export default function EvidenceManager({
 
               </div>
 
-              <a
-                href={item.file_url}
-                target="_blank"
-                className="rounded-lg bg-cyan-500 px-5 py-3 text-sm font-bold text-black"
+              <button
+                onClick={() => openEvidence(item)}
+                disabled={openingId === item.id}
+                className="rounded-lg bg-cyan-500 px-5 py-3 text-sm font-bold text-black disabled:opacity-50"
               >
 
-                OPEN
+                {openingId === item.id ? "ABRIENDO..." : "OPEN"}
 
-              </a>
+              </button>
 
             </div>
 
@@ -262,4 +272,3 @@ export default function EvidenceManager({
   );
 
 }
-

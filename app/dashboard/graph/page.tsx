@@ -3,10 +3,15 @@
 import { useEffect } from "react";
 import GraphVisualization from "./GraphVisualization";
 import { initializeRealtimeGraphBridge } from "@/app/lib/realtime/realtimeGraphBridge";
+import { getActiveCompanyContext } from "@/app/lib/activeCompany";
 
 export default function GraphPage() {
   useEffect(() => {
-    initializeRealtimeGraphBridge();
+    async function start() {
+      const { companyId } = await getActiveCompanyContext();
+      initializeRealtimeGraphBridge(companyId);
+    }
+    start();
   }, []);
 
   return (

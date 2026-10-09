@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 
 type RiskLevel = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL" | "";
@@ -13,9 +13,28 @@ export default function EvaluationPage() {
   const [description, setDescription] = useState("");
   const [result, setResult] = useState<RiskLevel>("");
   const [loading, setLoading] = useState(false);
+  const [cases, setCases] = useState<any[]>([]);
+  const [selectedCaseId, setSelectedCaseId] = useState("");
+
+  useEffect(() => {
+    async function loadCases() {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData?.user) return;
+      const { data: uc } = await supabase.from("user_companies").select("company_id").eq("user_id", userData.user.id).order("last_active_at", { ascending: false }).limit(1).single();
+      const cid = uc?.company_id ?? null;
+      if (!cid) return;
+      const { data: casesList } = await supabase.from("cases").select("id, case_code, title").eq("company_id", cid).order("created_at", { ascending: false });
+      setCases(casesList ?? []);
+    }
+    loadCases();
+  }, []);
 
   async function handleEvaluation(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (!selectedCaseId) {
+      alert("Selecciona el caso al que pertenece esta evaluacion.");
+      return;
+    }
     setLoading(true);
 
     let risk: RiskLevel = "LOW";
@@ -45,6 +64,7 @@ export default function EvaluationPage() {
         priority,
         description,
         risk,
+        case_id: selectedCaseId,
         created_at: new Date().toISOString(),
       },
     ]);
@@ -81,6 +101,19 @@ export default function EvaluationPage() {
               <h2 className="text-2xl font-semibold">Nueva Evaluacion</h2>
 
               <form onSubmit={handleEvaluation} className="mt-10 space-y-6">
+                <select
+                  value={selectedCaseId}
+                  onChange={(e) => setSelectedCaseId(e.target.value)}
+                  className="w-full rounded-2xl border border-white/5 bg-black/30 px-5 py-4"
+                >
+                  <option value="">Selecciona el caso...</option>
+                  {cases.map((c: any) => (
+                    <option key={c.id} value={c.id}>{c.case_code} - {c.title}</option>
+                  ))}
+                </select>
+                {cases.length === 0 && (
+                  <p className="text-sm text-yellow-400">No tienes casos de investigacion creados. Crea uno primero en el modulo de Investigaciones.</p>
+                )}
                 <input
                   value={wallet}
                   onChange={(e) => setWallet(e.target.value)}

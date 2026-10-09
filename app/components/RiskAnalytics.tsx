@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
+import { getActiveCompanyContext } from "../lib/activeCompany";
 
 interface Metrics {
   totalCases: number;
@@ -24,8 +25,19 @@ export default function RiskAnalytics() {
   async function loadMetrics() {
     setLoading(true);
 
-    const { data: casesData } = await supabase.from("cases").select("*");
-    const { data: evidenceData } = await supabase.from("case_evidence").select("*");
+    const { companyId } = await getActiveCompanyContext();
+    if (!companyId) {
+      setMetrics({ totalCases: 0, highRisk: 0, openCases: 0, evidenceFiles: 0 });
+      setLoading(false);
+      return;
+    }
+
+    const { data: casesData } = await supabase.from("cases").select("*").eq("company_id", companyId);
+    const caseIds = (casesData ?? []).map((c: any) => c.id);
+    // La tabla real se llama "evidences" (no "case_evidence", que no existe).
+    const { data: evidenceData } = caseIds.length > 0
+      ? await supabase.from("evidences").select("*").in("case_id", caseIds)
+      : { data: [] as any[] };
 
     const totalCases = casesData?.length || 0;
     const highRisk = casesData?.filter((c) => c.priority === "HIGH").length || 0;

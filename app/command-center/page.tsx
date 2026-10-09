@@ -19,11 +19,23 @@ export default function CommandCenterPage() {
 
   useEffect(() => {
     async function load() {
-      const { count: casesCount } = await supabase.from("cases").select("*", { count: "exact", head: true }).eq("status", "OPEN");
-      const { count: criticalCount } = await supabase.from("alerts").select("*", { count: "exact", head: true }).eq("severity", "CRITICAL");
-      const { count: allAlertsCount } = await supabase.from("alerts").select("*", { count: "exact", head: true });
-      const { count: blockchainCount } = await supabase.from("alerts").select("*", { count: "exact", head: true }).eq("alert_type", "BLOCKCHAIN");
-      const { data: recent } = await supabase.from("alerts").select("*").order("created_at", { ascending: false }).limit(4);
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData?.user) {
+        setLoading(false);
+        return;
+      }
+      const { data: uc } = await supabase.from("user_companies").select("company_id").eq("user_id", userData.user.id).order("last_active_at", { ascending: false }).limit(1).single();
+      const cid = uc?.company_id ?? null;
+      if (!cid) {
+        setLoading(false);
+        return;
+      }
+
+      const { count: casesCount } = await supabase.from("cases").select("*", { count: "exact", head: true }).eq("company_id", cid).eq("status", "OPEN");
+      const { count: criticalCount } = await supabase.from("alerts").select("*", { count: "exact", head: true }).eq("company_id", cid).eq("severity", "CRITICAL");
+      const { count: allAlertsCount } = await supabase.from("alerts").select("*", { count: "exact", head: true }).eq("company_id", cid);
+      const { count: blockchainCount } = await supabase.from("alerts").select("*", { count: "exact", head: true }).eq("company_id", cid).eq("alert_type", "BLOCKCHAIN");
+      const { data: recent } = await supabase.from("alerts").select("*").eq("company_id", cid).order("created_at", { ascending: false }).limit(4);
 
       setActiveCases(casesCount ?? 0);
       setCriticalAlerts(criticalCount ?? 0);

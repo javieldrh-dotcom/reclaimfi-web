@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createCase, getCases } from "../lib/supabaseCases";
+import { getActiveCompanyContext } from "../lib/activeCompany";
 
 interface CaseItem {
   id: string;
@@ -30,7 +31,13 @@ export default function CaseManagement() {
 
   async function loadCases() {
     setLoading(true);
-    const data = await getCases();
+    const { companyId } = await getActiveCompanyContext();
+    if (!companyId) {
+      setCases([]);
+      setLoading(false);
+      return;
+    }
+    const data = await getCases(companyId);
     setCases(data || []);
     setLoading(false);
   }
@@ -39,7 +46,13 @@ export default function CaseManagement() {
     if (!title) return;
     try {
       setCreating(true);
+      const { companyId } = await getActiveCompanyContext();
+      if (!companyId) {
+        console.error("No se pudo resolver la empresa activa; no se creo el caso.");
+        return;
+      }
       await createCase({
+        company_id: companyId,
         case_code: "AGI-" + Math.floor(Math.random() * 999999),
         title,
         description,

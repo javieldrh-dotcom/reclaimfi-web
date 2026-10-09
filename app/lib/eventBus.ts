@@ -1,7 +1,6 @@
 import { eventHandlers } from "@/app/core/eventHandlers";
 import { graphEngine } from "@/app/core/graph/eventGraphEngine";
 import { ingestLedgerEvent } from "@/app/core/ledger-engine";
-import { createClient } from "@/app/lib/supabase/server";
 
 class EventBus {
   async emit(type: string, payload: any) {
@@ -11,11 +10,9 @@ class EventBus {
 
     graphEngine.ingest(event);
 
-    const serverClient = await createClient();
-    ingestLedgerEvent(
-      { type, table: "event_bus", operation: "EMIT", payload },
-      serverClient
-    ).catch((err) => console.error("[EVENTBUS LEDGER ERROR]", err));
+    ingestLedgerEvent({ type, table: "event_bus", operation: "EMIT", payload }).catch((err) =>
+      console.error("[EVENTBUS LEDGER ERROR]", err)
+    );
   }
 }
 

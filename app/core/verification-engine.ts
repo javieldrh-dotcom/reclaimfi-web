@@ -1,8 +1,22 @@
 import { supabase } from "@/app/lib/supabase";
-export async function verifyLedgerIntegrity() {
+
+// La integridad de la cadena de custodia solo tiene sentido evaluada por
+// caso individual: cada caso tiene su propia cadena de hashes (ver
+// ledger-engine.ts). Verificar toda la tabla event_ledger junta mezclaria
+// eventos de casos y empresas distintas como si fueran una sola cadena.
+export async function verifyLedgerIntegrity(caseId: string) {
+  if (!caseId) {
+    return {
+      valid: false,
+      message: "Se requiere un caso para verificar la cadena de custodia",
+      brokenAt: null,
+    };
+  }
+
   const { data, error } = await supabase
     .from("event_ledger")
     .select("*")
+    .eq("case_id", caseId)
     .order("created_at", { ascending: true });
 
   if (error) {
@@ -13,7 +27,7 @@ export async function verifyLedgerIntegrity() {
   if (!data || data.length === 0) {
     return {
       valid: true,
-      message: "No ledger data found",
+      message: "No se encontraron eventos de cadena de custodia para este caso",
       brokenAt: null,
     };
   }
@@ -27,7 +41,7 @@ export async function verifyLedgerIntegrity() {
     if (row.previous_hash !== previousHash) {
       return {
         valid: false,
-        message: "Chain broken detected",
+        message: "Cadena de custodia rota",
         brokenAt: {
           index: i,
           id: row.id,
@@ -43,7 +57,7 @@ export async function verifyLedgerIntegrity() {
 
   return {
     valid: true,
-    message: "Ledger integrity valid",
+    message: "Cadena de custodia valida para este caso",
     totalEvents: data.length,
   };
 }

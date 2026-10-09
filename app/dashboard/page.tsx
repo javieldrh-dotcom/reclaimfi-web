@@ -28,9 +28,14 @@ export default function DashboardPage() {
       const { data: allCases } = await supabase.from("cases").select("*").eq("company_id", cid).order("created_at", { ascending: false });
       const casesList = allCases ?? [];
 
-      const { count: evidenceCount } = await supabase.from("case_evidence").select("*", { count: "exact", head: true }).in("case_id", casesList.map((c: any) => c.id));
+      // La tabla real se llama "evidences" (no "case_evidence", que no
+      // existe en la base) - este KPI daba error en silencio y siempre
+      // mostraba 0.
+      const { count: evidenceCount } = casesList.length > 0
+        ? await supabase.from("evidences").select("*", { count: "exact", head: true }).in("case_id", casesList.map((c: any) => c.id))
+        : { count: 0 };
       const { count: alertsCount } = await supabase.from("alerts").select("*", { count: "exact", head: true }).eq("company_id", cid).in("severity", ["CRITICAL", "HIGH"]);
-      const { count: walletsCount } = await supabase.from("wallet_addresses").select("*", { count: "exact", head: true });
+      const { count: walletsCount } = await supabase.from("wallet_addresses").select("*", { count: "exact", head: true }).eq("company_id", cid);
 
       setStats({
         activeCases: casesList.length,

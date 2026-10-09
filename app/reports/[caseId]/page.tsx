@@ -6,6 +6,7 @@ import Link from "next/link";
 import { supabase } from "@/app/lib/supabase";
 import { generateForensicReport, EngagementType } from "@/app/core/reports/generateForensicReport";
 import EvidenceManager from "@/app/components/EvidenceManager";
+import { getActiveCompanyContext } from "@/app/lib/activeCompany";
 
 export default function CaseReportPage() {
   const params = useParams();
@@ -29,10 +30,23 @@ export default function CaseReportPage() {
     async function loadData() {
       setLoading(true);
 
+      // IDOR: caseId viene directo de la URL. Antes de cargar cualquier
+      // dato (cadena de custodia, evidencia, alertas, audit logs), hay que
+      // verificar que el caso pertenezca a la empresa activa del usuario
+      // autenticado; de lo contrario cualquiera que conozca/adivine un
+      // UUID de caso de otra empresa podia ver su reporte forense completo.
+      const { companyId } = await getActiveCompanyContext();
+      if (!companyId) {
+        setError("No se encontro el caso solicitado.");
+        setLoading(false);
+        return;
+      }
+
       const { data: caseResult, error: caseError } = await supabase
         .from("cases")
         .select("*")
         .eq("id", caseId)
+        .eq("company_id", companyId)
         .single();
 
       if (caseError || !caseResult) {
@@ -43,10 +57,16 @@ export default function CaseReportPage() {
 
       setCaseData(caseResult);
 
+      // entities se relaciona por company_id directo, NO tiene case_id (esta
+      // consulta antes filtraba por una columna que no existe en la tabla
+      // real; el error quedaba silenciado porque aqui no se revisa `error`,
+      // asi que la seccion de activos digitales del reporte quedaba vacia
+      // siempre). Son las entidades conocidas de la empresa, no solo de
+      // este caso puntual.
       const { data: entitiesResult } = await supabase
         .from("entities")
         .select("entity_name, entity_type, risk_level")
-        .eq("case_id", caseId);
+        .eq("company_id", companyId);
 
       setAssets(
         (entitiesResult ?? []).map((e: any) => ({

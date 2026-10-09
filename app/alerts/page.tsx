@@ -13,9 +13,22 @@ export default function AlertsPage() {
 
     async function fetchAlerts() {
 
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData?.user) {
+        setLoading(false);
+        return;
+      }
+      const { data: uc } = await supabase.from("user_companies").select("company_id").eq("user_id", userData.user.id).order("last_active_at", { ascending: false }).limit(1).single();
+      const cid = uc?.company_id ?? null;
+      if (!cid) {
+        setLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase
         .from("wallet_addresses")
         .select("*")
+        .eq("company_id", cid)
         .in("risk_level", ["HIGH", "MEDIUM"])
         .order("created_at", { ascending: false });
 
@@ -197,4 +210,3 @@ export default function AlertsPage() {
 
   );
 }
-
