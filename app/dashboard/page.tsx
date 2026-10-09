@@ -145,7 +145,8 @@ export default function DashboardPage() {
           <Link href="/aml" className={tabStyle("aml")}>AML</Link>
           <Link href="/reports" className={tabStyle("reports")}>FORENSIC REPORTS</Link>
           <Link href="/history" className={tabStyle("history")}>HISTORY</Link>
-          <Link href="/dashboard/audit" className={tabStyle("audit")}>INTEGRIDAD DE EVIDENCIA</Link>
+          <Link href="/dashboard/audit/crypto" className={tabStyle("audit-crypto")}>INTEGRIDAD (CRIPTO)</Link>
+          <Link href="/dashboard/audit/financiero" className={tabStyle("audit-financiero")}>INTEGRIDAD (FINANCIERO)</Link>
           <Link href="/dashboard/graph" className={tabStyle("graph")}>GRAFO FORENSE</Link>
           <Link href="/security" className={tabStyle("security")}>SEGURIDAD DE CUENTA</Link>
         </div>

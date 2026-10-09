@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { supabase } from "../lib/supabase";
+import { logLedgerEvent } from "../lib/logLedgerEvent";
 
 interface EvidenceItem {
   id: string;
@@ -139,6 +140,12 @@ export default function EvidenceManager({
       return;
 
     }
+
+    await logLedgerEvent("rf.evidence.uploaded", caseId, {
+      file_name: file.name,
+      file_path: filePath,
+      file_type: file.type,
+    });
 
     setFile(null);
 

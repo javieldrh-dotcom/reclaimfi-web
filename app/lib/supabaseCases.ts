@@ -11,6 +11,9 @@ export interface CaseData {
   risk_level?: string;
   assigned_to?: string | null;
   created_by?: string | null;
+  // Clasificacion opcional para casos no-BLOCKCHAIN: PETROLERO, MUNICIPAL
+  // o CORPORATIVO (ver migracion 2026-10-10-cases-sector.sql).
+  sector?: string | null;
 }
 //
 // GET ALL CASES

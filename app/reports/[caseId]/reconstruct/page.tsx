@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/app/lib/supabase";
+import { logLedgerEvent } from "@/app/lib/logLedgerEvent";
 
 export default function ReconstructAccountingPage() {
   const params = useParams();
@@ -129,6 +130,12 @@ export default function ReconstructAccountingPage() {
 
       entryNumber++;
     }
+
+    await logLedgerEvent("rf.reconstruction.generated", caseId, {
+      company_id: newCompany.id,
+      company_name: companyName || "Reconstruccion - Caso " + caseId.slice(0, 8),
+      transactions_count: allTransactions.length,
+    });
 
     setSavedCompanyId(newCompany.id);
     setMessage("Reconstruccion contable completada: " + allTransactions.length + " transacciones registradas.");

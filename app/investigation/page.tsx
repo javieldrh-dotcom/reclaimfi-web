@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "../lib/supabase";
 import NeuralBackground from "@/app/components/NeuralBackground";
+import { logLedgerEvent } from "../lib/logLedgerEvent";
 
 export default function InvestigationsPage() {
   const [wallet, setWallet] = useState("");
@@ -47,21 +48,27 @@ export default function InvestigationsPage() {
     }
     if (!companyId) return;
 
-    const { error } = await supabase.from("cases").insert([{
+    const caseCode = generateCaseCode();
+    const { data, error } = await supabase.from("cases").insert([{
       company_id: companyId,
-      case_code: generateCaseCode(),
+      case_code: caseCode,
       title: wallet,
       description: (investigator ? "Investigador: " + investigator + ". " : "") + notes,
       case_type: "BLOCKCHAIN",
       priority,
       status: "OPEN",
       risk_level: risk,
-    }]);
+    }]).select("id").single();
 
     if (error) {
       console.error(error);
       alert("Error al crear la investigacion");
     } else {
+      await logLedgerEvent("rf.case.created", data.id, {
+        case_code: caseCode,
+        case_type: "BLOCKCHAIN",
+        company_id: companyId,
+      });
       alert("Investigacion creada");
       setWallet("");
       setNotes("");
