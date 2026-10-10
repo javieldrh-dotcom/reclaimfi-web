@@ -185,7 +185,7 @@ export default function HyperinflationPage() {
 
   return (
     <VerticalPageLayout vertical="accounting" title="Reexpresion por Inflacion (NIC 29)" subtitle="Reexpresion mes por mes segun el INPC, aplicada a Balance de Situacion y Estado de Resultados" fullWidth>
-      <div style={{ maxWidth: 950 }}>
+      <div style={{ maxWidth: 950, margin: "0 auto" }}>
         <p style={{ fontSize: 15, color: "#8B93A7" }}>{companyName}</p>
         <div style={{ display: "flex", gap: 10, marginTop: 10, alignItems: "center" }}>
           <div>

@@ -113,7 +113,7 @@ export default function VatSummaryPage() {
 
   return (
     <VerticalPageLayout vertical="accounting" title="Resumen y Declaracion de IVA" subtitle="Forma IVA 99030 - Casillas oficiales SENIAT" fullWidth>
-      <div style={{ maxWidth: 700 }}>
+      <div style={{ maxWidth: 700, margin: "0 auto" }}>
         <p style={{ fontSize: 15, color: "#8B93A7" }}>{companyName} - RIF: {companyRif}</p>
         <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
           <select value={periodMonth} onChange={(e) => setPeriodMonth(e.target.value)} style={theme.inputStyle}>

@@ -174,7 +174,7 @@ export default function FsclCalculatorPage() {
 
   return (
     <VerticalPageLayout vertical="apu" title="Calculadora FSCL (Factor Sobre Costo de Labor)" subtitle="Contrato Colectivo Petrolero (CCTP) - Calcula el factor multiplicador sobre el salario basico diario" fullWidth>
-      <div style={{ maxWidth: 700 }}>
+      <div style={{ maxWidth: 700, margin: "0 auto" }}>
         <select value={selectedProject} onChange={(e) => setSelectedProject(e.target.value)} style={inputStyle}>
           <option value="">Selecciona un proyecto/licitacion</option>
           {projects.map((p) => <option key={p.id} value={p.id}>{p.procedure_number} - {p.project_description}</option>)}

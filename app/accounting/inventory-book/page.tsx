@@ -254,7 +254,7 @@ export default function InventoryBookPage() {
 
   return (
     <VerticalPageLayout vertical="accounting" title="Libro de Inventario" subtitle="Registro legal obligatorio - Archiva el conjunto vinculado de Estados Financieros en estructura NIIF al cierre de cada ejercicio (Codigo de Comercio)" fullWidth>
-      <div style={{ maxWidth: 700 }}>
+      <div style={{ maxWidth: 700, margin: "0 auto" }}>
         <p style={{ fontSize: 16, color: "#8B93A7", lineHeight: 1.7, ...theme.cardStyle }}>
           Este libro archiva de forma secuencial e inalterable el conjunto vinculado de Estados Financieros
           resultantes de las operaciones del ejercicio, con la misma estructura NIIF de las paginas individuales
