@@ -25,6 +25,12 @@ jobs:
       - name: Type check
         run: npx tsc --noEmit
 
+      - name: Style check (encoding + maxWidth centering, full repo)
+        run: node scripts/check-encoding-and-style.js --all
+
+      - name: Run tests
+        run: npx vitest run
+
       - name: Build
         run: npm run build
         env:
