@@ -26,7 +26,12 @@ function getAllTrackedFiles() {
     .filter((f) => f.endsWith(".tsx") || f.endsWith(".ts"));
 }
 
-const MOJIBAKE_PATTERN = /Ã[\x80-\xBF]|Ã¢|Ãƒ/;
+// "Ã..." cubre acentos/ñ mal interpretados (á, é, ñ, etc). "â€" cubre
+// comillas y rayas tipograficas (—, ', ", …) mal interpretadas - un
+// patron distinto que el primer grupo no detectaba (encontrado en
+// app/reports/generateForensicReport.ts y app/admin/command-center/page.tsx
+// al escanear todo el repo por primera vez, Fase 3 de la hoja de ruta).
+const MOJIBAKE_PATTERN = /Ã[\x80-\xBF]|Ã¢|Ãƒ|â€./;
 
 function checkEncoding(content, filePath, issues) {
   if (MOJIBAKE_PATTERN.test(content)) {
