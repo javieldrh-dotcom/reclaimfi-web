@@ -1,4 +1,4 @@
-// Sistema de diseÃ±o compartido para toda la plataforma AGI
+// Sistema de diseño compartido para toda la plataforma AGI
 // El modulo de Auditoria Forense (reclaimfi) mantiene su identidad de red neuronal (no tocar esos componentes)
 // Contabilidad y APU usan el esquema azul marino / amarillo / verde, consistente con el sitio publico
 export const designTokens = {
