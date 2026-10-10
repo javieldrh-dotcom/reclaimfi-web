@@ -27,9 +27,23 @@ interface BenfordResult {
   expected: number[];
   mad: number;
   conformity: "ALTA" | "ACEPTABLE" | "MARGINAL" | "NO_CONFORME";
+  // Intervalo de confianza del 95% para el MAD, estimado por bootstrap
+  // (remuestreo con reemplazo). Con muestras chicas (30-100 montos) un
+  // solo valor de MAD puede ser ruido: dos corridas con los mismos datos
+  // "reales" pueden caer en bandas de conformidad distintas solo por azar
+  // de cual caso le toco auditar. El intervalo hace visible esa
+  // incertidumbre en vez de esconderla detras de una sola etiqueta.
+  madCiLow: number;
+  madCiHigh: number;
+  // true si el intervalo de confianza cruza mas de una banda de
+  // conformidad (ej. el borde inferior cae en ACEPTABLE pero el
+  // superior en NO_CONFORME) - señal de que la muestra es insuficiente
+  // para un veredicto firme, no que el resultado sea invalido.
+  ciUnstable: boolean;
 }
 
 const EXPECTED_BENFORD = [1, 2, 3, 4, 5, 6, 7, 8, 9].map((d) => Math.log10(1 + 1 / d) * 100);
+const BOOTSTRAP_ITERATIONS = 1000;
 
 function leadingDigit(value: number): number | null {
   let n = Math.abs(value);
@@ -38,6 +52,45 @@ function leadingDigit(value: number): number | null {
   while (n >= 10) n /= 10;
   const digit = Math.floor(n);
   return digit >= 1 && digit <= 9 ? digit : null;
+}
+
+function madFromAmounts(amounts: number[]): number | null {
+  const counts = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+  let total = 0;
+  for (const amount of amounts) {
+    const digit = leadingDigit(amount);
+    if (digit) {
+      counts[digit - 1]++;
+      total++;
+    }
+  }
+  if (total === 0) return null;
+  const observed = counts.map((c) => (c / total) * 100);
+  return observed.reduce((sum, obs, i) => sum + Math.abs(obs - EXPECTED_BENFORD[i]), 0) / 9 / 100;
+}
+
+// Bootstrap no parametrico (mismo principio que el remuestreo que usa
+// Aletheia Ledger para estimar incertidumbre en mediciones con pocos
+// puntos de datos): se arman muchas "muestras alternativas" tomando
+// montos al azar CON reemplazo del mismo conjunto, se calcula el MAD de
+// cada una, y el intervalo de confianza del 95% son los percentiles
+// 2.5 y 97.5 de esa distribucion de MADs simulados.
+function bootstrapMadCI(amounts: number[], iterations = BOOTSTRAP_ITERATIONS): { low: number; high: number } {
+  const n = amounts.length;
+  const mads: number[] = [];
+  for (let iter = 0; iter < iterations; iter++) {
+    const resample: number[] = new Array(n);
+    for (let i = 0; i < n; i++) {
+      resample[i] = amounts[Math.floor(Math.random() * n)];
+    }
+    const mad = madFromAmounts(resample);
+    if (mad !== null) mads.push(mad);
+  }
+  mads.sort((a, b) => a - b);
+  if (mads.length === 0) return { low: 0, high: 0 };
+  const lowIdx = Math.floor(mads.length * 0.025);
+  const highIdx = Math.min(mads.length - 1, Math.floor(mads.length * 0.975));
+  return { low: mads[lowIdx], high: mads[highIdx] };
 }
 
 function conformityFromMad(mad: number): BenfordResult["conformity"] {
@@ -119,12 +172,19 @@ export default function BenfordAnalysis({ caseId }: Props) {
     const observed = counts.map((c) => (c / total) * 100);
     const mad = observed.reduce((sum, obs, i) => sum + Math.abs(obs - EXPECTED_BENFORD[i]), 0) / 9 / 100;
 
+    const usableAmounts = amounts.filter((v: number) => leadingDigit(v) !== null);
+    const { low: madCiLow, high: madCiHigh } = bootstrapMadCI(usableAmounts);
+    const ciUnstable = conformityFromMad(madCiLow) !== conformityFromMad(madCiHigh);
+
     setResult({
       sampleSize: total,
       observed,
       expected: EXPECTED_BENFORD,
       mad,
       conformity: conformityFromMad(mad),
+      madCiLow,
+      madCiHigh,
+      ciUnstable,
     });
     setLoading(false);
   }
@@ -155,7 +215,17 @@ export default function BenfordAnalysis({ caseId }: Props) {
           </p>
           <p style={{ fontSize: 12, color: "#8B93A7", marginTop: 2 }}>
             Muestra: {result.sampleSize} montos &middot; Desviacion media absoluta (MAD): {(result.mad * 100).toFixed(3)} pts
+            {" "}(IC 95%: {(result.madCiLow * 100).toFixed(2)} – {(result.madCiHigh * 100).toFixed(2)} pts)
           </p>
+          {result.ciUnstable && (
+            <p style={{ fontSize: 12, color: "#facc15", marginTop: 6, maxWidth: 640 }}>
+              El intervalo de confianza cruza mas de una banda de conformidad (calculado por remuestreo
+              bootstrap sobre los {result.sampleSize} montos). Con esta cantidad de transacciones, el
+              resultado de arriba puede cambiar de categoria solo por variacion estadistica — no lo tomes
+              como un veredicto firme todavia. Entre mas asientos tenga la reconstruccion contable, mas
+              angosto (y confiable) sera este intervalo.
+            </p>
+          )}
 
           <div style={{ display: "flex", gap: 8, marginTop: 16, alignItems: "flex-end", height: 140 }}>
             {result.observed.map((obs, i) => (
