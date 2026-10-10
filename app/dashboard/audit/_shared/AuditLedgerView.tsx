@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
 import { verifyLedgerIntegrity } from "@/app/core/verification-engine";
 import BenfordAnalysis from "./BenfordAnalysis";
-
+import OutlierAnalysis from "./OutlierAnalysis";
 // Logica compartida entre /dashboard/audit/crypto y
 // /dashboard/audit/financiero: cargar los casos de la empresa activa
 // (filtrados por tipo), cargar la cadena de custodia (event_ledger) del
@@ -186,6 +186,7 @@ export default function AuditLedgerView({ title, caseTypeFilter, showSectorFilte
       </div>
 
       {showSectorFilter && selectedCaseId && <BenfordAnalysis caseId={selectedCaseId} />}
+      {showSectorFilter && selectedCaseId && <OutlierAnalysis caseId={selectedCaseId} />}
     </div>
   );
 }
