@@ -1,12 +1,25 @@
 #!/usr/bin/env node
-// Verifica archivos en staging antes de cada commit:
+// Verifica archivos antes de cada commit (pre-commit, por defecto: solo lo
+// que esta en staging) o en CI (--all: todo el repo rastreado por git, para
+// que un pull request se revise completo sin depender de que alguien haya
+// corrido el hook localmente):
 // 1. Corrupcion de codificacion (mojibake UTF-8 mal interpretado)
 // 2. maxWidth sin margin de centrado en el mismo bloque de estilo
 const { execSync } = require("child_process");
 const fs = require("fs");
 
+const FULL_SCAN = process.argv.includes("--all");
+
 function getStagedFiles() {
   const output = execSync("git diff --cached --name-only --diff-filter=ACM", { encoding: "utf-8" });
+  return output
+    .split("\n")
+    .map((f) => f.trim())
+    .filter((f) => f.endsWith(".tsx") || f.endsWith(".ts"));
+}
+
+function getAllTrackedFiles() {
+  const output = execSync("git ls-files", { encoding: "utf-8" });
   return output
     .split("\n")
     .map((f) => f.trim())
@@ -32,7 +45,7 @@ function checkMaxWidthCentering(content, filePath, issues) {
 }
 
 function main() {
-  const files = getStagedFiles();
+  const files = FULL_SCAN ? getAllTrackedFiles() : getStagedFiles();
   const issues = [];
 
   files.forEach((filePath) => {
