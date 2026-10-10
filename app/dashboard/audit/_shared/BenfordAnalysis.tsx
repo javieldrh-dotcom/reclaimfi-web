@@ -2,6 +2,13 @@
 
 import { useState } from "react";
 import { supabase } from "@/app/lib/supabase";
+import {
+  EXPECTED_BENFORD,
+  leadingDigit,
+  bootstrapMadCI,
+  conformityFromMad,
+  type BenfordConformity,
+} from "@/app/lib/forensics/benfordMath";
 
 // Ley de Benford: en datos financieros/contables que ocurren naturalmente
 // (no fabricados), el primer digito de las cantidades sigue una
@@ -26,7 +33,7 @@ interface BenfordResult {
   observed: number[]; // indice 0 = digito 1, ... indice 8 = digito 9 (porcentaje)
   expected: number[];
   mad: number;
-  conformity: "ALTA" | "ACEPTABLE" | "MARGINAL" | "NO_CONFORME";
+  conformity: BenfordConformity;
   // Intervalo de confianza del 95% para el MAD, estimado por bootstrap
   // (remuestreo con reemplazo). Con muestras chicas (30-100 montos) un
   // solo valor de MAD puede ser ruido: dos corridas con los mismos datos
@@ -42,68 +49,7 @@ interface BenfordResult {
   ciUnstable: boolean;
 }
 
-const EXPECTED_BENFORD = [1, 2, 3, 4, 5, 6, 7, 8, 9].map((d) => Math.log10(1 + 1 / d) * 100);
-const BOOTSTRAP_ITERATIONS = 1000;
-
-function leadingDigit(value: number): number | null {
-  let n = Math.abs(value);
-  if (!n || !isFinite(n)) return null;
-  while (n < 1) n *= 10;
-  while (n >= 10) n /= 10;
-  const digit = Math.floor(n);
-  return digit >= 1 && digit <= 9 ? digit : null;
-}
-
-function madFromAmounts(amounts: number[]): number | null {
-  const counts = [0, 0, 0, 0, 0, 0, 0, 0, 0];
-  let total = 0;
-  for (const amount of amounts) {
-    const digit = leadingDigit(amount);
-    if (digit) {
-      counts[digit - 1]++;
-      total++;
-    }
-  }
-  if (total === 0) return null;
-  const observed = counts.map((c) => (c / total) * 100);
-  return observed.reduce((sum, obs, i) => sum + Math.abs(obs - EXPECTED_BENFORD[i]), 0) / 9 / 100;
-}
-
-// Bootstrap no parametrico (mismo principio que el remuestreo que usa
-// Aletheia Ledger para estimar incertidumbre en mediciones con pocos
-// puntos de datos): se arman muchas "muestras alternativas" tomando
-// montos al azar CON reemplazo del mismo conjunto, se calcula el MAD de
-// cada una, y el intervalo de confianza del 95% son los percentiles
-// 2.5 y 97.5 de esa distribucion de MADs simulados.
-function bootstrapMadCI(amounts: number[], iterations = BOOTSTRAP_ITERATIONS): { low: number; high: number } {
-  const n = amounts.length;
-  const mads: number[] = [];
-  for (let iter = 0; iter < iterations; iter++) {
-    const resample: number[] = new Array(n);
-    for (let i = 0; i < n; i++) {
-      resample[i] = amounts[Math.floor(Math.random() * n)];
-    }
-    const mad = madFromAmounts(resample);
-    if (mad !== null) mads.push(mad);
-  }
-  mads.sort((a, b) => a - b);
-  if (mads.length === 0) return { low: 0, high: 0 };
-  const lowIdx = Math.floor(mads.length * 0.025);
-  const highIdx = Math.min(mads.length - 1, Math.floor(mads.length * 0.975));
-  return { low: mads[lowIdx], high: mads[highIdx] };
-}
-
-function conformityFromMad(mad: number): BenfordResult["conformity"] {
-  // Umbrales de Nigrini para el test del primer digito (MAD expresado
-  // como fraccion, ej. 0.006 = 0.6 puntos porcentuales de desviacion
-  // promedio entre lo observado y lo esperado).
-  if (mad < 0.006) return "ALTA";
-  if (mad < 0.012) return "ACEPTABLE";
-  if (mad < 0.015) return "MARGINAL";
-  return "NO_CONFORME";
-}
-
-const CONFORMITY_LABEL: Record<BenfordResult["conformity"], { text: string; color: string }> = {
+const CONFORMITY_LABEL: Record<BenfordConformity, { text: string; color: string }> = {
   ALTA: { text: "Conformidad alta con Ley de Benford (sin señales de manipulacion en los primeros digitos)", color: "#4ade80" },
   ACEPTABLE: { text: "Conformidad aceptable (dentro de rango normal)", color: "#4ade80" },
   MARGINAL: { text: "Conformidad marginal (revisar con atencion, no es concluyente)", color: "#facc15" },
