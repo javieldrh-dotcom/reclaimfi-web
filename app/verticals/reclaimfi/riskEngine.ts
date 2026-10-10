@@ -90,7 +90,7 @@ export function calculateRisk({
 
   const classWeight = CLASSIFICATION_WEIGHTS[classification] ?? 5;
   score += classWeight;
-  reasons.push(`ClasificaciÃ³n "${classification}" suma ${classWeight} puntos base`);
+  reasons.push(`Clasificación "${classification}" suma ${classWeight} puntos base`);
 
   const amountResult = scoreAmount(amount);
   if (amountResult.points > 0) {
