@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { supabase } from "@/app/lib/supabase";
+import { modifiedZScores } from "@/app/lib/forensics/outlierMath";
 
 // Deteccion de anomalias por cuenta: la misma familia de tecnicas que
 // usa Aletheia Ledger para descartar destellos y ruido instrumental en
@@ -70,32 +71,6 @@ const MIN_SAMPLES_PER_ACCOUNT = 5;
 // cuenta quedaba muy por debajo (Z ~1.2) - con 2.5 hay separacion limpia
 // y cero falsos positivos en las 4 cuentas de la prueba.
 const Z_THRESHOLD = 2.5;
-const MAD_SCALE_FACTOR = 1.4826; // hace que el MAD sea comparable a una desviacion estandar bajo normalidad
-
-function median(sortedValues: number[]): number {
-  const n = sortedValues.length;
-  if (n === 0) return 0;
-  const mid = Math.floor(n / 2);
-  return n % 2 === 1 ? sortedValues[mid] : (sortedValues[mid - 1] + sortedValues[mid]) / 2;
-}
-
-// Z-score modificado por mediana y MAD: robusto porque, a diferencia de
-// la media y la desviacion estandar, un puñado de valores extremos casi
-// no mueve la mediana ni el MAD - por eso los outliers no logran
-// "enmascararse" inflando su propia medida de dispersion.
-function modifiedZScores(logValues: number[]): { zScores: number[]; medianLog: number; mad: number } {
-  const sorted = [...logValues].sort((a, b) => a - b);
-  const medianLog = median(sorted);
-  const absDeviations = logValues.map((v) => Math.abs(v - medianLog)).sort((a, b) => a - b);
-  const mad = median(absDeviations);
-
-  if (mad === 0) {
-    return { zScores: logValues.map(() => 0), medianLog, mad };
-  }
-
-  const zScores = logValues.map((v) => (v - medianLog) / (MAD_SCALE_FACTOR * mad));
-  return { zScores, medianLog, mad };
-}
 
 export default function OutlierAnalysis({ caseId }: Props) {
   const [loading, setLoading] = useState(false);
