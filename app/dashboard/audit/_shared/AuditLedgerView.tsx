@@ -24,6 +24,11 @@ const SECTOR_OPTIONS = ["TODOS", "PETROLERO", "MUNICIPAL", "CORPORATIVO"];
 
 export default function AuditLedgerView({ title, caseTypeFilter, showSectorFilter }: Props) {
   const [cases, setCases] = useState<any[]>([]);
+  // Distingue "todavia no cargaron los casos" de "cargaron y la lista
+  // esta vacia" - necesario para no confundir al efecto de abajo que
+  // limpia la seleccion cuando el caso no esta en la lista visible (ver
+  // nota en ese efecto).
+  const [casesLoaded, setCasesLoaded] = useState(false);
   const [sectorFilter, setSectorFilter] = useState("TODOS");
   const [selectedCaseId, setSelectedCaseId] = useState("");
   const [ledger, setLedger] = useState<any[]>([]);
@@ -36,13 +41,14 @@ export default function AuditLedgerView({ title, caseTypeFilter, showSectorFilte
       if (!userData?.user) return;
       const { data: uc } = await supabase.from("user_companies").select("company_id").eq("user_id", userData.user.id).order("last_active_at", { ascending: false }).limit(1).single();
       const cid = uc?.company_id ?? null;
-      if (!cid) return;
+      if (!cid) { setCasesLoaded(true); return; }
 
       let query = supabase.from("cases").select("id, case_code, title, case_type, sector").eq("company_id", cid).order("created_at", { ascending: false });
       query = caseTypeFilter === "BLOCKCHAIN" ? query.eq("case_type", "BLOCKCHAIN") : query.neq("case_type", "BLOCKCHAIN");
 
       const { data: casesList } = await query;
       setCases(casesList ?? []);
+      setCasesLoaded(true);
     }
     loadCases();
   }, [caseTypeFilter]);
@@ -64,10 +70,19 @@ export default function AuditLedgerView({ title, caseTypeFilter, showSectorFilte
     // Si el caso seleccionado deja de estar en la lista visible (p.ej. por
     // el filtro de sector), se limpia la seleccion en vez de dejar un
     // ledger "huerfano" en pantalla.
+    //
+    // OJO: antes de que "cases" termine de cargar (casesLoaded=false),
+    // visibleCases esta vacio por definicion - correr esta limpieza en
+    // ese momento borraba, en una carrera de condiciones, el caso que el
+    // otro efecto acababa de preseleccionar desde el parametro ?case= de
+    // la URL (el link "Ver en Auditoria" de Gestion de Casos), porque la
+    // respuesta de Supabase con la lista real de casos todavia no habia
+    // llegado. Por eso se espera a que casesLoaded sea true.
+    if (!casesLoaded) return;
     if (selectedCaseId && !visibleCases.some((c) => c.id === selectedCaseId)) {
       setSelectedCaseId("");
     }
-  }, [visibleCases, selectedCaseId]);
+  }, [casesLoaded, visibleCases, selectedCaseId]);
 
   useEffect(() => {
     if (!selectedCaseId) {
