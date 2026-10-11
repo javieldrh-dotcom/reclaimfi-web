@@ -4,6 +4,8 @@ import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
 import VerticalPageLayout from "@/app/components/VerticalPageLayout";
 import { generateApuCostSummaryPdf } from "@/app/core/reports/generateApuCostSummaryPdf";
+import { hashReportData } from "@/app/lib/reportHash";
+import { logCompanyLedgerEvent } from "@/app/lib/logLedgerEvent";
 
 export default function CostSummaryPage() {
   const theme = getVerticalTheme("apu");
@@ -18,6 +20,7 @@ export default function CostSummaryPage() {
   const [loading, setLoading] = useState(false);
   const [bcvRate, setBcvRate] = useState(0);
   const [bcvMessage, setBcvMessage] = useState("");
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -90,14 +93,12 @@ export default function CostSummaryPage() {
     setLoading(false);
   }
 
-  function downloadPdf() {
+  async function downloadPdf() {
     if (!summary) return;
-    const project = projects.find((p) => p.id === selectedProjectId);
-    const doc = generateApuCostSummaryPdf(
-      companyName,
-      project?.procedure_number ?? "",
-      project?.project_description ?? "",
-      {
+    setDownloadingPdf(true);
+    try {
+      const project = projects.find((p) => p.id === selectedProjectId);
+      const costData = {
         totalMaterials: summary.totalMaterials,
         totalEquipment: summary.totalEquipment,
         totalLabor: summary.totalLabor,
@@ -107,19 +108,50 @@ export default function CostSummaryPage() {
         profitPercentage: summary.profitPercentage,
         bcvRate: bcvRate,
         ivaRate: 16,
-      },
-      repName,
-      repId,
-      repPosition
-    );
-    doc.save("resumen-elemento-costo-" + (project?.procedure_number ?? "apu") + ".pdf");
+      };
+
+      // Fase 4: hash SHA-256 de integridad sobre los datos que alimentan
+      // el reporte (ver app/lib/reportHash.ts), registrado en la cadena de
+      // custodia de la empresa.
+      const reportHash = await hashReportData({
+        companyName,
+        procedureNumber: project?.procedure_number ?? "",
+        projectDescription: project?.project_description ?? "",
+        costData,
+        repName,
+        repId,
+        repPosition,
+      });
+
+      const doc = generateApuCostSummaryPdf(
+        companyName,
+        project?.procedure_number ?? "",
+        project?.project_description ?? "",
+        costData,
+        repName,
+        repId,
+        repPosition,
+        reportHash
+      );
+      doc.save("resumen-elemento-costo-" + (project?.procedure_number ?? "apu") + ".pdf");
+
+      if (companyId) {
+        await logCompanyLedgerEvent("rf.report.exported", companyId, {
+          report_type: "APU_COST_SUMMARY",
+          report_hash: reportHash,
+          procedure_number: project?.procedure_number ?? null,
+        });
+      }
+    } finally {
+      setDownloadingPdf(false);
+    }
   }
 
   return (
     <VerticalPageLayout vertical="apu" title="Resumen por Elemento de Costo" subtitle="Vista ejecutiva consolidada de la oferta (Formato II.12)" fullWidth
       actions={summary ? (
-        <button onClick={downloadPdf} style={{ ...theme.buttonStyle, fontSize: 13, padding: "10px 20px" }}>
-          Descargar PDF
+        <button onClick={downloadPdf} disabled={downloadingPdf} style={{ ...theme.buttonStyle, fontSize: 13, padding: "10px 20px", opacity: downloadingPdf ? 0.6 : 1 }}>
+          {downloadingPdf ? "Generando..." : "Descargar PDF"}
         </button>
       ) : undefined}
     >

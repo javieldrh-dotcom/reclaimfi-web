@@ -39,6 +39,48 @@ interface AuditorInfo {
   federationName: string;
 }
 
+// Fase 4 de la hoja de ruta: el reporte forense ahora incluye el mismo
+// analisis estadistico (Benford + deteccion de anomalias por cuenta) que
+// ya se muestra en pantalla en /dashboard/audit/_shared, calculado por las
+// funciones compartidas computeBenfordForCase.ts / computeOutliersForCase.ts,
+// y una firma de integridad (hash SHA-256) real sobre los datos que
+// alimentan el reporte -- antes el documento afirmaba incluir ese hash sin
+// calcularlo nunca.
+export type BenfordConformity = "ALTA" | "ACEPTABLE" | "MARGINAL" | "NO_CONFORME";
+
+export interface BenfordReportData {
+  sampleSize: number;
+  observed: number[];
+  expected: number[];
+  mad: number;
+  conformity: BenfordConformity;
+  madCiLow: number;
+  madCiHigh: number;
+  ciUnstable: boolean;
+}
+
+export interface FlaggedTransactionReportData {
+  accountName: string;
+  amount: number;
+  zScore: number;
+  description: string;
+  entryDate: string;
+  accountTypicalAmount: number;
+}
+
+export interface OutlierReportData {
+  accountsAnalyzed: number;
+  accountsSkipped: number;
+  flagged: FlaggedTransactionReportData[];
+}
+
+const BENFORD_CONFORMITY_LABEL: Record<BenfordConformity, string> = {
+  ALTA: "Conformidad alta con Ley de Benford (sin señales de manipulacion en los primeros digitos)",
+  ACEPTABLE: "Conformidad aceptable (dentro de rango normal)",
+  MARGINAL: "Conformidad marginal (revisar con atencion, no es concluyente)",
+  NO_CONFORME: "No conforme con Ley de Benford (señal de alerta: priorizar revision manual de este caso)",
+};
+
 const ENGAGEMENT_LABELS: Record<EngagementType, string> = {
   COMPILATION: "INFORME DE COMPILACION (NICC/ISRS 4410)",
   REVIEW: "INFORME DE REVISION - ATESTIGUAMIENTO LIMITADO (NIA/ISRE 2400)",
@@ -68,7 +110,12 @@ export function generateForensicReport(
   auditEntries: AuditEntry[],
   engagementType: EngagementType,
   digitalAssets: DigitalAsset[] = [],
-  auditorInfo?: AuditorInfo
+  auditorInfo?: AuditorInfo,
+  benford?: BenfordReportData | null,
+  benfordError?: string | null,
+  outliers?: OutlierReportData | null,
+  outliersError?: string | null,
+  reportHash?: string
 ) {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -223,10 +270,93 @@ export function generateForensicReport(
     });
   }
 
+  if (benford !== undefined || outliers !== undefined) {
+    if (y > 230) { doc.addPage(); y = 20; } else { y += 6; }
+    doc.setFontSize(13);
+    doc.setFont("helvetica", "bold");
+    doc.text("5. Analisis Forense Estadistico", 15, y);
+    y += 8;
+
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.text("5.1 Ley de Benford (primer digito)", 15, y);
+    y += 6;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    if (benford) {
+      doc.text(BENFORD_CONFORMITY_LABEL[benford.conformity], 15, y, { maxWidth: pageWidth - 30 });
+      y += 6;
+      doc.text(
+        "Muestra: " + benford.sampleSize + " montos. Desviacion media absoluta (MAD): " +
+          (benford.mad * 100).toFixed(3) + " pts (IC 95% bootstrap: " +
+          (benford.madCiLow * 100).toFixed(2) + " - " + (benford.madCiHigh * 100).toFixed(2) + " pts).",
+        15, y, { maxWidth: pageWidth - 30 }
+      );
+      y += 6;
+      if (benford.ciUnstable) {
+        doc.setFont("helvetica", "italic");
+        doc.text(
+          "El intervalo de confianza cruza mas de una banda de conformidad: con esta cantidad de transacciones el resultado puede cambiar de categoria solo por variacion estadistica, no debe tomarse como veredicto firme.",
+          15, y, { maxWidth: pageWidth - 30 }
+        );
+        doc.setFont("helvetica", "normal");
+        y += 10;
+      }
+    } else {
+      doc.setFont("helvetica", "italic");
+      doc.text(benfordError ?? "No se pudo calcular el analisis de Benford para este caso.", 15, y, { maxWidth: pageWidth - 30 });
+      doc.setFont("helvetica", "normal");
+      y += 8;
+    }
+
+    y += 4;
+    if (y > 250) { doc.addPage(); y = 20; }
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.text("5.2 Deteccion de anomalias por cuenta (Z-score robusto)", 15, y);
+    y += 6;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    if (outliers) {
+      doc.text(
+        outliers.accountsAnalyzed + " cuenta(s) analizada(s)" +
+          (outliers.accountsSkipped > 0 ? " · " + outliers.accountsSkipped + " cuenta(s) con muestra insuficiente" : ""),
+        15, y, { maxWidth: pageWidth - 30 }
+      );
+      y += 6;
+      if (outliers.flagged.length === 0) {
+        doc.text("No se encontraron transacciones fuera de rango en las cuentas analizadas.", 15, y);
+        y += 8;
+      } else {
+        doc.setFont("helvetica", "bold");
+        doc.text(outliers.flagged.length + " transaccion(es) fuera del rango normal de su cuenta (señal de alerta, no prueba de fraude):", 15, y, { maxWidth: pageWidth - 30 });
+        y += 7;
+        doc.setFont("helvetica", "normal");
+        outliers.flagged.forEach(function (f) {
+          if (y > 275) { doc.addPage(); y = 20; }
+          doc.text(
+            "- " + f.accountName + " | " + f.entryDate + " | monto " +
+              f.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) +
+              " (tipico: " + f.accountTypicalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) +
+              ") | Z=" + f.zScore.toFixed(2) + " | " + f.description,
+            15, y, { maxWidth: pageWidth - 30 }
+          );
+          y += 6;
+        });
+        y += 2;
+      }
+    } else {
+      doc.setFont("helvetica", "italic");
+      doc.text(outliersError ?? "No se pudo calcular la deteccion de anomalias para este caso.", 15, y, { maxWidth: pageWidth - 30 });
+      doc.setFont("helvetica", "normal");
+      y += 8;
+    }
+  }
+
   if (y > 240) { doc.addPage(); y = 20; } else { y += 6; }
   doc.setFontSize(13);
   doc.setFont("helvetica", "bold");
-  doc.text("5. Historial de Auditoria", 15, y);
+  doc.text((benford !== undefined || outliers !== undefined ? "6" : "5") + ". Historial de Auditoria", 15, y);
   y += 8;
 
   doc.setFontSize(8);
@@ -270,9 +400,19 @@ export function generateForensicReport(
     doc.setFontSize(7);
     doc.setTextColor(100);
     doc.text(
-      "Este documento incluye una firma criptografica (hash SHA-256) del contenido integro del informe, generada al momento de su emision, que permite verificar su integridad posterior.",
+      "Este documento incluye una firma criptografica (hash SHA-256) de los datos que alimentan el informe, generada al momento de su emision, que permite verificar su integridad posterior.",
       15, y, { maxWidth: pageWidth - 30 }
     );
+    doc.setTextColor(0);
+  }
+
+  if (reportHash) {
+    if (y > 260) { doc.addPage(); y = 20; } else { y += 8; }
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(100);
+    doc.text("Hash SHA-256 de integridad (datos del informe): " + reportHash, 15, y, { maxWidth: pageWidth - 30 });
+    doc.setFont("helvetica", "normal");
     doc.setTextColor(0);
   }
 

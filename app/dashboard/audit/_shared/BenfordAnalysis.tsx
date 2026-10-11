@@ -1,14 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { supabase } from "@/app/lib/supabase";
-import {
-  EXPECTED_BENFORD,
-  leadingDigit,
-  bootstrapMadCI,
-  conformityFromMad,
-  type BenfordConformity,
-} from "@/app/lib/forensics/benfordMath";
+import { computeBenfordForCase, type BenfordResult as SharedBenfordResult } from "@/app/lib/forensics/computeBenfordForCase";
+import type { BenfordConformity } from "@/app/lib/forensics/benfordMath";
 
 // Ley de Benford: en datos financieros/contables que ocurren naturalmente
 // (no fabricados), el primer digito de las cantidades sigue una
@@ -28,26 +22,10 @@ interface Props {
   caseId: string;
 }
 
-interface BenfordResult {
-  sampleSize: number;
-  observed: number[]; // indice 0 = digito 1, ... indice 8 = digito 9 (porcentaje)
-  expected: number[];
-  mad: number;
-  conformity: BenfordConformity;
-  // Intervalo de confianza del 95% para el MAD, estimado por bootstrap
-  // (remuestreo con reemplazo). Con muestras chicas (30-100 montos) un
-  // solo valor de MAD puede ser ruido: dos corridas con los mismos datos
-  // "reales" pueden caer en bandas de conformidad distintas solo por azar
-  // de cual caso le toco auditar. El intervalo hace visible esa
-  // incertidumbre en vez de esconderla detras de una sola etiqueta.
-  madCiLow: number;
-  madCiHigh: number;
-  // true si el intervalo de confianza cruza mas de una banda de
-  // conformidad (ej. el borde inferior cae en ACEPTABLE pero el
-  // superior en NO_CONFORME) - señal de que la muestra es insuficiente
-  // para un veredicto firme, no que el resultado sea invalido.
-  ciUnstable: boolean;
-}
+// El tipo del resultado y la logica de calculo ahora viven en
+// computeBenfordForCase.ts (Fase 4), para que el reporte forense
+// exportable use exactamente el mismo analisis que se muestra aqui.
+type BenfordResult = SharedBenfordResult;
 
 const CONFORMITY_LABEL: Record<BenfordConformity, { text: string; color: string }> = {
   ALTA: { text: "Conformidad alta con Ley de Benford (sin señales de manipulacion en los primeros digitos)", color: "#4ade80" },
@@ -66,72 +44,14 @@ export default function BenfordAnalysis({ caseId }: Props) {
     setError("");
     setResult(null);
 
-    const { data: company } = await supabase
-      .from("companies")
-      .select("id")
-      .eq("reconstruction_case_id", caseId)
-      .maybeSingle();
-
-    if (!company) {
-      setError("Este caso no tiene una reconstruccion contable generada todavia. Primero corre 'Reconstruccion Contable desde Evidencia'.");
+    const { result, error: errorMsg } = await computeBenfordForCase(caseId);
+    if (errorMsg) {
+      setError(errorMsg);
       setLoading(false);
       return;
     }
 
-    const { data: entries } = await supabase
-      .from("journal_entries")
-      .select("id")
-      .eq("company_id", company.id);
-
-    const entryIds = (entries ?? []).map((e: any) => e.id);
-    if (entryIds.length === 0) {
-      setError("La reconstruccion de este caso no tiene asientos contables todavia.");
-      setLoading(false);
-      return;
-    }
-
-    const { data: lines } = await supabase
-      .from("journal_lines")
-      .select("debit, credit")
-      .in("journal_entry_id", entryIds);
-
-    const amounts = (lines ?? [])
-      .flatMap((l: any) => [l.debit, l.credit])
-      .filter((v: number) => v && v > 0);
-
-    const counts = [0, 0, 0, 0, 0, 0, 0, 0, 0];
-    let total = 0;
-    for (const amount of amounts) {
-      const digit = leadingDigit(amount);
-      if (digit) {
-        counts[digit - 1]++;
-        total++;
-      }
-    }
-
-    if (total < 30) {
-      setError(`Solo hay ${total} montos utilizables. La Ley de Benford necesita al menos ~30-50 transacciones para ser estadisticamente significativa; con esta muestra el resultado no es confiable.`);
-      setLoading(false);
-      return;
-    }
-
-    const observed = counts.map((c) => (c / total) * 100);
-    const mad = observed.reduce((sum, obs, i) => sum + Math.abs(obs - EXPECTED_BENFORD[i]), 0) / 9 / 100;
-
-    const usableAmounts = amounts.filter((v: number) => leadingDigit(v) !== null);
-    const { low: madCiLow, high: madCiHigh } = bootstrapMadCI(usableAmounts);
-    const ciUnstable = conformityFromMad(madCiLow) !== conformityFromMad(madCiHigh);
-
-    setResult({
-      sampleSize: total,
-      observed,
-      expected: EXPECTED_BENFORD,
-      mad,
-      conformity: conformityFromMad(mad),
-      madCiLow,
-      madCiHigh,
-      ciUnstable,
-    });
+    setResult(result);
     setLoading(false);
   }
 

@@ -20,7 +20,8 @@ export function generateApuCostSummaryPdf(
   data: CostSummaryData,
   repName: string = "",
   repId: string = "",
-  repPosition: string = ""
+  repPosition: string = "",
+  reportHash?: string
 ) {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -100,6 +101,16 @@ export function generateApuCostSummaryPdf(
   doc.setFontSize(7);
   doc.setTextColor(150);
   doc.text("Pagina 1 de 1", pageWidth - 20, doc.internal.pageSize.getHeight() - 6);
+
+  if (reportHash) {
+    // Fase 4: firma de integridad (hash SHA-256) sobre los datos que
+    // alimentan este reporte (ver app/lib/reportHash.ts), registrada
+    // tambien en la cadena de custodia como evento rf.report.exported.
+    doc.text(
+      "Hash SHA-256 de integridad: " + reportHash,
+      14, doc.internal.pageSize.getHeight() - 6
+    );
+  }
 
   return doc;
 }

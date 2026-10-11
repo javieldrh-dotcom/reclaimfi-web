@@ -1,9 +1,12 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { getVerticalTheme } from "@/app/core/design/tokens";
 import VerticalPageLayout from "@/app/components/VerticalPageLayout";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType, BorderStyle } from "docx";
 import { saveAs } from "file-saver";
+import { supabase } from "@/app/lib/supabase";
+import { hashReportData } from "@/app/lib/reportHash";
+import { logCompanyLedgerEvent } from "@/app/lib/logLedgerEvent";
 
 interface ReportField { key: string; label: string; type: "text" | "date" | "textarea"; }
 interface ReportTemplate { id: string; name: string; description: string; category: string; fields: ReportField[]; }
@@ -202,6 +205,27 @@ export default function ProfessionalReportsPage() {
   const [selectedTemplate, setSelectedTemplate] = useState<ReportTemplate | null>(null);
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [message, setMessage] = useState("");
+  // Fase 4 de la hoja de ruta: companyId para registrar en la cadena de
+  // custodia (event_ledger) el hash de integridad de cada informe exportado
+  // desde este modulo, igual que ya se hace en APU y en auditoria forense.
+  // Esta pagina no tenia ningun estado de empresa hasta ahora.
+  const [companyId, setCompanyId] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadCompany() {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData?.user) return;
+      const { data: uc } = await supabase
+        .from("user_companies")
+        .select("company_id")
+        .eq("user_id", userData.user.id)
+        .order("last_active_at", { ascending: false })
+        .limit(1)
+        .single();
+      setCompanyId(uc?.company_id ?? null);
+    }
+    loadCompany();
+  }, []);
     const COUNTRIES: { continent: string; name: string; designation: string; jurisdiction: string }[] = [
     { continent: "America", name: "Venezuela", designation: "C.P.C.", jurisdiction: "Republica Bolivariana de Venezuela" },
     { continent: "America", name: "Colombia", designation: "Contador Publico", jurisdiction: "Republica de Colombia" },
@@ -263,6 +287,10 @@ export default function ProfessionalReportsPage() {
 
   async function generateNotasInventario() {
     const d = formData;
+    // Fase 4: hash SHA-256 de integridad sobre los datos que alimentan
+    // este informe (ver app/lib/reportHash.ts), que se imprime en el
+    // documento y se registra como evento rf.report.exported.
+    const reportHash = await hashReportData(d);
     const terrenos = parseFloat((d.terrenosAmount || "0").replace(/,/g, "")) || 0;
     const edificaciones = parseFloat((d.edificacionesAmount || "0").replace(/,/g, "")) || 0;
     const total = terrenos + edificaciones;
@@ -290,17 +318,28 @@ export default function ProfessionalReportsPage() {
           new Paragraph({ children: [new TextRun({ text: "TOTAL INVENTARIO INMUEBLES PARA AUMENTO: Bs. " + total.toLocaleString(undefined, { minimumFractionDigits: 2 }), bold: true })], spacing: { after: 300 } }),
 
           new Paragraph({ children: [new TextRun({ text: "Los inmuebles anteriormente señalados constituyen el aporte del socio " + (d.shareholderName || "[ACCIONISTA]") + " de la empresa " + (d.companyName || "[EMPRESA]") + " de la siguiente forma: Adquisicion de " + (d.sharesAcquired || "[NUMERO]") + " nuevas acciones por un valor nominal de Bs. " + (d.shareNominalValue || "[VALOR]") + " cada una, las cuales quedan totalmente suscritas y pagadas tal como se indica, con el aporte relacionado en el \"INVENTARIO DE BIENES INMUEBLES APORTADO POR LOS ACCIONISTAS PARA AUMENTAR EL CAPITAL SOCIAL\" al " + (d.presentationDate || "[FECHA]") + " por Bs. " + total.toLocaleString(undefined, { minimumFractionDigits: 2 }) + "." })], spacing: { after: 300 } }),
+          new Paragraph({ children: [new TextRun({ text: "Hash SHA-256 de integridad: " + reportHash, size: 14, color: "999999" })], spacing: { before: 400 } }),
         ],
       }],
     });
 
     const blob = await Packer.toBlob(doc);
+    if (companyId) {
+      await logCompanyLedgerEvent("rf.report.exported", companyId, {
+        report_type: "ACCOUNTING_" + (selectedTemplate?.id ?? "UNKNOWN"),
+        report_hash: reportHash,
+      });
+    }
     saveAs(blob, "notas-inventario-" + (d.companyName || "empresa").replace(/\s+/g, "-").toLowerCase() + ".docx");
     setMessage("Notas al inventario generadas y descargadas correctamente.");
   }
 
   async function generateInventarioAnexo() {
     const d = formData;
+    // Fase 4: hash SHA-256 de integridad sobre los datos que alimentan
+    // este informe (ver app/lib/reportHash.ts), que se imprime en el
+    // documento y se registra como evento rf.report.exported.
+    const reportHash = await hashReportData(d);
     const terrenos = parseFloat((d.terrenosAmount || "0").replace(/,/g, "")) || 0;
     const edificaciones = parseFloat((d.edificacionesAmount || "0").replace(/,/g, "")) || 0;
     const total = terrenos + edificaciones;
@@ -332,17 +371,28 @@ export default function ProfessionalReportsPage() {
 
           new Paragraph({ children: [new TextRun({ text: "VER INFORME DE ASEGURAMIENTO DEL CONTADOR PUBLICO INDEPENDIENTE", bold: true })], spacing: { before: 200, after: 200 } }),
           new Paragraph({ children: [new TextRun({ text: "Hago constar que cada uno de los inmuebles detallados en esta relacion, provienen de actividades legitimas y de comprobable licito comercio." })], spacing: { after: 200 } }),
+          new Paragraph({ children: [new TextRun({ text: "Hash SHA-256 de integridad: " + reportHash, size: 14, color: "999999" })], spacing: { before: 400 } }),
         ],
       }],
     });
 
     const blob = await Packer.toBlob(doc);
+    if (companyId) {
+      await logCompanyLedgerEvent("rf.report.exported", companyId, {
+        report_type: "ACCOUNTING_" + (selectedTemplate?.id ?? "UNKNOWN"),
+        report_hash: reportHash,
+      });
+    }
     saveAs(blob, "anexo-inventario-bienes-" + (d.companyName || "empresa").replace(/\s+/g, "-").toLowerCase() + ".docx");
     setMessage("Anexo de inventario generado y descargado correctamente.");
   }
 
   async function generateBalancePersonal() {
     const d = formData;
+    // Fase 4: hash SHA-256 de integridad sobre los datos que alimentan
+    // este informe (ver app/lib/reportHash.ts), que se imprime en el
+    // documento y se registra como evento rf.report.exported.
+    const reportHash = await hashReportData(d);
     const doc = new Document({
       sections: [{
         children: [
@@ -361,17 +411,28 @@ export default function ProfessionalReportsPage() {
           new Paragraph({ children: [new TextRun({ text: (d.accountantName || "[NOMBRE DEL CONTADOR PUBLICO]") })] }),
           new Paragraph({ children: [new TextRun({ text: "Numero del C.P.C. " + (d.cpcNumber || "[NUMERO]") })] }),
           new Paragraph({ children: [new TextRun({ text: (d.city || "[CIUDAD]") + ", " + (d.reportDate || "[FECHA]") })], spacing: { after: 200 } }),
+          new Paragraph({ children: [new TextRun({ text: "Hash SHA-256 de integridad: " + reportHash, size: 14, color: "999999" })], spacing: { before: 400 } }),
         ],
       }],
     });
 
     const blob = await Packer.toBlob(doc);
+    if (companyId) {
+      await logCompanyLedgerEvent("rf.report.exported", companyId, {
+        report_type: "ACCOUNTING_" + (selectedTemplate?.id ?? "UNKNOWN"),
+        report_hash: reportHash,
+      });
+    }
     saveAs(blob, "balance-personal-" + (d.subjectName || "persona").replace(/\s+/g, "-").toLowerCase() + ".docx");
     setMessage("Informe de balance personal generado y descargado correctamente.");
   }
 
   async function generateNisr4410FondoComercio() {
     const d = formData;
+    // Fase 4: hash SHA-256 de integridad sobre los datos que alimentan
+    // este informe (ver app/lib/reportHash.ts), que se imprime en el
+    // documento y se registra como evento rf.report.exported.
+    const reportHash = await hashReportData(d);
     const doc = new Document({
       sections: [{
         children: [
@@ -390,17 +451,28 @@ export default function ProfessionalReportsPage() {
           new Paragraph({ children: [new TextRun({ text: (d.accountantName || "[NOMBRE DEL CONTADOR PUBLICO]") })] }),
           new Paragraph({ children: [new TextRun({ text: "Numero del C.P.C. " + (d.cpcNumber || "[NUMERO]") })] }),
           new Paragraph({ children: [new TextRun({ text: (d.city || "[CIUDAD]") + ", " + (d.reportDate || "[FECHA]") })], spacing: { after: 200 } }),
+          new Paragraph({ children: [new TextRun({ text: "Hash SHA-256 de integridad: " + reportHash, size: 14, color: "999999" })], spacing: { before: 400 } }),
         ],
       }],
     });
 
     const blob = await Packer.toBlob(doc);
+    if (companyId) {
+      await logCompanyLedgerEvent("rf.report.exported", companyId, {
+        report_type: "ACCOUNTING_" + (selectedTemplate?.id ?? "UNKNOWN"),
+        report_hash: reportHash,
+      });
+    }
     saveAs(blob, "informe-preparacion-ef-fondo-comercio-" + (d.businessName || "negocio").replace(/\s+/g, "-").toLowerCase() + ".docx");
     setMessage("Informe de preparacion de EF (Fondo de Comercio) generado y descargado correctamente.");
   }
 
   async function generateNisr4410() {
     const d = formData;
+    // Fase 4: hash SHA-256 de integridad sobre los datos que alimentan
+    // este informe (ver app/lib/reportHash.ts), que se imprime en el
+    // documento y se registra como evento rf.report.exported.
+    const reportHash = await hashReportData(d);
     const doc = new Document({
       sections: [{
         children: [
@@ -421,17 +493,28 @@ export default function ProfessionalReportsPage() {
           new Paragraph({ children: [new TextRun({ text: (d.accountantName || "[NOMBRE DEL CONTADOR PUBLICO]") })] }),
           new Paragraph({ children: [new TextRun({ text: "Numero del C.P.C. " + (d.cpcNumber || "[NUMERO]") })] }),
           new Paragraph({ children: [new TextRun({ text: (d.city || "[CIUDAD]") + ", " + (d.reportDate || "[FECHA]") })], spacing: { after: 200 } }),
+          new Paragraph({ children: [new TextRun({ text: "Hash SHA-256 de integridad: " + reportHash, size: 14, color: "999999" })], spacing: { before: 400 } }),
         ],
       }],
     });
 
     const blob = await Packer.toBlob(doc);
+    if (companyId) {
+      await logCompanyLedgerEvent("rf.report.exported", companyId, {
+        report_type: "ACCOUNTING_" + (selectedTemplate?.id ?? "UNKNOWN"),
+        report_hash: reportHash,
+      });
+    }
     saveAs(blob, "informe-preparacion-ef-" + (d.companyName || "empresa").replace(/\s+/g, "-").toLowerCase() + ".docx");
     setMessage("Informe de preparacion de estados financieros generado y descargado correctamente.");
   }
 
   async function generateEstructuraCostos() {
     const d = formData;
+    // Fase 4: hash SHA-256 de integridad sobre los datos que alimentan
+    // este informe (ver app/lib/reportHash.ts), que se imprime en el
+    // documento y se registra como evento rf.report.exported.
+    const reportHash = await hashReportData(d);
     const doc = new Document({
       sections: [{
         children: [
@@ -468,17 +551,28 @@ export default function ProfessionalReportsPage() {
           new Paragraph({ children: [new TextRun({ text: (d.accountantName || "[NOMBRE Y APELLIDOS]") })] }),
           new Paragraph({ children: [new TextRun({ text: professionalDesignation + " " + (d.cpcNumber || "[NUMERO]") })] }),
           new Paragraph({ children: [new TextRun({ text: (d.city || "[CIUDAD]") + ", " + (d.reportDate || "[FECHA]") })], spacing: { after: 200 } }),
+          new Paragraph({ children: [new TextRun({ text: "Hash SHA-256 de integridad: " + reportHash, size: 14, color: "999999" })], spacing: { before: 400 } }),
         ],
       }],
     });
 
     const blob = await Packer.toBlob(doc);
+    if (companyId) {
+      await logCompanyLedgerEvent("rf.report.exported", companyId, {
+        report_type: "ACCOUNTING_" + (selectedTemplate?.id ?? "UNKNOWN"),
+        report_hash: reportHash,
+      });
+    }
     saveAs(blob, "estructura-costos-" + (d.companyName || "empresa").replace(/\s+/g, "-").toLowerCase() + ".docx");
     setMessage("Informe de estructura de costos generado y descargado correctamente.");
   }
 
   async function generateAumentoCapital() {
     const d = formData;
+    // Fase 4: hash SHA-256 de integridad sobre los datos que alimentan
+    // este informe (ver app/lib/reportHash.ts), que se imprime en el
+    // documento y se registra como evento rf.report.exported.
+    const reportHash = await hashReportData(d);
     const doc = new Document({
       sections: [{
         children: [
@@ -510,17 +604,28 @@ export default function ProfessionalReportsPage() {
           new Paragraph({ children: [new TextRun({ text: (d.accountantName || "[NOMBRE Y APELLIDOS]") })] }),
           new Paragraph({ children: [new TextRun({ text: professionalDesignation + " " + (d.cpcNumber || "[NUMERO]") })] }),
           new Paragraph({ children: [new TextRun({ text: (d.city || "[CIUDAD]") + ", " + (d.reportDate || "[FECHA]") })], spacing: { after: 200 } }),
+          new Paragraph({ children: [new TextRun({ text: "Hash SHA-256 de integridad: " + reportHash, size: 14, color: "999999" })], spacing: { before: 400 } }),
         ],
       }],
     });
 
     const blob = await Packer.toBlob(doc);
+    if (companyId) {
+      await logCompanyLedgerEvent("rf.report.exported", companyId, {
+        report_type: "ACCOUNTING_" + (selectedTemplate?.id ?? "UNKNOWN"),
+        report_hash: reportHash,
+      });
+    }
     saveAs(blob, "informe-aumento-capital-" + (d.companyName || "empresa").replace(/\s+/g, "-").toLowerCase() + ".docx");
     setMessage("Informe de aumento de capital generado y descargado correctamente.");
   }
 
   async function generateCertificacionIngresosLimitada() {
     const d = formData;
+    // Fase 4: hash SHA-256 de integridad sobre los datos que alimentan
+    // este informe (ver app/lib/reportHash.ts), que se imprime en el
+    // documento y se registra como evento rf.report.exported.
+    const reportHash = await hashReportData(d);
     const doc = new Document({
       sections: [{
         children: [
@@ -554,17 +659,28 @@ export default function ProfessionalReportsPage() {
           new Paragraph({ children: [new TextRun({ text: (d.accountantName || "[NOMBRE Y APELLIDOS]") })] }),
           new Paragraph({ children: [new TextRun({ text: professionalDesignation + " " + (d.cpcNumber || "[NUMERO]") })] }),
           new Paragraph({ children: [new TextRun({ text: (d.city || "[CIUDAD]") + ", " + (d.reportDate || "[FECHA]") })], spacing: { after: 200 } }),
+          new Paragraph({ children: [new TextRun({ text: "Hash SHA-256 de integridad: " + reportHash, size: 14, color: "999999" })], spacing: { before: 400 } }),
         ],
       }],
     });
 
     const blob = await Packer.toBlob(doc);
+    if (companyId) {
+      await logCompanyLedgerEvent("rf.report.exported", companyId, {
+        report_type: "ACCOUNTING_" + (selectedTemplate?.id ?? "UNKNOWN"),
+        report_hash: reportHash,
+      });
+    }
     saveAs(blob, "certificacion-ingresos-limitada-" + (d.personName || "persona").replace(/\s+/g, "-").toLowerCase() + ".docx");
     setMessage("Certificacion de ingresos (seguridad limitada) generada y descargada correctamente.");
   }
 
   async function generateCertificacionIngresos() {
     const d = formData;
+    // Fase 4: hash SHA-256 de integridad sobre los datos que alimentan
+    // este informe (ver app/lib/reportHash.ts), que se imprime en el
+    // documento y se registra como evento rf.report.exported.
+    const reportHash = await hashReportData(d);
     const doc = new Document({
       sections: [{
         children: [
@@ -601,17 +717,28 @@ export default function ProfessionalReportsPage() {
           new Paragraph({ children: [new TextRun({ text: (d.accountantName || "[NOMBRE Y APELLIDOS]") })] }),
           new Paragraph({ children: [new TextRun({ text: professionalDesignation + " " + (d.cpcNumber || "[NUMERO]") })] }),
           new Paragraph({ children: [new TextRun({ text: (d.city || "[CIUDAD]") + ", " + (d.reportDate || "[FECHA]") })], spacing: { after: 200 } }),
+          new Paragraph({ children: [new TextRun({ text: "Hash SHA-256 de integridad: " + reportHash, size: 14, color: "999999" })], spacing: { before: 400 } }),
         ],
       }],
     });
 
     const blob = await Packer.toBlob(doc);
+    if (companyId) {
+      await logCompanyLedgerEvent("rf.report.exported", companyId, {
+        report_type: "ACCOUNTING_" + (selectedTemplate?.id ?? "UNKNOWN"),
+        report_hash: reportHash,
+      });
+    }
     saveAs(blob, "certificacion-ingresos-" + (d.personName || "persona").replace(/\s+/g, "-").toLowerCase() + ".docx");
     setMessage("Certificacion de ingresos generada y descargada correctamente.");
   }
 
   async function generateCartaConvenio() {
     const d = formData;
+    // Fase 4: hash SHA-256 de integridad sobre los datos que alimentan
+    // este informe (ver app/lib/reportHash.ts), que se imprime en el
+    // documento y se registra como evento rf.report.exported.
+    const reportHash = await hashReportData(d);
     const doc = new Document({
       sections: [{
         children: [
@@ -645,17 +772,28 @@ export default function ProfessionalReportsPage() {
 
           new Paragraph({ children: [new TextRun({ text: "Acuse de recibo a nombre del cliente:", bold: true })], spacing: { before: 200 } }),
           new Paragraph({ children: [new TextRun({ text: "(Firma) " + (d.clientNameCargo || "[NOMBRE Y CARGO]") })] }),
+          new Paragraph({ children: [new TextRun({ text: "Hash SHA-256 de integridad: " + reportHash, size: 14, color: "999999" })], spacing: { before: 400 } }),
         ],
       }],
     });
 
     const blob = await Packer.toBlob(doc);
+    if (companyId) {
+      await logCompanyLedgerEvent("rf.report.exported", companyId, {
+        report_type: "ACCOUNTING_" + (selectedTemplate?.id ?? "UNKNOWN"),
+        report_hash: reportHash,
+      });
+    }
     saveAs(blob, "carta-convenio-" + (d.clientCompanyName || "cliente").replace(/\s+/g, "-").toLowerCase() + ".docx");
     setMessage("Carta convenio generada y descargada correctamente.");
   }
 
   async function generateAnexoConstitucion() {
     const d = formData;
+    // Fase 4: hash SHA-256 de integridad sobre los datos que alimentan
+    // este informe (ver app/lib/reportHash.ts), que se imprime en el
+    // documento y se registra como evento rf.report.exported.
+    const reportHash = await hashReportData(d);
     const terrenos = parseFloat((d.terrenosTotal || "0").replace(/,/g, "")) || 0;
     const edificios = parseFloat((d.edificiosTotal || "0").replace(/,/g, "")) || 0;
     const maquinaria = parseFloat((d.maquinariaTotal || "0").replace(/,/g, "")) || 0;
@@ -691,17 +829,28 @@ export default function ProfessionalReportsPage() {
           }),
 
           new Paragraph({ children: [new TextRun({ text: "(Las notas anexas son parte integral del inventario de bienes muebles e inmuebles aportado por los accionistas de la empresa en formacion " + (d.companyName || "[EMPRESA]") + ", como parte del capital social)", italics: true, size: 20 })], spacing: { before: 300 } }),
+          new Paragraph({ children: [new TextRun({ text: "Hash SHA-256 de integridad: " + reportHash, size: 14, color: "999999" })], spacing: { before: 400 } }),
         ],
       }],
     });
 
     const blob = await Packer.toBlob(doc);
+    if (companyId) {
+      await logCompanyLedgerEvent("rf.report.exported", companyId, {
+        report_type: "ACCOUNTING_" + (selectedTemplate?.id ?? "UNKNOWN"),
+        report_hash: reportHash,
+      });
+    }
     saveAs(blob, "anexo-inventario-muebles-inmuebles-" + (d.companyName || "empresa").replace(/\s+/g, "-").toLowerCase() + ".docx");
     setMessage("Anexo generado y descargado correctamente.");
   }
 
   async function generateNotasConstitucion() {
     const d = formData;
+    // Fase 4: hash SHA-256 de integridad sobre los datos que alimentan
+    // este informe (ver app/lib/reportHash.ts), que se imprime en el
+    // documento y se registra como evento rf.report.exported.
+    const reportHash = await hashReportData(d);
     const doc = new Document({
       sections: [{
         children: [
@@ -736,17 +885,28 @@ export default function ProfessionalReportsPage() {
 
           new Paragraph({ children: [new TextRun({ text: "El inventario arriba mencionado constituye el aporte de los socios de la empresa en formacion " + (d.companyName || "[EMPRESA]") + ", distribuidos de la siguiente forma:" })], spacing: { after: 100 } }),
           new Paragraph({ children: [new TextRun({ text: d.sociosDistribution || "[DISTRIBUCION ENTRE SOCIOS]" })], spacing: { after: 300 } }),
+          new Paragraph({ children: [new TextRun({ text: "Hash SHA-256 de integridad: " + reportHash, size: 14, color: "999999" })], spacing: { before: 400 } }),
         ],
       }],
     });
 
     const blob = await Packer.toBlob(doc);
+    if (companyId) {
+      await logCompanyLedgerEvent("rf.report.exported", companyId, {
+        report_type: "ACCOUNTING_" + (selectedTemplate?.id ?? "UNKNOWN"),
+        report_hash: reportHash,
+      });
+    }
     saveAs(blob, "notas-inventario-muebles-inmuebles-" + (d.companyName || "empresa").replace(/\s+/g, "-").toLowerCase() + ".docx");
     setMessage("Notas al inventario generadas y descargadas correctamente.");
   }
 
   async function generateNiea3000() {
     const d = formData;
+    // Fase 4: hash SHA-256 de integridad sobre los datos que alimentan
+    // este informe (ver app/lib/reportHash.ts), que se imprime en el
+    // documento y se registra como evento rf.report.exported.
+    const reportHash = await hashReportData(d);
     const doc = new Document({
       sections: [{
         children: [
@@ -777,11 +937,18 @@ export default function ProfessionalReportsPage() {
           new Paragraph({ children: [new TextRun({ text: (d.accountantName || "[NOMBRE Y APELLIDOS]") })] }),
           new Paragraph({ children: [new TextRun({ text: professionalDesignation + " " + (d.cpcNumber || "[NUMERO]") })] }),
           new Paragraph({ children: [new TextRun({ text: (d.city || "[CIUDAD]") + ", " + (d.reportDate || "[FECHA]") })], spacing: { after: 200 } }),
+          new Paragraph({ children: [new TextRun({ text: "Hash SHA-256 de integridad: " + reportHash, size: 14, color: "999999" })], spacing: { before: 400 } }),
         ],
       }],
     });
 
     const blob = await Packer.toBlob(doc);
+    if (companyId) {
+      await logCompanyLedgerEvent("rf.report.exported", companyId, {
+        report_type: "ACCOUNTING_" + (selectedTemplate?.id ?? "UNKNOWN"),
+        report_hash: reportHash,
+      });
+    }
     saveAs(blob, "informe-niea3000-" + (d.companyName || "empresa").replace(/\s+/g, "-").toLowerCase() + ".docx");
     setMessage("Informe generado y descargado correctamente.");
   }

@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { supabase } from "@/app/lib/supabase";
-import { modifiedZScores } from "@/app/lib/forensics/outlierMath";
+import { computeOutliersForCase, MIN_SAMPLES_PER_ACCOUNT, type OutlierResult as SharedOutlierResult } from "@/app/lib/forensics/computeOutliersForCase";
 
 // Deteccion de anomalias por cuenta: la misma familia de tecnicas que
 // usa Aletheia Ledger para descartar destellos y ruido instrumental en
@@ -48,28 +47,11 @@ interface Props {
   caseId: string;
 }
 
-interface FlaggedTransaction {
-  accountName: string;
-  amount: number;
-  zScore: number; // Z-score modificado (mediana/MAD, en espacio logaritmico)
-  description: string;
-  entryDate: string;
-  accountTypicalAmount: number; // mediana (exp de la mediana en log) de la cuenta
-}
-
-interface OutlierResult {
-  accountsAnalyzed: number;
-  accountsSkipped: number; // muy pocas transacciones para un analisis confiable
-  flagged: FlaggedTransaction[];
-}
-
-const MIN_SAMPLES_PER_ACCOUNT = 5;
-// Umbral del Z-score modificado. La literatura (Iglewicz & Hoaglin) usa
-// 3.5 para datos aproximadamente normales, pero se probo contra este
-// mismo caso sintetico: con 3.5 las 3 anomalias inyectadas (Z ~2.65-2.75)
-// no se marcaban, mientras que la transaccion legitima mas alta de cada
-// cuenta quedaba muy por debajo (Z ~1.2) - con 2.5 hay separacion limpia
-// y cero falsos positivos en las 4 cuentas de la prueba.
+// El tipo del resultado, el umbral de Z-score y la logica de calculo
+// ahora viven en computeOutliersForCase.ts (Fase 4), para que el reporte
+// forense exportable use exactamente el mismo analisis que se muestra
+// aqui.
+type OutlierResult = SharedOutlierResult;
 const Z_THRESHOLD = 2.5;
 
 export default function OutlierAnalysis({ caseId }: Props) {
@@ -82,87 +64,14 @@ export default function OutlierAnalysis({ caseId }: Props) {
     setError("");
     setResult(null);
 
-    const { data: company } = await supabase
-      .from("companies")
-      .select("id")
-      .eq("reconstruction_case_id", caseId)
-      .maybeSingle();
-
-    if (!company) {
-      setError("Este caso no tiene una reconstruccion contable generada todavia. Primero corre 'Reconstruccion Contable desde Evidencia'.");
+    const { result, error: errorMsg } = await computeOutliersForCase(caseId);
+    if (errorMsg) {
+      setError(errorMsg);
       setLoading(false);
       return;
     }
 
-    const { data: entries } = await supabase
-      .from("journal_entries")
-      .select("id, description, entry_date")
-      .eq("company_id", company.id);
-
-    const entryIds = (entries ?? []).map((e: any) => e.id);
-    if (entryIds.length === 0) {
-      setError("La reconstruccion de este caso no tiene asientos contables todavia.");
-      setLoading(false);
-      return;
-    }
-    const entryById = new Map((entries ?? []).map((e: any) => [e.id, e]));
-
-    const { data: accounts } = await supabase
-      .from("chart_of_accounts")
-      .select("id, account_name")
-      .eq("company_id", company.id);
-    const accountNameById = new Map((accounts ?? []).map((a: any) => [a.id, a.account_name]));
-
-    const { data: lines } = await supabase
-      .from("journal_lines")
-      .select("journal_entry_id, account_id, debit, credit")
-      .in("journal_entry_id", entryIds);
-
-    // Agrupar por cuenta: cada linea aporta un solo monto (el que no sea
-    // cero entre debito y credito), junto con el asiento del que viene.
-    const byAccount = new Map<string, { amount: number; entryId: string }[]>();
-    for (const line of lines ?? []) {
-      const amount = line.debit > 0 ? line.debit : line.credit;
-      if (!amount || amount <= 0) continue;
-      const list = byAccount.get(line.account_id) ?? [];
-      list.push({ amount, entryId: line.journal_entry_id });
-      byAccount.set(line.account_id, list);
-    }
-
-    let accountsAnalyzed = 0;
-    let accountsSkipped = 0;
-    const flagged: FlaggedTransaction[] = [];
-
-    for (const [accountId, items] of byAccount.entries()) {
-      if (items.length < MIN_SAMPLES_PER_ACCOUNT) {
-        accountsSkipped++;
-        continue;
-      }
-      accountsAnalyzed++;
-
-      const logValues = items.map((it) => Math.log(it.amount));
-      const { zScores, medianLog, mad } = modifiedZScores(logValues);
-      if (mad === 0) continue; // sin dispersion - no hay base para marcar nada
-
-      const accountTypicalAmount = Math.exp(medianLog);
-
-      items.forEach((it, i) => {
-        if (Math.abs(zScores[i]) <= Z_THRESHOLD) return; // dentro del rango normal
-        const entry = entryById.get(it.entryId);
-        flagged.push({
-          accountName: accountNameById.get(accountId) ?? "(cuenta sin nombre)",
-          amount: it.amount,
-          zScore: zScores[i],
-          description: entry?.description ?? "(sin descripcion)",
-          entryDate: entry?.entry_date ?? "",
-          accountTypicalAmount,
-        });
-      });
-    }
-
-    flagged.sort((a, b) => Math.abs(b.zScore) - Math.abs(a.zScore));
-
-    setResult({ accountsAnalyzed, accountsSkipped, flagged });
+    setResult(result);
     setLoading(false);
   }
 

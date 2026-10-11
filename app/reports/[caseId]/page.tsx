@@ -7,6 +7,10 @@ import { supabase } from "@/app/lib/supabase";
 import { generateForensicReport, EngagementType } from "@/app/core/reports/generateForensicReport";
 import EvidenceManager from "@/app/components/EvidenceManager";
 import { getActiveCompanyContext } from "@/app/lib/activeCompany";
+import { computeBenfordForCase } from "@/app/lib/forensics/computeBenfordForCase";
+import { computeOutliersForCase } from "@/app/lib/forensics/computeOutliersForCase";
+import { hashReportData } from "@/app/lib/reportHash";
+import { logLedgerEvent } from "@/app/lib/logLedgerEvent";
 
 export default function CaseReportPage() {
   const params = useParams();
@@ -25,6 +29,7 @@ export default function CaseReportPage() {
   const [auditorName, setAuditorName] = useState("");
   const [auditorLicense, setAuditorLicense] = useState("");
   const [includeSignature, setIncludeSignature] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -145,25 +150,62 @@ export default function CaseReportPage() {
     setGeneratingNarrative(false);
   }
 
-  function handleDownload() {
+  async function handleDownload() {
     if (!caseData) return;
-    const auditorInfo = includeSignature
-      ? {
-          name: auditorName || "Nombre no especificado",
-          license: auditorLicense || "N/D",
-          federationName: "Federacion de Colegios de Contadores Publicos de Venezuela",
-        }
-      : undefined;
+    setDownloading(true);
+    try {
+      const auditorInfo = includeSignature
+        ? {
+            name: auditorName || "Nombre no especificado",
+            license: auditorLicense || "N/D",
+            federationName: "Federacion de Colegios de Contadores Publicos de Venezuela",
+          }
+        : undefined;
 
-    const doc = generateForensicReport(
-      caseData,
-      ledgerEntries,
-      auditEntries,
-      engagementType,
-      assets,
-      auditorInfo
-    );
-    doc.save("reporte-" + engagementType.toLowerCase() + "-" + caseData.case_code + ".pdf");
+      // Fase 4: el mismo analisis de Benford/anomalias que se muestra en
+      // pantalla (/dashboard/audit) ahora se incluye en el PDF exportable,
+      // usando las funciones compartidas para no duplicar la logica.
+      const [{ result: benford, error: benfordError }, { result: outliers, error: outliersError }] =
+        await Promise.all([computeBenfordForCase(caseId), computeOutliersForCase(caseId)]);
+
+      // El hash de integridad se calcula sobre los DATOS que alimentan el
+      // informe (no sobre los bytes del PDF final, ver reportHash.ts), para
+      // que cualquiera pueda verificar despues que esos datos no cambiaron.
+      const reportData = {
+        caseData,
+        ledgerEntries,
+        auditEntries,
+        engagementType,
+        assets,
+        auditorInfo: auditorInfo ?? null,
+        benford,
+        outliers,
+      };
+      const reportHash = await hashReportData(reportData);
+
+      const doc = generateForensicReport(
+        caseData,
+        ledgerEntries,
+        auditEntries,
+        engagementType,
+        assets,
+        auditorInfo,
+        benford,
+        benfordError,
+        outliers,
+        outliersError,
+        reportHash
+      );
+      doc.save("reporte-" + engagementType.toLowerCase() + "-" + caseData.case_code + ".pdf");
+
+      await logLedgerEvent("rf.report.exported", caseId, {
+        report_type: "FORENSIC_" + engagementType,
+        report_hash: reportHash,
+        case_code: caseData.case_code,
+      });
+    } finally {
+      setDownloading(false);
+    }
   }
 
   if (loading) {
@@ -317,6 +359,7 @@ export default function CaseReportPage() {
 
       <button
         onClick={handleDownload}
+        disabled={downloading}
         style={{
           marginTop: 30,
           padding: "14px 28px",
@@ -326,9 +369,10 @@ export default function CaseReportPage() {
           borderRadius: 12,
           border: "none",
           cursor: "pointer",
+          opacity: downloading ? 0.6 : 1,
         }}
       >
-        DESCARGAR INFORME PDF
+        {downloading ? "GENERANDO INFORME..." : "DESCARGAR INFORME PDF"}
       </button>
     </div>
   );
