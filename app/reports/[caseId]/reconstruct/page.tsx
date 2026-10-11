@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/app/lib/supabase";
@@ -15,7 +15,29 @@ export default function ReconstructAccountingPage() {
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
   const [companyName, setCompanyName] = useState("");
-  const [savedCompanyId, setSavedCompanyId] = useState<string | null>(null);
+  const [caseCompanyId, setCaseCompanyId] = useState<string | null>(null);
+  const [requests, setRequests] = useState<any[]>([]);
+  const [loadingRequests, setLoadingRequests] = useState(true);
+
+  async function loadRequests() {
+    setLoadingRequests(true);
+    const { data } = await supabase
+      .from("reconstruction_requests")
+      .select("*")
+      .eq("case_id", caseId)
+      .order("created_at", { ascending: false });
+    setRequests(data ?? []);
+    setLoadingRequests(false);
+  }
+
+  useEffect(() => {
+    async function loadCaseCompany() {
+      const { data } = await supabase.from("cases").select("company_id").eq("id", caseId).single();
+      setCaseCompanyId(data?.company_id ?? null);
+    }
+    loadCaseCompany();
+    loadRequests();
+  }, [caseId]);
 
   async function analyzeDocuments() {
     if (files.length === 0) { setMessage("Selecciona al menos un documento."); return; }
@@ -59,18 +81,68 @@ export default function ReconstructAccountingPage() {
 
   const allTransactions = results.flatMap((r) => r.transactions || []);
 
-  async function confirmReconstruction() {
+  // Antes, "confirmReconstruction" creaba la empresa, el plan de cuentas
+  // y los asientos reales en un solo clic. Ahora esto solo deja una
+  // solicitud pendiente en "reconstruction_requests" -- quien la revise
+  // y confirme (debe tener rol ADMIN o CONTADOR, los unicos que pueden
+  // escribir en chart_of_accounts/journal_entries) es quien de verdad
+  // registra los libros.
+  async function requestReconstruction() {
     if (allTransactions.length === 0) { setMessage("No hay transacciones para guardar."); return; }
+    if (!caseCompanyId) { setMessage("No se pudo determinar la empresa de este caso."); return; }
     setSaving(true);
     setMessage("");
 
     const { data: userData } = await supabase.auth.getUser();
     if (!userData?.user) { setMessage("No autenticado."); setSaving(false); return; }
 
+    const finalCompanyName = companyName || "Reconstruccion - Caso " + caseId.slice(0, 8);
+
+    const { error } = await supabase.from("reconstruction_requests").insert([{
+      case_id: caseId,
+      company_id: caseCompanyId,
+      company_name: finalCompanyName,
+      transactions: allTransactions,
+      status: "PENDING",
+      requested_by: userData.user.id,
+    }]);
+
+    if (error) {
+      setMessage("Error al solicitar la reconstruccion: " + error.message);
+      setSaving(false);
+      return;
+    }
+
+    await logLedgerEvent("rf.reconstruction.requested", caseId, {
+      company_name: finalCompanyName,
+      transactions_count: allTransactions.length,
+    });
+
+    setMessage("Solicitud de reconstruccion enviada. Un ADMIN o CONTADOR debe confirmarla para que se registren los libros reales.");
+    setResults([]);
+    setFiles([]);
+    await loadRequests();
+    setSaving(false);
+  }
+
+  async function confirmRequest(request: any) {
+    setSaving(true);
+    setMessage("");
+
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData?.user) { setMessage("No autenticado."); setSaving(false); return; }
+
+    const transactions: any[] = request.transactions ?? [];
+    if (transactions.length === 0) {
+      setMessage("La solicitud no tiene transacciones.");
+      setSaving(false);
+      return;
+    }
+
     const { data: newCompany, error: compError } = await supabase.from("companies").insert([{
-      name: companyName || "Reconstruccion - Caso " + caseId.slice(0, 8),
+      name: request.company_name,
       is_forensic_reconstruction: true,
-      reconstruction_case_id: caseId,
+      reconstruction_case_id: request.case_id,
       functional_currency: "USD",
     }]).select("id").single();
 
@@ -80,7 +152,7 @@ export default function ReconstructAccountingPage() {
       return;
     }
 
-        // Nota: esta membresia es solo para que las politicas de RLS permitan
+    // Nota: esta membresia es solo para que las politicas de RLS permitan
     // leer la empresa de reconstruccion (plan de cuentas, asientos,
     // lineas). NO debe convertirse en la "empresa activa" del usuario -
     // antes, al no fijar last_active_at, tomaba el valor por defecto de
@@ -93,7 +165,7 @@ export default function ReconstructAccountingPage() {
     await supabase.from("user_companies").insert([{ user_id: userData.user.id, company_id: newCompany.id, role: "ADMIN", last_active_at: "1970-01-01T00:00:00Z" }]);
 
     const uniqueAccounts = new Map<string, { name: string; type: string }>();
-    for (const tx of allTransactions) {
+    for (const tx of transactions) {
       uniqueAccounts.set(tx.debitAccountName + "|" + tx.debitAccountType, { name: tx.debitAccountName, type: tx.debitAccountType });
       uniqueAccounts.set(tx.creditAccountName + "|" + tx.creditAccountType, { name: tx.creditAccountName, type: tx.creditAccountType });
     }
@@ -117,7 +189,7 @@ export default function ReconstructAccountingPage() {
     }
 
     let entryNumber = 1;
-    for (const tx of allTransactions) {
+    for (const tx of transactions) {
       const debitId = accountIdMap.get(tx.debitAccountName + "|" + tx.debitAccountType);
       const creditId = accountIdMap.get(tx.creditAccountName + "|" + tx.creditAccountType);
       if (!debitId || !creditId) continue;
@@ -141,16 +213,33 @@ export default function ReconstructAccountingPage() {
       entryNumber++;
     }
 
-    await logLedgerEvent("rf.reconstruction.generated", caseId, {
+    await supabase.from("reconstruction_requests").update({ status: "CONFIRMED", approved_by: userData.user.id }).eq("id", request.id);
+
+    await logLedgerEvent("rf.reconstruction.generated", request.case_id, {
       company_id: newCompany.id,
-      company_name: companyName || "Reconstruccion - Caso " + caseId.slice(0, 8),
-      transactions_count: allTransactions.length,
+      company_name: request.company_name,
+      transactions_count: transactions.length,
     });
 
-    setSavedCompanyId(newCompany.id);
-    setMessage("Reconstruccion contable completada: " + allTransactions.length + " transacciones registradas.");
+    setMessage("Reconstruccion contable completada: " + transactions.length + " transacciones registradas.");
+    await loadRequests();
     setSaving(false);
   }
+
+  async function rejectRequest(request: any) {
+    setSaving(true);
+    setMessage("");
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData?.user) { setMessage("No autenticado."); setSaving(false); return; }
+
+    await supabase.from("reconstruction_requests").update({ status: "REJECTED", approved_by: userData.user.id }).eq("id", request.id);
+    setMessage("Solicitud de reconstruccion rechazada.");
+    await loadRequests();
+    setSaving(false);
+  }
+
+  const pendingRequests = requests.filter((r) => r.status === "PENDING");
+  const resolvedRequests = requests.filter((r) => r.status !== "PENDING");
 
   return (
     <div style={{ minHeight: "100vh", background: "#0B0E14", color: "white", padding: 40 }}>
@@ -158,8 +247,42 @@ export default function ReconstructAccountingPage() {
         <Link href={"/reports/" + caseId} style={{ color: "#2DD4BF", fontSize: 14 }}>&larr; Volver al caso</Link>
         <h1 style={{ fontSize: 32, fontWeight: 900, marginTop: 12 }}>Reconstruccion Contable desde Evidencia</h1>
         <p style={{ color: "#8B93A7", marginTop: 8, maxWidth: 700 }}>
-          Sube estados de cuenta, facturas, o recibos. La IA identificara cada transaccion real y propondra su registro contable en partida doble. Revisa y corrige antes de confirmar - solo entonces se crean los libros reales.
+          Sube estados de cuenta, facturas, o recibos. La IA identificara cada transaccion real y propondra su registro contable en partida doble. Revisa y corrige, y solicita la reconstruccion - un ADMIN o CONTADOR debe confirmarla para que se creen los libros reales.
         </p>
+
+        {!loadingRequests && pendingRequests.length > 0 && (
+          <div style={{ marginTop: 24, background: "#1f1a0b", borderRadius: 16, padding: 24, border: "1px solid #facc15" }}>
+            <h2 style={{ fontSize: 18, color: "#facc15", fontWeight: 700 }}>Solicitudes Pendientes de Aprobacion</h2>
+            {pendingRequests.map((req) => (
+              <div key={req.id} style={{ marginTop: 14, padding: 16, background: "#0B0E14", borderRadius: 12, border: "1px solid #2A3040" }}>
+                <p style={{ fontWeight: 700 }}>{req.company_name}</p>
+                <p style={{ fontSize: 13, color: "#8B93A7", marginTop: 4 }}>
+                  {(req.transactions ?? []).length} transaccion(es) &middot; solicitada {new Date(req.created_at).toLocaleString()}
+                </p>
+                <div style={{ marginTop: 10, display: "flex", gap: 10 }}>
+                  <button onClick={() => confirmRequest(req)} disabled={saving} style={{ padding: "8px 16px", background: "none", border: "1px solid #4ade80", color: "#4ade80", borderRadius: 8, fontSize: 14, cursor: "pointer", opacity: saving ? 0.6 : 1 }}>
+                    Confirmar y Registrar
+                  </button>
+                  <button onClick={() => rejectRequest(req)} disabled={saving} style={{ padding: "8px 16px", background: "none", border: "1px solid #f87171", color: "#f87171", borderRadius: 8, fontSize: 14, cursor: "pointer", opacity: saving ? 0.6 : 1 }}>
+                    Rechazar
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {!loadingRequests && resolvedRequests.length > 0 && (
+          <div style={{ marginTop: 24, background: "#151A24", borderRadius: 16, padding: 24, border: "1px solid #2A3040" }}>
+            <h2 style={{ fontSize: 16, color: "#8B93A7", fontWeight: 700 }}>Historial de Solicitudes</h2>
+            {resolvedRequests.map((req) => (
+              <div key={req.id} style={{ marginTop: 10, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderTop: "1px solid #2A3040" }}>
+                <span style={{ fontSize: 13 }}>{req.company_name}</span>
+                <span style={{ fontSize: 12, color: req.status === "CONFIRMED" ? "#4ade80" : "#f87171", fontWeight: 700 }}>{req.status === "CONFIRMED" ? "CONFIRMADA" : "RECHAZADA"}</span>
+              </div>
+            ))}
+          </div>
+        )}
 
         <div style={{ marginTop: 24, background: "#151A24", borderRadius: 16, padding: 24, border: "1px solid #2A3040" }}>
           <input
@@ -212,20 +335,13 @@ export default function ReconstructAccountingPage() {
               </div>
             ))}
 
-            {!savedCompanyId ? (
-              <button
-                onClick={confirmReconstruction}
-                disabled={saving || allTransactions.length === 0}
-                style={{ marginTop: 20, padding: "14px 28px", background: "#4ade80", color: "#0B0E14", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontSize: 16, opacity: saving ? 0.6 : 1 }}
-              >
-                {saving ? "Guardando..." : "Confirmar y Generar Libros Contables (" + allTransactions.length + " transacciones)"}
-              </button>
-            ) : (
-              <div style={{ marginTop: 20, padding: 20, background: "#0B0E14", borderRadius: 12, border: "1px solid #4ade80" }}>
-                <p style={{ color: "#4ade80", fontWeight: 700 }}>Reconstruccion completada. Cambia a la empresa "{companyName}" en el selector de empresas para ver el Diario, Mayor, y Estados Financieros generados.</p>
-                <Link href="/accounting/journal" style={{ color: "#2DD4BF", marginTop: 8, display: "inline-block" }}>Ir al Libro Diario &rarr;</Link>
-              </div>
-            )}
+            <button
+              onClick={requestReconstruction}
+              disabled={saving || allTransactions.length === 0}
+              style={{ marginTop: 20, padding: "14px 28px", background: "#4ade80", color: "#0B0E14", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontSize: 16, opacity: saving ? 0.6 : 1 }}
+            >
+              {saving ? "Enviando..." : "Solicitar Reconstruccion (" + allTransactions.length + " transacciones)"}
+            </button>
           </div>
         )}
       </div>
