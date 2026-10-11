@@ -182,14 +182,22 @@ export default function ApuProjectsPage() {
     if (companyId) await loadProjects(companyId);
   }
 
-  async function awardProject(project: any) {
-    if (!window.confirm("Marcar este proyecto como ADJUDICADO y registrar el compromiso contractual?")) return;
+  // Antes "Marcar como Adjudicado" ejecutaba todo de una vez: una sola persona
+  // calculaba el total, registraba el compromiso contractual en Cuentas de
+  // Orden y marcaba el proyecto como ADJUDICADO, sin ningun paso intermedio
+  // de aprobacion (maker-checker, Fase 2 de la hoja de ruta). Ahora se separa
+  // en dos pasos: requestAward() solo valida y deja el proyecto en
+  // PENDING_AWARD con una fila en "approvals"; confirmAward() es quien de
+  // verdad registra el asiento contable y marca ADJUDICADO. Como hoy solo el
+  // rol ADMIN tiene acceso al modulo APU, cualquier ADMIN puede confirmar -
+  // incluido quien solicito la adjudicacion - asi que esto funciona como
+  // registro explicito y auditable de la decision, no como control de
+  // "cuatro ojos" estricto (eso requeriria un segundo ADMIN en la empresa).
+  async function requestAward(project: any) {
+    if (!window.confirm("Solicitar la adjudicacion de este proyecto? Quedara pendiente de confirmacion antes de registrar el compromiso contractual.")) return;
+    if (!companyId) return;
 
     const { data: partidas } = await supabase.from("apu_partidas").select("*").eq("apu_project_id", project.id);
-    // Se traen los calculos FSCL del proyecto para aplicar el factor a la mano de
-    // obra, igual que en la pantalla de Partidas y en el Resumen de Costo. Antes
-    // este calculo NO aplicaba el factor FSCL, por lo que el compromiso contractual
-    // registrado en Cuentas de Orden quedaba por debajo del monto realmente ofertado.
     const { data: fsclOptions } = await supabase.from("apu_fscl_calculations").select("id, fscl_factor").eq("apu_project_id", project.id);
 
     let grandTotal = 0;
@@ -212,10 +220,49 @@ export default function ApuProjectsPage() {
       return;
     }
 
-    // El asiento se crea ANTES de marcar el proyecto como ADJUDICADO. Antes era al
-    // reves: si la creacion del asiento fallaba, el proyecto quedaba marcado como
-    // ADJUDICADO sin ningun registro contable y sin forma de reintentarlo, porque
-    // el boton "Marcar como Adjudicado" solo aparece para proyectos en estado DRAFT.
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData?.user) return;
+
+    const { error: approvalError } = await supabase.from("approvals").insert([{
+      company_id: companyId,
+      module: "APU_PROJECT_AWARD",
+      record_id: project.id,
+      requested_by: userData.user.id,
+      status: "PENDING",
+    }]);
+    if (approvalError) { setMessage("No se pudo crear la solicitud de adjudicacion: " + approvalError.message); return; }
+
+    const { error: statusError } = await supabase.from("apu_projects").update({ status: "PENDING_AWARD" }).eq("id", project.id);
+    if (statusError) { setMessage("La solicitud se registro, pero hubo un error al actualizar el estado del proyecto: " + statusError.message); }
+    else { setMessage("Adjudicacion solicitada. Queda pendiente de confirmacion por un Administrador antes de registrar el compromiso contractual."); }
+
+    await loadProjects(companyId);
+  }
+
+  // Recalcula el total (las partidas pudieron cambiar desde que se solicito)
+  // y recien aqui se registra el asiento contable real y se marca ADJUDICADO.
+  async function confirmAward(project: any) {
+    if (!companyId) return;
+    if (!window.confirm("Confirmar la adjudicacion de este proyecto y registrar el compromiso contractual?")) return;
+
+    const { data: partidas } = await supabase.from("apu_partidas").select("*").eq("apu_project_id", project.id);
+    const { data: fsclOptions } = await supabase.from("apu_fscl_calculations").select("id, fscl_factor").eq("apu_project_id", project.id);
+
+    let grandTotal = 0;
+    for (const p of partidas ?? []) {
+      const { data: mats } = await supabase.from("apu_partida_materials").select("quantity, unit_cost").eq("apu_partida_id", p.id);
+      const { data: equips } = await supabase.from("apu_partida_equipment").select("quantity, unit_cost").eq("apu_partida_id", p.id);
+      const { data: labs } = await supabase.from("apu_partida_labor").select("quantity, days, daily_rate").eq("apu_partida_id", p.id);
+      const fscl = (fsclOptions ?? []).find((f: any) => f.id === p.fscl_calculation_id);
+      const c = calcPartidaCost(mats, equips, labs, fscl?.fscl_factor, p.admin_percentage, p.profit_percentage, p.quantity);
+      grandTotal += c.total;
+    }
+
+    if (grandTotal === 0 || !orderDebtorAccount || !orderCreditorAccount) {
+      alert("No se pudo confirmar: faltan partidas con costo o las cuentas de orden. Revisa el proyecto antes de confirmar.");
+      return;
+    }
+
     const { data: lastEntry } = await supabase.from("journal_entries").select("entry_number").eq("company_id", companyId).eq("status", "ACTIVE").not("entry_number", "is", null).order("entry_number", { ascending: false }).limit(1).maybeSingle();
     const nextNumber = (lastEntry?.entry_number || 0) + 1;
 
@@ -227,7 +274,7 @@ export default function ApuProjectsPage() {
     }]).select("id").single();
 
     if (entryError || !entry) {
-      setMessage("No se pudo registrar el compromiso contractual, el proyecto NO fue marcado como adjudicado. Error: " + entryError?.message);
+      setMessage("No se pudo registrar el compromiso contractual, el proyecto sigue pendiente de confirmacion. Error: " + entryError?.message);
       return;
     }
 
@@ -237,19 +284,40 @@ export default function ApuProjectsPage() {
     ]);
 
     if (linesError) {
-      setMessage("No se pudo registrar el compromiso contractual, el proyecto NO fue marcado como adjudicado. Error: " + linesError.message);
+      setMessage("No se pudo registrar el compromiso contractual, el proyecto sigue pendiente de confirmacion. Error: " + linesError.message);
       return;
     }
 
     const { error: statusError } = await supabase.from("apu_projects").update({ status: "AWARDED" }).eq("id", project.id);
     if (statusError) {
       setMessage("El asiento se registro (Nº" + nextNumber + "), pero hubo un error al actualizar el estado del proyecto: " + statusError.message);
-      if (companyId) await loadProjects(companyId);
+      await loadProjects(companyId);
       return;
     }
 
+    const { data: userData } = await supabase.auth.getUser();
+    const { data: pendingApproval } = await supabase.from("approvals").select("id").eq("company_id", companyId).eq("module", "APU_PROJECT_AWARD").eq("record_id", project.id).eq("status", "PENDING").order("created_at", { ascending: false }).limit(1).maybeSingle();
+    if (pendingApproval) {
+      await supabase.from("approvals").update({ status: "APPROVED", approved_by: userData?.user?.id ?? null }).eq("id", pendingApproval.id);
+    }
+
     setMessage("Proyecto adjudicado (asiento Nº" + nextNumber + "). Compromiso contractual por " + grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " registrado en Cuentas de Orden.");
-    if (companyId) await loadProjects(companyId);
+    await loadProjects(companyId);
+  }
+
+  async function rejectAward(project: any) {
+    if (!companyId) return;
+    if (!window.confirm("Rechazar esta solicitud de adjudicacion? El proyecto volvera a estado DRAFT sin registrar ningun asiento contable.")) return;
+
+    const { data: userData } = await supabase.auth.getUser();
+    const { data: pendingApproval } = await supabase.from("approvals").select("id").eq("company_id", companyId).eq("module", "APU_PROJECT_AWARD").eq("record_id", project.id).eq("status", "PENDING").order("created_at", { ascending: false }).limit(1).maybeSingle();
+    if (pendingApproval) {
+      await supabase.from("approvals").update({ status: "REJECTED", approved_by: userData?.user?.id ?? null }).eq("id", pendingApproval.id);
+    }
+
+    await supabase.from("apu_projects").update({ status: "DRAFT" }).eq("id", project.id);
+    setMessage("Solicitud de adjudicacion rechazada. El proyecto volvio a estado DRAFT.");
+    await loadProjects(companyId);
   }
 
   // Antes no existia forma de revertir una adjudicacion: si el proyecto se caia o
@@ -400,11 +468,23 @@ export default function ApuProjectsPage() {
               </Link>
               <p style={{ fontSize: 18, color: "#B0B8C8", marginTop: 4 }}>{p.project_description} - {p.contracting_entity}</p>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
-                <span style={{ fontSize: 16, color: p.status === "AWARDED" ? "#4ade80" : "#facc15", fontWeight: 700 }}>{p.status}</span>
+                <span style={{ fontSize: 16, color: p.status === "AWARDED" ? "#4ade80" : p.status === "PENDING_AWARD" ? "#facc15" : "#8B93A7", fontWeight: 700 }}>
+                  {p.status === "PENDING_AWARD" ? "PENDIENTE DE APROBACION" : p.status}
+                </span>
                 {p.status === "DRAFT" && (
-                  <button onClick={() => awardProject(p)} style={{ padding: "8px 16px", background: "none", border: "1px solid #4ade80", color: "#4ade80", borderRadius: 8, fontSize: 15, cursor: "pointer" }}>
-                    Marcar como Adjudicado
+                  <button onClick={() => requestAward(p)} style={{ padding: "8px 16px", background: "none", border: "1px solid #4ade80", color: "#4ade80", borderRadius: 8, fontSize: 15, cursor: "pointer" }}>
+                    Solicitar Adjudicacion
                   </button>
+                )}
+                {p.status === "PENDING_AWARD" && (
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button onClick={() => confirmAward(p)} style={{ padding: "8px 16px", background: "none", border: "1px solid #4ade80", color: "#4ade80", borderRadius: 8, fontSize: 15, cursor: "pointer" }}>
+                      Confirmar y Registrar
+                    </button>
+                    <button onClick={() => rejectAward(p)} style={{ padding: "8px 16px", background: "none", border: "1px solid #f87171", color: "#f87171", borderRadius: 8, fontSize: 15, cursor: "pointer" }}>
+                      Rechazar
+                    </button>
+                  </div>
                 )}
                 {p.status === "AWARDED" && (
                   <button onClick={() => unawardProject(p)} style={{ padding: "8px 16px", background: "none", border: "1px solid #f87171", color: "#f87171", borderRadius: 8, fontSize: 15, cursor: "pointer" }}>
