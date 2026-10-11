@@ -45,3 +45,30 @@ export async function POST(request: Request) {
   // auditoria), para que nadie pueda inyectar eventos en la cadena de
   // custodia de un caso de otra empresa.
   const { data: caseRow } = await supabase
+    .from("cases")
+    .select("id, company_id")
+    .eq("id", case_id)
+    .maybeSingle();
+  if (!caseRow) {
+    return NextResponse.json({ success: false, error: "Caso no encontrado." }, { status: 404 });
+  }
+
+  const { data: membership } = await supabase
+    .from("user_companies")
+    .select("company_id")
+    .eq("user_id", userData.user.id)
+    .eq("company_id", caseRow.company_id)
+    .maybeSingle();
+  if (!membership) {
+    return NextResponse.json({ success: false, error: "No perteneces a la empresa de este caso." }, { status: 403 });
+  }
+
+  try {
+    await eventBus.emit(type, { ...(payload ?? {}), case_id, actor_user_id: userData.user.id });
+  } catch (err: any) {
+    console.error("[LOG-EVENT ERROR]", err);
+    return NextResponse.json({ success: false, error: "No se pudo registrar el evento." }, { status: 500 });
+  }
+
+  return NextResponse.json({ success: true });
+}
