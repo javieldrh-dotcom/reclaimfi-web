@@ -85,5 +85,20 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
+  // VIEW_APU ya existia como permiso (y ya se usaba para decidir que
+  // mostrar en select-module/page.tsx y en el routing post-login de
+  // auth/callback/route.ts), pero nunca se aplicaba aqui - cualquier
+  // usuario logueado podia entrar a /apu/* directo por URL sin tener el
+  // permiso, aunque la UI se lo ocultara en la navegacion. Mismo patron
+  // que VIEW_ACCOUNTING/VIEW_RECLAIMFI arriba.
+  if (user && path.startsWith("/apu")) {
+    const allowed = await hasPermission(supabase, user.id, "VIEW_APU");
+    if (!allowed) {
+      const denyUrl = request.nextUrl.clone();
+      denyUrl.pathname = "/select-module";
+      return NextResponse.redirect(denyUrl);
+    }
+  }
+
   return supabaseResponse;
 }
