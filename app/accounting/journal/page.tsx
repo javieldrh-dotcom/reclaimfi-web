@@ -6,6 +6,7 @@ import VerticalPageLayout from "@/app/components/VerticalPageLayout";
 import { generateFinancialStatementPdf } from "@/app/core/reports/generateFinancialStatementPdf";
 import AccountSearchSelect from "@/app/components/AccountSearchSelect";
 import { generateProfessionalDiarioPdf } from "@/app/core/reports/generateProfessionalDiarioPdf";
+import { logCompanyLedgerEvent } from "@/app/lib/logLedgerEvent";
 interface Account { id: string; account_code: string; account_name: string; }
 interface Line { account_id: string; debit: string; credit: string; }
 
@@ -251,6 +252,13 @@ export default function JournalPage() {
     await supabase.from("journal_lines").insert(reversedLines);
 
     await supabase.from("journal_entries").update({ reversed_by_entry_id: newEntry.id }).eq("id", entry.id);
+
+    // Fase 5: cadena de custodia unificada - un reverso de asiento no
+    // pertenece a ningun caso forense, se encadena por empresa.
+    await logCompanyLedgerEvent("rf.journal_entry.reversed", companyId, {
+      original_entry_id: entry.id, original_entry_number: entry.entry_number,
+      reversal_entry_id: newEntry.id, reversal_entry_number: nextNumber,
+    });
 
     if (companyId) await loadEntries(companyId, selectedYear);
   }

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
 import VerticalPageLayout from "@/app/components/VerticalPageLayout";
+import { logCompanyLedgerEvent } from "@/app/lib/logLedgerEvent";
 
 export default function PeriodClosePage() {
   const theme = getVerticalTheme("accounting");
@@ -201,6 +202,17 @@ export default function PeriodClosePage() {
       await supabase.from("approvals").update({ status: "APPROVED", approved_by: userData?.user?.id ?? null }).eq("id", pendingApproval.id);
     }
 
+    // Fase 5: cadena de custodia unificada - dos eventos encadenados por
+    // empresa (no hay caso forense involucrado): la decision de aprobar,
+    // y el resultado concreto del cierre (asientos + resultado neto).
+    await logCompanyLedgerEvent("rf.period.close_approved", companyId, {
+      period_id: period.id, period_start: period.period_start, period_end: period.period_end,
+    });
+    await logCompanyLedgerEvent("rf.period.closed", companyId, {
+      period_id: period.id, period_start: period.period_start, period_end: period.period_end,
+      net_result: netResult, entry_numbers: [num1, num2, num3],
+    });
+
     setMessage("Periodo cerrado correctamente con 3 asientos NIIF (Nº" + num1 + ", " + num2 + ", " + num3 + "). Resultado: " + netResult.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
     setLoading(false);
     await loadPeriods(companyId);
@@ -217,6 +229,9 @@ export default function PeriodClosePage() {
     }
 
     await supabase.from("fiscal_periods").delete().eq("id", period.id);
+    await logCompanyLedgerEvent("rf.period.close_rejected", companyId, {
+      period_start: period.period_start, period_end: period.period_end,
+    });
     setMessage("Solicitud de cierre rechazada.");
     await loadPeriods(companyId);
   }

@@ -5,6 +5,7 @@ import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
 import VerticalPageLayout from "@/app/components/VerticalPageLayout";
 import { calcPartidaCost } from "@/app/core/apu/calcPartida";
+import { logCompanyLedgerEvent } from "@/app/lib/logLedgerEvent";
 
 export default function ApuProjectsPage() {
   const theme = getVerticalTheme("apu");
@@ -236,6 +237,10 @@ export default function ApuProjectsPage() {
     if (statusError) { setMessage("La solicitud se registro, pero hubo un error al actualizar el estado del proyecto: " + statusError.message); }
     else { setMessage("Adjudicacion solicitada. Queda pendiente de confirmacion por un Administrador antes de registrar el compromiso contractual."); }
 
+    await logCompanyLedgerEvent("rf.apu_project.status_changed", companyId, {
+      project_id: project.id, procedure_number: project.procedure_number, from: "DRAFT", to: "PENDING_AWARD",
+    });
+
     await loadProjects(companyId);
   }
 
@@ -301,6 +306,11 @@ export default function ApuProjectsPage() {
       await supabase.from("approvals").update({ status: "APPROVED", approved_by: userData?.user?.id ?? null }).eq("id", pendingApproval.id);
     }
 
+    await logCompanyLedgerEvent("rf.apu_project.status_changed", companyId, {
+      project_id: project.id, procedure_number: project.procedure_number, from: "PENDING_AWARD", to: "AWARDED",
+      journal_entry_id: entry.id, entry_number: nextNumber, amount: grandTotal,
+    });
+
     setMessage("Proyecto adjudicado (asiento Nº" + nextNumber + "). Compromiso contractual por " + grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " registrado en Cuentas de Orden.");
     await loadProjects(companyId);
   }
@@ -316,6 +326,9 @@ export default function ApuProjectsPage() {
     }
 
     await supabase.from("apu_projects").update({ status: "DRAFT" }).eq("id", project.id);
+    await logCompanyLedgerEvent("rf.apu_project.status_changed", companyId, {
+      project_id: project.id, procedure_number: project.procedure_number, from: "PENDING_AWARD", to: "DRAFT",
+    });
     setMessage("Solicitud de adjudicacion rechazada. El proyecto volvio a estado DRAFT.");
     await loadProjects(companyId);
   }
