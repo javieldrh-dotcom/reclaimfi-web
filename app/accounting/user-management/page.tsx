@@ -21,6 +21,12 @@ export default function UserManagementPage() {
   const [selectedRole, setSelectedRole] = useState("CONTADOR");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  // Solo informativo para la UI: la base de datos ya rechaza cualquier
+  // escritura en user_role_assignments de quien no sea ADMIN (politica
+  // is_company_admin() verificada en Supabase), asi que esto no es la
+  // proteccion real - es para no mostrarle a un CONTADOR/AUDITOR/SOLO_LECTURA
+  // controles que de todas formas le van a fallar en silencio.
+  const [isAdmin, setIsAdmin] = useState(false);
 
   async function loadAssignments(cid: string) {
     const { data: roleData } = await supabase
@@ -48,6 +54,14 @@ export default function UserManagementPage() {
         const { data: companyData } = await supabase.from("companies").select("name").eq("id", cid).single();
         setCompanyName(companyData?.name ?? "");
         await loadAssignments(cid);
+
+        const { data: myAssignment } = await supabase
+          .from("user_role_assignments")
+          .select("user_roles(name)")
+          .eq("user_id", userData.user.id)
+          .eq("company_id", cid)
+          .maybeSingle();
+        setIsAdmin((myAssignment as any)?.user_roles?.name === "ADMIN");
       }
     }
     load();
@@ -106,29 +120,39 @@ export default function UserManagementPage() {
       <div style={{ maxWidth: 700, margin: "0 auto" }}>
         <p style={{ fontSize: 15, color: "#8B93A7" }}>{companyName}</p>
 
-        <div style={{ ...theme.cardStyle, marginTop: 16 }}>
-          <p style={{ fontSize: 15, color: theme.accent, fontWeight: 700, marginBottom: 10 }}>Otorgar o Actualizar Acceso</p>
-          <input value={email} onChange={(e) => setEmail(e.target.value)} style={inputStyle} placeholder="Correo del usuario (debe estar ya registrado)" />
-          <select value={selectedRole} onChange={(e) => setSelectedRole(e.target.value)} style={{ ...inputStyle, marginTop: 8 }}>
-            {ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
-          </select>
-          <button onClick={grantAccess} disabled={loading} style={{ ...theme.buttonStyle, marginTop: 12 }}>
-            {loading ? "PROCESANDO..." : "OTORGAR ACCESO"}
-          </button>
-          {message && <p style={{ marginTop: 8, color: message.includes("no se encontro") || message.includes("no encontrado") ? "#f87171" : theme.accent }}>{message}</p>}
-        </div>
+        {isAdmin ? (
+          <div style={{ ...theme.cardStyle, marginTop: 16 }}>
+            <p style={{ fontSize: 15, color: theme.accent, fontWeight: 700, marginBottom: 10 }}>Otorgar o Actualizar Acceso</p>
+            <input value={email} onChange={(e) => setEmail(e.target.value)} style={inputStyle} placeholder="Correo del usuario (debe estar ya registrado)" />
+            <select value={selectedRole} onChange={(e) => setSelectedRole(e.target.value)} style={{ ...inputStyle, marginTop: 8 }}>
+              {ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
+            </select>
+            <button onClick={grantAccess} disabled={loading} style={{ ...theme.buttonStyle, marginTop: 12 }}>
+              {loading ? "PROCESANDO..." : "OTORGAR ACCESO"}
+            </button>
+            {message && <p style={{ marginTop: 8, color: message.includes("no se encontro") || message.includes("no encontrado") ? "#f87171" : theme.accent }}>{message}</p>}
+          </div>
+        ) : (
+          <div style={{ ...theme.cardStyle, marginTop: 16 }}>
+            <p style={{ fontSize: 14, color: "#8B93A7" }}>Solo un Administrador de esta empresa puede otorgar, cambiar o revocar accesos. Puedes ver quien tiene acceso abajo.</p>
+          </div>
+        )}
 
         <div style={{ marginTop: 24 }}>
           <h3 style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginBottom: 12 }}>Usuarios con Acceso</h3>
           {assignments.map((a) => (
             <div key={a.id} style={{ ...theme.cardStyle, marginTop: 10, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
               <span style={{ fontSize: 15 }}>{a.email}</span>
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <select value={a.roleName} onChange={(e) => changeRole(a.id, e.target.value)} style={{ ...inputStyle, padding: 8, fontSize: 13 }}>
-                  {ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
-                </select>
-                <button onClick={() => removeAccess(a.id)} style={{ background: "none", border: "1px solid #f87171", color: "#f87171", padding: "8px 12px", borderRadius: 8, cursor: "pointer", fontSize: 13 }}>Revocar</button>
-              </div>
+              {isAdmin ? (
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <select value={a.roleName} onChange={(e) => changeRole(a.id, e.target.value)} style={{ ...inputStyle, padding: 8, fontSize: 13 }}>
+                    {ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
+                  </select>
+                  <button onClick={() => removeAccess(a.id)} style={{ background: "none", border: "1px solid #f87171", color: "#f87171", padding: "8px 12px", borderRadius: 8, cursor: "pointer", fontSize: 13 }}>Revocar</button>
+                </div>
+              ) : (
+                <span style={{ fontSize: 13, color: "#8B93A7" }}>{ROLE_LABELS[a.roleName] ?? a.roleName}</span>
+              )}
             </div>
           ))}
           {assignments.length === 0 && <p style={{ color: "#8B93A7", marginTop: 10 }}>Sin usuarios asignados todavia.</p>}
