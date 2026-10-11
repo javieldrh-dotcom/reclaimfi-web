@@ -28,12 +28,31 @@ export async function ingestLedgerEvent(event: any) {
     (event.table === "cases" || event.type === "rf.case.created" ? event.payload?.id : null) ??
     null;
 
+  // Fase 5: eventos de Contabilidad/APU (cierre de periodo, reverso de
+  // asientos, cambio de estado de adjudicacion) no pertenecen a ningun
+  // caso forense -- se encadenan por empresa en su propia cadena
+  // independiente. Nunca se usan ambas claves a la vez: si hay caseId,
+  // companyId se ignora por completo (incluso si tambien vino en el
+  // payload) para que no queden eventos "sueltos" perteneciendo a dos
+  // cadenas distintas.
+  const companyId = caseId ? null : (event.payload?.company_id ?? event.payload?.companyId ?? null);
+
   let previousHash: string | null = null;
   if (caseId) {
     const { data: lastEvent } = await client
       .from("event_ledger")
       .select("event_hash")
       .eq("case_id", caseId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    previousHash = lastEvent?.event_hash ?? null;
+  } else if (companyId) {
+    const { data: lastEvent } = await client
+      .from("event_ledger")
+      .select("event_hash")
+      .is("case_id", null)
+      .eq("company_id", companyId)
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -53,6 +72,7 @@ export async function ingestLedgerEvent(event: any) {
     actor: event.actor ?? "system",
     session_id: event.sessionId ?? null,
     case_id: caseId,
+    company_id: companyId,
   };
 
   const { error } = await client.from("event_ledger").insert(record);

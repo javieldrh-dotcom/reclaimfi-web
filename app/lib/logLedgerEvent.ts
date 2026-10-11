@@ -21,3 +21,24 @@ export async function logLedgerEvent(type: string, caseId: string, payload: Reco
     console.error("[LEDGER LOG ERROR]", type, caseId, err);
   }
 }
+
+// Fase 5: variante para eventos de Contabilidad/APU (cierre de periodo,
+// reverso de asientos, cambio de estado de adjudicacion) que no
+// pertenecen a ningun caso forense -- se encadenan por empresa en vez de
+// por caso (ver ingestLedgerEvent en app/core/ledger-engine.ts). Mismo
+// patron "best-effort": nunca bloquea ni revierte la UI si falla.
+export async function logCompanyLedgerEvent(type: string, companyId: string, payload: Record<string, any> = {}) {
+  try {
+    const res = await fetch("/api/ledger/log-event", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type, company_id: companyId, payload }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      console.error("[LEDGER LOG ERROR]", type, companyId, body?.error || res.status);
+    }
+  } catch (err) {
+    console.error("[LEDGER LOG ERROR]", type, companyId, err);
+  }
+}

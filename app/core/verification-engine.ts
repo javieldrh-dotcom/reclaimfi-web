@@ -1,23 +1,31 @@
 import { supabase } from "@/app/lib/supabase";
 
 // La integridad de la cadena de custodia solo tiene sentido evaluada por
-// caso individual: cada caso tiene su propia cadena de hashes (ver
-// ledger-engine.ts). Verificar toda la tabla event_ledger junta mezclaria
-// eventos de casos y empresas distintas como si fueran una sola cadena.
-export async function verifyLedgerIntegrity(caseId: string) {
-  if (!caseId) {
+// cadena individual: cada caso tiene su propia cadena de hashes, y cada
+// empresa tiene ademas su propia cadena independiente para eventos sin
+// caso (cierre de periodo, reverso de asientos, adjudicacion APU - Fase
+// 5, ver ledger-engine.ts). Verificar toda la tabla event_ledger junta
+// mezclaria cadenas distintas como si fueran una sola.
+//
+// Se acepta tanto la firma vieja (un string = caseId, para no romper el
+// unico llamador existente, AuditLedgerView) como un objeto { caseId } o
+// { companyId } para verificar la cadena de una empresa.
+export async function verifyLedgerIntegrity(arg: string | { caseId?: string; companyId?: string }) {
+  const caseId = typeof arg === "string" ? arg : arg.caseId ?? null;
+  const companyId = typeof arg === "string" ? null : arg.companyId ?? null;
+
+  if (!caseId && !companyId) {
     return {
       valid: false,
-      message: "Se requiere un caso para verificar la cadena de custodia",
+      message: "Se requiere un caso o una empresa para verificar la cadena de custodia",
       brokenAt: null,
     };
   }
 
-  const { data, error } = await supabase
-    .from("event_ledger")
-    .select("*")
-    .eq("case_id", caseId)
-    .order("created_at", { ascending: true });
+  let query = supabase.from("event_ledger").select("*").order("created_at", { ascending: true });
+  query = caseId ? query.eq("case_id", caseId) : query.is("case_id", null).eq("company_id", companyId as string);
+
+  const { data, error } = await query;
 
   if (error) {
     console.error("[VERIFY ERROR]", error);
@@ -27,7 +35,7 @@ export async function verifyLedgerIntegrity(caseId: string) {
   if (!data || data.length === 0) {
     return {
       valid: true,
-      message: "No se encontraron eventos de cadena de custodia para este caso",
+      message: "No se encontraron eventos de cadena de custodia para " + (caseId ? "este caso" : "esta empresa"),
       brokenAt: null,
     };
   }
@@ -57,7 +65,7 @@ export async function verifyLedgerIntegrity(caseId: string) {
 
   return {
     valid: true,
-    message: "Cadena de custodia valida para este caso",
+    message: "Cadena de custodia valida para " + (caseId ? "este caso" : "esta empresa"),
     totalEvents: data.length,
   };
 }
