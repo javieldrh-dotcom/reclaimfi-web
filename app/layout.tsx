@@ -1,6 +1,7 @@
 ﻿import "./globals.css";
 import type { Metadata } from "next";
 import { IBM_Plex_Serif, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
+import PageVisitTracker from "./components/PageVisitTracker";
 
 const plexSerif = IBM_Plex_Serif({
   subsets: ["latin"],
@@ -32,7 +33,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es" className={plexSerif.variable + " " + plexSans.variable + " " + plexMono.variable}>
-      <body>{children}</body>
+      <body>
+        <PageVisitTracker />
+        {children}
+      </body>
     </html>
   );
 }

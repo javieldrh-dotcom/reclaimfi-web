@@ -60,6 +60,59 @@ export default function AdminDashboard() {
         </div>
       </div>
 
+      <h2 style={{ marginTop: 40, fontSize: 22, color: "#2DD4BF", fontWeight: 700 }}>Suscripciones</h2>
+      <div style={{ marginTop: 16, ...rowStyle }}>
+        <div style={{ ...cardStyle, minWidth: 200, flexShrink: 0, border: "1px solid #2DD4BF40" }}>
+          <p style={{ fontSize: 13, color: "#8B93A7" }}>ACTIVAS / SOLVENTES</p>
+          <p style={{ fontSize: 32, fontWeight: 900, marginTop: 6, color: "#2DD4BF" }}>{stats.subscriptions?.active ?? 0}</p>
+        </div>
+        <div style={{ ...cardStyle, minWidth: 200, flexShrink: 0, border: "1px solid #F8717140" }}>
+          <p style={{ fontSize: 13, color: "#8B93A7" }}>VENCIDAS</p>
+          <p style={{ fontSize: 32, fontWeight: 900, marginTop: 6, color: "#F87171" }}>{stats.subscriptions?.expired ?? 0}</p>
+        </div>
+        <Link href="/admin/subscriptions" style={{ ...quickCard("#2DD4BF"), minWidth: 200, display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center" as const }}>
+          Ver detalle de suscripciones →
+        </Link>
+      </div>
+
+      <h2 style={{ marginTop: 40, fontSize: 22, color: "#facc15", fontWeight: 700 }}>Control de Visitas</h2>
+      <div style={{ marginTop: 16, ...rowStyle }}>
+        <div style={{ ...cardStyle, minWidth: 180, flexShrink: 0 }}>
+          <p style={{ fontSize: 13, color: "#8B93A7" }}>VISITAS (24H)</p>
+          <p style={{ fontSize: 32, fontWeight: 900, marginTop: 6 }}>{stats.visits?.last24h ?? 0}</p>
+        </div>
+        <div style={{ ...cardStyle, minWidth: 180, flexShrink: 0 }}>
+          <p style={{ fontSize: 13, color: "#8B93A7" }}>VISITAS (7 DIAS)</p>
+          <p style={{ fontSize: 32, fontWeight: 900, marginTop: 6 }}>{stats.visits?.last7d ?? 0}</p>
+        </div>
+        <div style={{ ...cardStyle, minWidth: 180, flexShrink: 0 }}>
+          <p style={{ fontSize: 13, color: "#8B93A7" }}>VISITAS (30 DIAS)</p>
+          <p style={{ fontSize: 32, fontWeight: 900, marginTop: 6 }}>{stats.visits?.last30d ?? 0}</p>
+        </div>
+        <div style={{ ...cardStyle, minWidth: 180, flexShrink: 0 }}>
+          <p style={{ fontSize: 13, color: "#8B93A7" }}>VISITANTES UNICOS (7D)</p>
+          <p style={{ fontSize: 32, fontWeight: 900, marginTop: 6, color: "#818CF8" }}>{stats.visits?.uniqueVisitors7d ?? 0}</p>
+        </div>
+        <div style={{ ...cardStyle, minWidth: 180, flexShrink: 0 }}>
+          <p style={{ fontSize: 13, color: "#8B93A7" }}>VISITAS TOTALES</p>
+          <p style={{ fontSize: 32, fontWeight: 900, marginTop: 6, color: "#2DD4BF" }}>{stats.visits?.total ?? 0}</p>
+        </div>
+      </div>
+
+      {stats.visits?.topPages7d?.length > 0 && (
+        <div style={{ marginTop: 20 }}>
+          <p style={{ fontSize: 14, color: "#8B93A7" }}>Paginas mas visitadas (ultimos 7 dias)</p>
+          <div style={{ marginTop: 10 }}>
+            {stats.visits.topPages7d.map((p: any) => (
+              <div key={p.path} style={{ display: "flex", justifyContent: "space-between", padding: "8px 16px", background: "#0d1117", border: "1px solid #1a3050", borderRadius: 8, marginBottom: 6 }}>
+                <span style={{ fontSize: 13, color: "#e5e7eb", fontFamily: "monospace" }}>{p.path}</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "#facc15" }}>{p.count}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <h2 style={{ marginTop: 40, fontSize: 22, color: "#facc15", fontWeight: 700 }}>Distribucion de Planes</h2>
       <div style={{ marginTop: 16, ...rowStyle }}>
         {Object.entries(stats.planBreakdown).length === 0 ? (
