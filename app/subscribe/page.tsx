@@ -184,6 +184,57 @@ function SubscribePageContent() {
 
   const inputStyle = { background: "#0d1117", border: "1px solid #1a3050", borderRadius: 8, padding: 10, color: "white", width: "100%" };
 
+  // Separacion de metodos de pago en dos niveles -- no por "global vs
+  // Venezuela" (eso excluiria crypto, que tambien es internacional), sino
+  // por lo que realmente los distingue en este sistema: PAYPAL es el unico
+  // metodo con activacion automatica e instantanea (verificado servidor a
+  // servidor contra la API de PayPal, ver /api/subscriptions/paypal-confirm);
+  // todo lo demas (Binance Pay, Zinli, Pago Movil/transferencias bancarias)
+  // requiere subir un comprobante y esperar verificacion manual de un
+  // administrador (ver /api/subscriptions/request). Mostrar hoy todos los
+  // metodos en una sola cuadricula con el mismo peso visual es lo que hace
+  // que Pago Movil "compita" visualmente con PayPal y de la impresion de
+  // informalidad. Separandolos y explicando la diferencia real (activacion
+  // instantanea vs verificacion manual), PayPal queda como la opcion
+  // principal/recomendada -- que ademas ya cubre el caso de uso de "pagar
+  // con tarjeta sin cuenta" que motiva pedir Google Pay, porque el boton de
+  // PayPal permite pagar con tarjeta de debito/credito sin iniciar sesion en
+  // PayPal -- y los demas metodos quedan claramente rotulados como opciones
+  // adicionales, sin eliminar ninguno (son necesarios para clientes que no
+  // tienen tarjeta internacional).
+  const AUTOMATIC_METHOD_CODES = new Set(["PAYPAL"]);
+  const automaticMethods = paymentMethods.filter((m) => AUTOMATIC_METHOD_CODES.has(m.method_code));
+  const manualMethods = paymentMethods.filter((m) => !AUTOMATIC_METHOD_CODES.has(m.method_code));
+
+  function renderMethodCard(m: any, size: "large" | "small") {
+    const logoFile = m.method_code === "BINANCE_PAY" ? "binance.png" :
+                      m.method_code === "ZINLI" ? "zinli.png" :
+                      m.method_code === "PAYPAL" ? "paypal.png" :
+                      m.method_code.includes("BANESCO") ? "banesco.png" :
+                      "banco-venezuela.png";
+    const bgSize = m.method_code === "ZINLI" ? "contain" : "cover";
+    const isSelected = selectedMethod?.id === m.id;
+    const minHeight = size === "large" ? 110 : 80;
+    return (
+      <div key={m.id} onClick={() => setSelectedMethod(m)} style={{ cursor: "pointer" }}>
+        <div
+          className="sub-logo-card" style={{
+            borderRadius: 18,
+            backgroundImage: "url(/logos/" + logoFile + ")",
+            backgroundSize: bgSize,
+            backgroundPosition: "center",
+            backgroundRepeat: "no-repeat",
+            backgroundColor: "white",
+            border: isSelected ? "3px solid #2DD4BF" : "3px solid transparent",
+            boxShadow: isSelected ? "0 10px 40px #2DD4BF60" : "0 6px 20px rgba(0,0,0,0.3)",
+            minHeight,
+          }}
+        />
+        <p style={{ textAlign: "center", fontSize: size === "large" ? 13 : 12, color: "#8B93A7", marginTop: 8, fontWeight: 600 }}>{m.method_name}</p>
+      </div>
+    );
+  }
+
   return (
     <div style={{ position: "relative", minHeight: "100vh", background: "#0B0E14", color: "white", fontFamily: "'IBM Plex Sans', sans-serif", overflow: "hidden" }}>
       <style>{`
@@ -263,35 +314,35 @@ function SubscribePageContent() {
         </div>
 
         <h2 style={{ marginTop: 48, fontSize: 22, color: "#8B93A7", fontWeight: 700 }}>2. Elige tu Metodo de Pago</h2>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 24, marginTop: 20, maxWidth: 1300 }}>
-          {paymentMethods.map((m) => {
-            const logoFile = m.method_code === "BINANCE_PAY" ? "binance.png" :
-                              m.method_code === "ZINLI" ? "zinli.png" :
-                              m.method_code === "PAYPAL" ? "paypal.png" :
-                              m.method_code.includes("BANESCO") ? "banesco.png" :
-                              "banco-venezuela.png";
-            const bgSize = m.method_code === "ZINLI" ? "contain" : "cover";
-            const isSelected = selectedMethod?.id === m.id;
-            return (
-              <div key={m.id} onClick={() => setSelectedMethod(m)} style={{ cursor: "pointer" }}>
-                <div
-                  className="sub-logo-card" style={{
-                    borderRadius: 18,
-                    backgroundImage: "url(/logos/" + logoFile + ")",
-                    backgroundSize: bgSize,
-                    backgroundPosition: "center",
-                    backgroundRepeat: "no-repeat",
-                    backgroundColor: "white",
-                    border: isSelected ? "3px solid #2DD4BF" : "3px solid transparent",
-                    boxShadow: isSelected ? "0 10px 40px #2DD4BF60" : "0 6px 20px rgba(0,0,0,0.3)",
-                    minHeight: 100,
-                  }}
-                />
-                <p style={{ textAlign: "center", fontSize: 13, color: "#8B93A7", marginTop: 8, fontWeight: 600 }}>{m.method_name}</p>
-              </div>
-            );
-          })}
-        </div>
+
+        {automaticMethods.length > 0 && (
+          <>
+            <p style={{ marginTop: 10, fontSize: 14, color: "#2DD4BF", fontWeight: 700, letterSpacing: 0.3 }}>
+              RECOMENDADO · ACTIVACION INSTANTANEA
+            </p>
+            <p style={{ marginTop: 4, fontSize: 14, color: "#8B93A7", maxWidth: 650 }}>
+              Paga con tarjeta de debito/credito o con tu cuenta de PayPal. Tu acceso se activa de inmediato, sin esperar verificacion manual.
+            </p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 24, marginTop: 16, maxWidth: 1300 }}>
+              {automaticMethods.map((m) => renderMethodCard(m, "large"))}
+            </div>
+          </>
+        )}
+
+        {manualMethods.length > 0 && (
+          <>
+            <p style={{ marginTop: 32, fontSize: 14, color: "#8B93A7", fontWeight: 700, letterSpacing: 0.3 }}>
+              OTRAS OPCIONES · VERIFICACION MANUAL
+            </p>
+            <p style={{ marginTop: 4, fontSize: 13, color: "#6b7280", maxWidth: 650 }}>
+              Transferencia, Pago Movil o billetera cripto. Sube tu comprobante y un administrador activara tu acceso (usualmente el mismo dia habil).
+            </p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 18, marginTop: 14, maxWidth: 1300, opacity: 0.92 }}>
+              {manualMethods.map((m) => renderMethodCard(m, "small"))}
+            </div>
+          </>
+        )}
+
         {paymentMethods.length === 0 && (
           <p style={{ marginTop: 20, color: "#8B93A7", fontSize: 15 }}>Cargando metodos de pago...</p>
         )}
