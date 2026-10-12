@@ -7,6 +7,11 @@ export default function AdminDashboard() {
   const [error, setError] = useState("");
   const [stats, setStats] = useState<any>(null);
 
+  const [maintenanceMode, setMaintenanceMode] = useState<boolean | null>(null);
+  const [maintenanceMessage, setMaintenanceMessage] = useState("");
+  const [maintenanceSaving, setMaintenanceSaving] = useState(false);
+  const [maintenanceNote, setMaintenanceNote] = useState("");
+
   useEffect(() => {
     async function load() {
       try {
@@ -22,8 +27,62 @@ export default function AdminDashboard() {
       }
       setLoading(false);
     }
+    async function loadMaintenance() {
+      try {
+        const res = await fetch("/api/admin/maintenance");
+        const json = await res.json();
+        if (json.success && json.config) {
+          setMaintenanceMode(!!json.config.maintenance_mode);
+          setMaintenanceMessage(json.config.maintenance_message ?? "");
+        }
+      } catch {
+        // el panel sigue siendo utilizable aunque esto falle; solo no se
+        // muestra la tarjeta de mantenimiento
+      }
+    }
     load();
+    loadMaintenance();
   }, []);
+
+  async function toggleMaintenance() {
+    if (maintenanceMode === null) return;
+    setMaintenanceSaving(true);
+    setMaintenanceNote("");
+    try {
+      const res = await fetch("/api/admin/maintenance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ maintenanceMode: !maintenanceMode }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setMaintenanceMode(!!json.config.maintenance_mode);
+        setMaintenanceNote(json.config.maintenance_mode ? "Sitio oculto al publico (modo mantenimiento activo)." : "Sitio visible al publico.");
+      } else {
+        setMaintenanceNote("Error: " + json.error);
+      }
+    } catch (e: any) {
+      setMaintenanceNote("Error: " + e.message);
+    }
+    setMaintenanceSaving(false);
+  }
+
+  async function saveMaintenanceMessage() {
+    setMaintenanceSaving(true);
+    setMaintenanceNote("");
+    try {
+      const res = await fetch("/api/admin/maintenance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ maintenanceMessage }),
+      });
+      const json = await res.json();
+      setMaintenanceNote(json.success ? "Mensaje actualizado." : "Error: " + json.error);
+    } catch (e: any) {
+      setMaintenanceNote("Error: " + e.message);
+    }
+    setMaintenanceSaving(false);
+  }
 
   if (loading) return <div style={{ padding: 40, color: "#7dd3fc", fontSize: 20, background: "#0B0E14", minHeight: "100vh" }}>Cargando...</div>;
   if (error) return <div style={{ padding: 40, color: "#f87171", fontSize: 18, background: "#0B0E14", minHeight: "100vh" }}>{error}</div>;
@@ -40,6 +99,58 @@ export default function AdminDashboard() {
     <div style={{ padding: 40, color: "white", minHeight: "100vh", background: "#0B0E14" }}>
       <h1 style={{ fontSize: 32, fontWeight: 900, color: "#facc15" }}>Panel del Propietario</h1>
       <p style={{ marginTop: 6, color: "#9ca3af", fontSize: 15 }}>Vision global real de toda la plataforma - visible unicamente para ti.</p>
+
+      {maintenanceMode !== null && (
+        <div style={{
+          marginTop: 24, padding: 22, borderRadius: 14, maxWidth: 1300,
+          background: maintenanceMode ? "#F8717115" : "#2DD4BF15",
+          border: "1px solid " + (maintenanceMode ? "#F8717160" : "#2DD4BF60"),
+        }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, flexWrap: "wrap" }}>
+            <div>
+              <p style={{ fontSize: 15, fontWeight: 800, color: maintenanceMode ? "#F87171" : "#2DD4BF" }}>
+                {maintenanceMode ? "SITIO EN CONSTRUCCION — oculto al publico" : "SITIO VISIBLE AL PUBLICO"}
+              </p>
+              <p style={{ marginTop: 4, fontSize: 13, color: "#8B93A7", maxWidth: 560 }}>
+                {maintenanceMode
+                  ? "Cualquier visitante (menos tu) ve la pagina de mantenimiento en vez de la landing o la app."
+                  : "La landing publica y la app ya son visibles para cualquier visitante."}
+              </p>
+            </div>
+            <button
+              onClick={toggleMaintenance}
+              disabled={maintenanceSaving}
+              style={{
+                padding: "12px 24px", borderRadius: 10, border: "none", fontWeight: 800, fontSize: 14, cursor: maintenanceSaving ? "default" : "pointer",
+                background: maintenanceMode ? "#2DD4BF" : "#F87171", color: "#0B0E14", opacity: maintenanceSaving ? 0.6 : 1, whiteSpace: "nowrap",
+              }}
+            >
+              {maintenanceSaving ? "Guardando..." : maintenanceMode ? "Publicar sitio" : "Ocultar sitio (mantenimiento)"}
+            </button>
+          </div>
+
+          <div style={{ marginTop: 16 }}>
+            <label style={{ fontSize: 12, color: "#8B93A7", fontWeight: 700 }}>MENSAJE EN LA PANTALLA DE MANTENIMIENTO</label>
+            <textarea
+              value={maintenanceMessage}
+              onChange={(e) => setMaintenanceMessage(e.target.value)}
+              rows={2}
+              style={{ marginTop: 6, width: "100%", maxWidth: 760, background: "#0d1117", border: "1px solid #1a3050", borderRadius: 8, padding: 10, color: "white", fontSize: 14, fontFamily: "inherit", resize: "vertical" }}
+            />
+            <div>
+              <button
+                onClick={saveMaintenanceMessage}
+                disabled={maintenanceSaving}
+                style={{ marginTop: 8, padding: "8px 16px", borderRadius: 8, border: "1px solid #1a3050", background: "#0d1117", color: "#8B93A7", fontSize: 13, fontWeight: 700, cursor: maintenanceSaving ? "default" : "pointer" }}
+              >
+                Guardar mensaje
+              </button>
+            </div>
+          </div>
+
+          {maintenanceNote && <p style={{ marginTop: 10, fontSize: 13, color: maintenanceNote.startsWith("Error") ? "#F87171" : "#2DD4BF" }}>{maintenanceNote}</p>}
+        </div>
+      )}
 
       <div style={{ marginTop: 30, ...rowStyle }}>
         <div style={{ ...cardStyle, minWidth: 200, flexShrink: 0 }}>
