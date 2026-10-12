@@ -57,6 +57,7 @@ const navItems = [
     groupLabel: "CIERRE Y REPORTES",
     items: [
       { href: "/accounting/period-close", label: "Cierre de Ejercicio" },
+      { href: "/accounting/memorandum-accounts", label: "Cuentas de Orden" },
       { href: "/accounting/financial-notes", label: "Notas a Estados Financieros" },
       { href: "/accounting/professional-reports", label: "Certificaciones y Constancias" },
       { href: "/accounting/integrity-seals", label: "Sellos de Integridad" },
