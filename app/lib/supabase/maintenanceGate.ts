@@ -4,7 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
 // Modo mantenimiento: mientras la plataforma esta en construccion, ningun
 // visitante (ni la landing publica ni el sistema logueado) debe poder verla
 // salvo el propietario. El interruptor vive en la tabla platform_config
-// (lectura publica via RLS, ver migracion 2026-10-11c-platform-config.sql)
+// (lectura publica via RLS, ver migracion supabase/migrations/2026-10-11-platform-config.sql)
 // en vez de una variable de entorno de Vercel, para que Javiel pueda
 // apagarlo desde el Panel del Propietario (/api/admin/maintenance) sin
 // esperar un redeploy.

@@ -4,7 +4,7 @@ import { createClient as createServiceClient } from "@supabase/supabase-js";
 
 // Lee y cambia el interruptor de modo mantenimiento (ver
 // app/lib/supabase/maintenanceGate.ts y la migracion
-// 2026-10-11c-platform-config.sql). Gateado al propietario de la
+// supabase/migrations/2026-10-11-platform-config.sql). Gateado al propietario de la
 // plataforma, mismo patron que el resto de /api/admin/*. Escribe con
 // service_role porque platform_config no tiene ninguna politica de
 // insert/update/delete a proposito -- solo esta ruta puede cambiarlo.

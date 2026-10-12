@@ -1,0 +1,46 @@
+-- Interruptor de "modo mantenimiento": mientras la plataforma esta en
+-- construccion, ningun visitante debe poder verla en produccion salvo el
+-- propietario. Vive en una tabla (no en una variable de entorno de Vercel)
+-- a proposito: una fila de Supabase se puede apagar desde el Panel del
+-- Propietario al instante, sin esperar un redeploy.
+--
+-- NOTA: esta migracion se corrio manualmente en el SQL Editor de Supabase
+-- el 2026-10-11, antes de que supabase/migrations/ quedara establecida
+-- como el canal unico para cambios de esquema (ver Fase 3 de la hoja de
+-- ruta "ReclaimFi a Nivel Profesional"). Se retro-documenta aqui para que
+-- el repo deje de estar en blanco sobre ella -- ya aplicada en produccion,
+-- este archivo es idempotente (if not exists / on conflict do nothing) por
+-- si se vuelve a correr.
+create table if not exists public.platform_config (
+  id text primary key,
+  maintenance_mode boolean not null default true,
+  maintenance_message text,
+  updated_at timestamptz not null default now()
+);
+
+comment on table public.platform_config is
+  'Configuracion global de la plataforma (una sola fila, id=''default''). maintenance_mode controla si app/proxy.ts (ver app/lib/supabase/maintenanceGate.ts) muestra /mantenimiento a todo visitante que no sea el propietario.';
+
+insert into public.platform_config (id, maintenance_mode, maintenance_message)
+values ('default', true, 'Estamos construyendo algo nuevo. Audit Global Intelligence estara disponible muy pronto.')
+on conflict (id) do nothing;
+
+alter table public.platform_config enable row level security;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'platform_config' and policyname = 'platform_config_public_read'
+  ) then
+    create policy "platform_config_public_read" on public.platform_config
+      for select
+      to anon, authenticated
+      using (true);
+  end if;
+end $$;
+
+-- Sin ninguna politica de insert/update/delete a proposito (mismo patron
+-- de "seguridad por ausencia de politica" que event_ledger y page_visits):
+-- solo app/api/admin/maintenance/route.ts, gateado al propietario y usando
+-- service_role, puede cambiar el valor.
