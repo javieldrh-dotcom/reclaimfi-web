@@ -32,7 +32,7 @@ export default function MantenimientoPage() {
         @keyframes pulseGlow { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
         .maint-glow { animation: pulseGlow 2.5s ease-in-out infinite; }
       `}</style>
-      <div style={{ position: "relative", zIndex: 1, textAlign: "center", padding: "0 32px", maxWidth: 640 }}>
+      <div style={{ position: "relative", zIndex: 1, textAlign: "center", padding: "0 32px", maxWidth: 640, margin: "0 auto" }}>
         <p className="maint-glow" style={{ fontSize: 13, fontWeight: 700, letterSpacing: 2, color: "#2DD4BF", textTransform: "uppercase" }}>
           En Construccion
         </p>
