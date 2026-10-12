@@ -7,6 +7,7 @@ import { generateFinancialStatementPdf } from "@/app/core/reports/generateFinanc
 import AccountSearchSelect from "@/app/components/AccountSearchSelect";
 import { generateProfessionalDiarioPdf } from "@/app/core/reports/generateProfessionalDiarioPdf";
 import { logCompanyLedgerEvent } from "@/app/lib/logLedgerEvent";
+import { findLockingPeriod } from "@/app/lib/accounting/periodLock";
 interface Account { id: string; account_code: string; account_name: string; }
 interface Line { account_id: string; debit: string; credit: string; }
 
@@ -194,8 +195,9 @@ export default function JournalPage() {
     if (Math.abs(d - c) > 0.01 || d === 0) { setMessage("El asiento no cuadra."); return; }
     const rate = parseFloat(exchangeRate) || 1;
     if (editingEntryId) {
-      const { data: closedPeriodsEdit } = await supabase.from("fiscal_periods").select("period_start, period_end").eq("company_id", companyId).lte("period_start", entryDateInput).gte("period_end", entryDateInput);
-      if (closedPeriodsEdit && closedPeriodsEdit.length > 0) { setMessage("No se puede editar: la fecha pertenece a un periodo fiscal ya cerrado (" + closedPeriodsEdit[0].period_start + " a " + closedPeriodsEdit[0].period_end + ")."); return; }
+      const { data: periodsForCompany } = await supabase.from("fiscal_periods").select("period_start, period_end").eq("company_id", companyId);
+      const lockingPeriod = findLockingPeriod(entryDateInput, periodsForCompany ?? []);
+      if (lockingPeriod) { setMessage("No se puede editar: la fecha pertenece a un periodo fiscal ya cerrado (" + lockingPeriod.period_start + " a " + lockingPeriod.period_end + ")."); return; }
       const { error: eUpd } = await supabase.from("journal_entries").update({ description, entry_date: entryDateInput }).eq("id", editingEntryId);
       if (eUpd) { setMessage("Error: " + eUpd.message); return; }
       await supabase.from("journal_lines").delete().eq("journal_entry_id", editingEntryId);
@@ -225,8 +227,9 @@ export default function JournalPage() {
   async function reverseEntry(entry: any) {
     if (!companyId) return;
     if (entry.reversed_by_entry_id) { alert("Este asiento ya fue reversado anteriormente. No se puede reversar dos veces."); return; }
-    const { data: closedPeriods } = await supabase.from("fiscal_periods").select("period_start, period_end").eq("company_id", companyId).lte("period_start", entry.entry_date).gte("period_end", entry.entry_date);
-    if (closedPeriods && closedPeriods.length > 0) { alert("Este asiento pertenece a un periodo fiscal ya cerrado (" + closedPeriods[0].period_start + " a " + closedPeriods[0].period_end + "). No se puede reversar un asiento de un periodo cerrado."); return; }
+    const { data: periodsForReversal } = await supabase.from("fiscal_periods").select("period_start, period_end").eq("company_id", companyId);
+    const lockingPeriodForReversal = findLockingPeriod(entry.entry_date, periodsForReversal ?? []);
+    if (lockingPeriodForReversal) { alert("Este asiento pertenece a un periodo fiscal ya cerrado (" + lockingPeriodForReversal.period_start + " a " + lockingPeriodForReversal.period_end + "). No se puede reversar un asiento de un periodo cerrado."); return; }
     const confirmMsg = "Se creara un asiento nuevo con las cifras invertidas de Nº" + (entry.entry_number ?? "S/N") + ". El asiento original permanecera visible. Confirmar?";
     if (!window.confirm(confirmMsg)) return;
 
