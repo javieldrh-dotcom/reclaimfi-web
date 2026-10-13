@@ -29,6 +29,11 @@ const ALLOWED_EVENT_TYPES = new Set([
   "rf.period.close_rejected",
   "rf.journal_entry.reversed",
   "rf.apu_project.status_changed",
+  // Cuentas de orden (memorandum accounts): registro de movimientos,
+  // encadenado por company_id. Faltaba en esta lista, por lo que cada
+  // intento de registrarlo era rechazado en silencio (ver auditoria de
+  // Fase 3 — mismo patron que el bug corregido en external_api_keys).
+  "rf.memorandum_account.movement_registered",
   // Fase 4: firma de integridad de reportes exportables. Se usa con
   // case_id (auditoria forense) o company_id (APU, contabilidad NISR 4410)
   // segun el modulo que exporta.
