@@ -44,6 +44,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "No autenticado." }, { status: 401 });
     }
 
+    // Mismo limite que su hermano /api/subscriptions/paypal-confirm: cada
+    // llamada verifica contra la API real de PayPal, asi que sin este
+    // limite un loop del cliente (o un reintento automatico mal escrito)
+    // podria agotar la cuota de la cuenta de PayPal. Esta ruta se habia
+    // quedado sin el, a diferencia de su hermano -- se corrige aqui.
+    const { data: allowed } = await supabase.rpc("check_rate_limit", { p_endpoint: "ar-invoices-paypal-confirm", p_max_requests: 10, p_window_seconds: 60 });
+    if (!allowed) {
+      return NextResponse.json({ success: false, error: "Demasiadas solicitudes. Espera un momento." }, { status: 429 });
+    }
+
     const body = await request.json().catch(() => ({} as any));
     const invoiceId: string | undefined = body?.invoiceId;
     const paypalOrderId: string | undefined = body?.paypalOrderId;
