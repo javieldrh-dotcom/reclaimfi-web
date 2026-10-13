@@ -3,9 +3,35 @@ import createNextIntlPlugin from 'next-intl/plugin';
 
 const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
 
+// Cabeceras de seguridad de bajo riesgo (ninguna de estas depende de
+// listar dominios externos, asi que no hay riesgo de romper PayPal,
+// Supabase o Sentry por una lista incompleta). No se incluye
+// Content-Security-Policy aqui: hacerlo bien requeriria listar cada
+// dominio externo que el navegador necesita contactar (PayPal SDK,
+// Supabase realtime vía wss://, etc.) y verificarlo contra el sitio
+// real en un navegador, algo que no se puede probar desde este
+// entorno -- una CSP mal calibrada rompe el checkout o el login en
+// silencio. Queda como mejora pendiente, a implementar probando
+// contra el sitio real antes de desplegar.
+const securityHeaders = [
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "X-Frame-Options", value: "DENY" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+  { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
+];
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true
+  reactStrictMode: true,
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: securityHeaders,
+      },
+    ];
+  },
 };
 
 export default withSentryConfig(withNextIntl(nextConfig), {
