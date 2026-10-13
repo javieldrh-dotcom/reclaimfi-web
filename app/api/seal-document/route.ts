@@ -10,6 +10,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "No autenticado." }, { status: 401 });
     }
 
+    // Cada sello escribe en la cadena de custodia (blockchain_seals); sin
+    // limite, un bucle podria inflar esa cadena con sellos vacios.
+    const { data: allowed } = await supabase.rpc("check_rate_limit", { p_endpoint: "seal-document", p_max_requests: 20, p_window_seconds: 60 });
+    if (!allowed) {
+      return NextResponse.json({ success: false, error: "Demasiadas solicitudes. Espera un momento." }, { status: 429 });
+    }
+
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
     const companyId = formData.get("companyId") as string;
