@@ -10,6 +10,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "No autenticado." }, { status: 401 });
     }
 
+    // Analiza con IA; sin limite, un script podia llamar esto en bucle y
+    // generar costo de IA sin tope (mismo riesgo que apu-suggest/chat-query,
+    // que ya usan este mismo patron).
+    const { data: allowed } = await supabase.rpc("check_rate_limit", { p_endpoint: "unified-narrative", p_max_requests: 15, p_window_seconds: 60 });
+    if (!allowed) {
+      return NextResponse.json({ success: false, error: "Demasiadas solicitudes. Espera un momento." }, { status: 429 });
+    }
+
     const { caseId } = await request.json();
     if (!caseId) {
       return NextResponse.json({ success: false, error: "Falta el ID del caso." }, { status: 400 });
