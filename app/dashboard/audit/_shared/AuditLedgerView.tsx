@@ -137,6 +137,15 @@ export default function AuditLedgerView({ title, caseTypeFilter, showSectorFilte
             </select>
           </label>
         )}
+
+        {/* Materialidad + riesgo por asercion (Fase 7) solo aplican a
+            auditoria financiera -- un caso de trazabilidad cripto no tiene
+            "aserciones de estados financieros" que evaluar. */}
+        {showSectorFilter && selectedCaseId && (
+          <a href={"/dashboard/audit/planning?case=" + selectedCaseId} style={{ color: "#60a5fa", textDecoration: "none", border: "1px solid #60a5fa", borderRadius: 6, padding: "4px 10px", fontSize: 14 }}>
+            Planificacion (Materialidad / Riesgo)
+          </a>
+        )}
       </div>
 
       <div style={{ marginBottom: 20 }}>
