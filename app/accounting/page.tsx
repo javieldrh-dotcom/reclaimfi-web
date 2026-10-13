@@ -100,7 +100,8 @@ export default function AccountingDashboard() {
         <Link href="/accounting/fixed-assets" style={quickCard("#2DD4BF")}>Activos Fijos</Link>
         <Link href="/accounting/inventory" style={quickCard("#2DD4BF")}>Inventario de Mercancia</Link>
         <Link href="/accounting/payroll" style={quickCard("#2DD4BF")}>Nomina</Link>
-        <Link href="/accounting/bank-reconciliation" style={quickCard("#2DD4BF")}>Conciliacion Bancaria</Link>
+        <Link href="/accounting/bank-accounts" style={quickCard("#2DD4BF")}>Cuentas Bancarias</Link>
+        <Link href="/accounting/bank-reconciliation" style={quickCard("#2DD4BF")}>Conciliacion Bancaria (texto libre)</Link>
       </div>
 
       <h2 style={{ marginTop: 40, fontSize: 22, color: "#FB923C", fontWeight: 700 }}>Modulo Fiscal</h2>
