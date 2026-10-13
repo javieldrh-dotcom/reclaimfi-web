@@ -8,6 +8,54 @@ import { createClient } from "@/app/lib/supabase/client";
 // email+contrasena (nuevo, requiere que el usuario ya haya establecido una
 // contrasena desde /security). Se deja el magic link como respaldo para
 // quien aun no fijo contrasena.
+//
+// A donde redirigir tras entrar: el flujo de magic link
+// (app/auth/callback/route.ts) ya decide esto correctamente -- dueno de
+// la plataforma siempre a /select-module, cliente con un solo modulo
+// derecho a ese modulo, con varios al selector, sin ninguno a
+// /subscribe. El login por contrasena hacia router.push("/dashboard")
+// fijo sin mirar nada de esto, asi que todo cliente (y el propio dueno)
+// entraba siempre directo a ReclaimFi en vez de ver "Selecciona tu
+// Modulo". Se replica aqui la misma logica, en el cliente.
+const PLATFORM_OWNER_EMAIL = "javiel.ramirez@gmail.com";
+const PLATFORM_OWNER_ID = "a56f197e-a532-4d3c-9f08-5b5b3a4d7b7a";
+
+async function resolvePostLoginDestination(
+  supabase: ReturnType<typeof createClient>,
+  user: { id: string; email?: string | null }
+): Promise<string> {
+  const isOwner =
+    user.id === PLATFORM_OWNER_ID ||
+    user.email?.toLowerCase() === PLATFORM_OWNER_EMAIL;
+  if (isOwner) return "/select-module";
+
+  const { data: assignments } = await supabase
+    .from("user_role_assignments")
+    .select("role_id")
+    .eq("user_id", user.id);
+  const roleIds = (assignments ?? []).map((a: any) => a.role_id);
+  if (roleIds.length === 0) return "/subscribe";
+
+  const { data: rolePerms } = await supabase
+    .from("role_permissions")
+    .select("permissions(name)")
+    .in("role_id", roleIds);
+  const permNames = (rolePerms ?? [])
+    .map((p: any) => p.permissions?.name)
+    .filter(Boolean);
+  const hasReclaimFi = permNames.includes("VIEW_RECLAIMFI");
+  const hasAccounting = permNames.includes("VIEW_ACCOUNTING");
+  const hasApu = permNames.includes("VIEW_APU");
+  const moduleCount = [hasReclaimFi, hasAccounting, hasApu].filter(Boolean).length;
+
+  if (moduleCount === 0) return "/subscribe";
+  if (moduleCount > 1) return "/select-module";
+  if (hasReclaimFi) return "/dashboard";
+  if (hasAccounting) return "/accounting";
+  if (hasApu) return "/apu/projects";
+  return "/select-module";
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const [mode, setMode] = useState<"password" | "magic">("password");
@@ -49,19 +97,19 @@ export default function LoginPage() {
 
     const supabase = createClient();
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { error, data } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
-    if (error) {
+    if (error || !data?.user) {
       setStatus("error");
-      setErrorMsg(error.message);
+      setErrorMsg(error?.message ?? "No se pudo iniciar sesion.");
       return;
     }
 
     setStatus("idle");
-    router.push("/dashboard");
+    router.push(await resolvePostLoginDestination(supabase, data.user));
   }
 
   return (
