@@ -1,6 +1,20 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
-import { createClient } from "@/app/lib/supabase/server";
+import { createClient as createServiceClient } from "@supabase/supabase-js";
+
+// Esta ruta la consume un socio externo (ej. Chainalysis) que nunca inicia
+// sesion con Supabase -- su unica credencial es el header x-api-key. Por
+// eso TODO el acceso a datos aqui usa el cliente de servicio
+// (service_role), que salta RLS por diseno: no hay sesion de usuario que
+// las politicas de RLS puedan evaluar, asi que con el cliente normal esta
+// ruta rechazaba SIEMPRE cualquier clave, valida o no (external_api_keys
+// no tiene ninguna politica RLS a proposito, ver auditoria de Fase 3). La
+// verificacion del hash de la clave + is_active, mas abajo, es la unica
+// autorizacion real de esta ruta.
+const serviceClient = createServiceClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export async function GET(request: Request) {
   try {
@@ -10,17 +24,16 @@ export async function GET(request: Request) {
     }
 
     const keyHash = crypto.createHash("sha256").update(apiKey).digest("hex");
-    const supabase = await createClient();
 
-    const { data: keyRecord } = await supabase.from("external_api_keys").select("id, partner_name, is_active").eq("key_hash", keyHash).maybeSingle();
+    const { data: keyRecord } = await serviceClient.from("external_api_keys").select("id, partner_name, is_active").eq("key_hash", keyHash).maybeSingle();
 
     if (!keyRecord || !keyRecord.is_active) {
       return NextResponse.json({ success: false, error: "Clave de API invalida o inactiva." }, { status: 403 });
     }
 
-    await supabase.from("external_api_keys").update({ last_used_at: new Date().toISOString() }).eq("id", keyRecord.id);
+    await serviceClient.from("external_api_keys").update({ last_used_at: new Date().toISOString() }).eq("id", keyRecord.id);
 
-    const { data: signals } = await supabase
+    const { data: signals } = await serviceClient
       .from("arbitrage_signals")
       .select("currency, risk_level, findings_summary, detected_at, companies!inner(share_arbitrage_signals)")
       .eq("companies.share_arbitrage_signals", true)

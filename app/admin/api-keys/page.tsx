@@ -1,16 +1,25 @@
 "use client";
 import { useEffect, useState } from "react";
-import { supabase } from "@/app/lib/supabase";
 
+// Esta pagina ya no toca Supabase directamente -- external_api_keys no
+// tiene ninguna politica RLS a proposito (ver auditoria de Fase 3), asi
+// que las llamadas se hacen contra app/api/admin/api-keys/route.ts, que
+// verifica que quien llama es el propietario y usa el cliente de servicio.
 export default function ApiKeysAdminPage() {
   const [keys, setKeys] = useState<any[]>([]);
   const [partnerName, setPartnerName] = useState("");
   const [newKeyPlaintext, setNewKeyPlaintext] = useState("");
   const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
   async function loadKeys() {
-    const { data } = await supabase.from("external_api_keys").select("id, partner_name, is_active, created_at, last_used_at").order("created_at", { ascending: false });
-    setKeys(data ?? []);
+    const res = await fetch("/api/admin/api-keys");
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok || !body.success) {
+      setMessage(body?.error || "No se pudieron cargar las claves.");
+      return;
+    }
+    setKeys(body.keys ?? []);
   }
 
   useEffect(() => {
@@ -21,27 +30,37 @@ export default function ApiKeysAdminPage() {
     if (!partnerName.trim()) { setMessage("Ingresa el nombre del socio."); return; }
     setMessage("");
     setNewKeyPlaintext("");
+    setLoading(true);
 
-    const rawKey = "rfi_" + Array.from(crypto.getRandomValues(new Uint8Array(32))).map((b) => b.toString(16).padStart(2, "0")).join("");
-    const encoder = new TextEncoder();
-    const data = encoder.encode(rawKey);
-    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const keyHash = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+    const res = await fetch("/api/admin/api-keys", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ partnerName: partnerName.trim() }),
+    });
+    const body = await res.json().catch(() => ({}));
+    setLoading(false);
 
-    const { error } = await supabase.from("external_api_keys").insert([{ key_hash: keyHash, partner_name: partnerName.trim() }]);
-    if (error) {
-      setMessage("Error: " + error.message);
+    if (!res.ok || !body.success) {
+      setMessage("Error: " + (body?.error || "No se pudo generar la clave."));
       return;
     }
 
-    setNewKeyPlaintext(rawKey);
+    setNewKeyPlaintext(body.rawKey);
     setPartnerName("");
     await loadKeys();
   }
 
   async function toggleActive(id: string, current: boolean) {
-    await supabase.from("external_api_keys").update({ is_active: !current }).eq("id", id);
+    const res = await fetch("/api/admin/api-keys", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, isActive: !current }),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok || !body.success) {
+      setMessage("Error: " + (body?.error || "No se pudo cambiar el estado de la clave."));
+      return;
+    }
     await loadKeys();
   }
 
@@ -58,8 +77,8 @@ export default function ApiKeysAdminPage() {
             placeholder="Nombre del socio (ej. Chainalysis)"
             style={{ width: "100%", padding: 12, background: "#0B0E14", border: "1px solid #2A3040", borderRadius: 8, color: "white" }}
           />
-          <button onClick={generateKey} style={{ marginTop: 12, padding: "10px 24px", background: "#2DD4BF", color: "#0B0E14", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer" }}>
-            Generar Nueva Clave
+          <button onClick={generateKey} disabled={loading} style={{ marginTop: 12, padding: "10px 24px", background: "#2DD4BF", color: "#0B0E14", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", opacity: loading ? 0.6 : 1 }}>
+            {loading ? "GENERANDO..." : "Generar Nueva Clave"}
           </button>
           {message && <p style={{ marginTop: 8, color: "#f87171" }}>{message}</p>}
           {newKeyPlaintext && (
