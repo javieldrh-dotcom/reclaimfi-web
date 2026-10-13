@@ -10,6 +10,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "No autenticado." }, { status: 401 });
     }
 
+    // Analiza con IA; sin limite, un script podia llamar esto en bucle y
+    // generar costo de IA sin tope (mismo riesgo que apu-suggest/chat-query,
+    // que ya usan este mismo patron).
+    const { data: allowed } = await supabase.rpc("check_rate_limit", { p_endpoint: "detect-invoice-anomaly", p_max_requests: 15, p_window_seconds: 60 });
+    if (!allowed) {
+      return NextResponse.json({ success: false, error: "Demasiadas solicitudes. Espera un momento." }, { status: 429 });
+    }
+
     const { companyId, vendorName, billNumber, issueDate, amount } = await request.json();
     if (!companyId || !vendorName || !billNumber || !issueDate || amount === undefined) {
       return NextResponse.json({ success: false, error: "Faltan datos requeridos." }, { status: 400 });
