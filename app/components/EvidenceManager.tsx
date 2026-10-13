@@ -33,6 +33,9 @@ export default function EvidenceManager({
   const [openingId, setOpeningId] =
     useState<string | null>(null);
 
+  const [deletingId, setDeletingId] =
+    useState<string | null>(null);
+
   useEffect(() => {
 
     fetchEvidence();
@@ -175,6 +178,51 @@ export default function EvidenceManager({
     window.open(data.signedUrl, "_blank");
   }
 
+  // Borra tanto el archivo del bucket como la fila en "evidences". El
+  // archivo se borra primero: si eso falla, no queda un registro huerfano
+  // en la base apuntando a un archivo que sigue en el bucket (al reves si
+  // seria peor: un archivo huerfano en el bucket es inofensivo, una fila
+  // en la base apuntando a un archivo borrado rompe el boton "OPEN").
+  async function deleteEvidence(item: EvidenceItem) {
+    if (!window.confirm(`¿Borrar la evidencia "${item.file_name}"? Esta accion no se puede deshacer.`)) {
+      return;
+    }
+
+    setDeletingId(item.id);
+
+    const { error: storageError } = await supabase.storage
+      .from("case-evidence")
+      .remove([item.file_path]);
+
+    if (storageError) {
+      console.error(storageError);
+      alert("No se pudo borrar el archivo del almacenamiento.");
+      setDeletingId(null);
+      return;
+    }
+
+    const { error: deleteError } = await supabase
+      .from("evidences")
+      .delete()
+      .eq("id", item.id);
+
+    setDeletingId(null);
+
+    if (deleteError) {
+      console.error(deleteError);
+      alert("El archivo se borro del almacenamiento, pero no se pudo borrar el registro. Contacta soporte.");
+      return;
+    }
+
+    await logLedgerEvent("rf.evidence.deleted", caseId, {
+      file_name: item.file_name,
+      file_path: item.file_path,
+      file_type: item.file_type,
+    });
+
+    fetchEvidence();
+  }
+
   return (
 
     <div className="mt-10 rounded-xl border border-cyan-400/20 bg-black/40 p-8">
@@ -256,15 +304,29 @@ export default function EvidenceManager({
 
               </div>
 
-              <button
-                onClick={() => openEvidence(item)}
-                disabled={openingId === item.id}
-                className="rounded-lg bg-cyan-500 px-5 py-3 text-sm font-bold text-black disabled:opacity-50"
-              >
+              <div className="flex gap-2">
 
-                {openingId === item.id ? "ABRIENDO..." : "OPEN"}
+                <button
+                  onClick={() => openEvidence(item)}
+                  disabled={openingId === item.id}
+                  className="rounded-lg bg-cyan-500 px-5 py-3 text-sm font-bold text-black disabled:opacity-50"
+                >
 
-              </button>
+                  {openingId === item.id ? "ABRIENDO..." : "OPEN"}
+
+                </button>
+
+                <button
+                  onClick={() => deleteEvidence(item)}
+                  disabled={deletingId === item.id}
+                  className="rounded-lg border border-red-500/40 bg-red-500/10 px-5 py-3 text-sm font-bold text-red-400 transition-all hover:bg-red-500/20 disabled:opacity-50"
+                >
+
+                  {deletingId === item.id ? "BORRANDO..." : "BORRAR"}
+
+                </button>
+
+              </div>
 
             </div>
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { createCase, getCases } from "../lib/supabaseCases";
+import { createCase, getCases, updateCase } from "../lib/supabaseCases";
 import { getActiveCompanyContext } from "../lib/activeCompany";
 import { logLedgerEvent } from "../lib/logLedgerEvent";
 
@@ -25,6 +25,17 @@ const RISK_LEVELS = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
 // de los casos corporativos generales (ver migracion
 // 2026-10-10-cases-sector.sql).
 const SECTORS = ["CORPORATIVO", "PETROLERO", "MUNICIPAL"];
+// El dashboard (app/dashboard/page.tsx) cuenta "casos abiertos" filtrando
+// status === "OPEN", asi que ese valor no puede cambiarse sin romper esa
+// metrica. EN_PROGRESO/CERRADO/ARCHIVADO son los estados siguientes del
+// ciclo de vida de una investigacion.
+const CASE_STATUSES = ["OPEN", "IN_PROGRESS", "CLOSED", "ARCHIVED"];
+const STATUS_LABELS: Record<string, string> = {
+  OPEN: "ABIERTO",
+  IN_PROGRESS: "EN PROGRESO",
+  CLOSED: "CERRADO",
+  ARCHIVED: "ARCHIVADO",
+};
 
 export default function CaseManagement() {
   const [cases, setCases] = useState<CaseItem[]>([]);
@@ -36,6 +47,7 @@ export default function CaseManagement() {
   const [priority, setPriority] = useState("MEDIUM");
   const [riskLevel, setRiskLevel] = useState("MEDIUM");
   const [sector, setSector] = useState("CORPORATIVO");
+  const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
 
   async function loadCases() {
     setLoading(true);
@@ -90,6 +102,25 @@ export default function CaseManagement() {
       console.error(error);
     } finally {
       setCreating(false);
+    }
+  }
+
+  async function handleStatusChange(item: CaseItem, newStatus: string) {
+    if (newStatus === item.status) return;
+    const previousStatus = item.status;
+    setUpdatingStatusId(item.id);
+    try {
+      await updateCase(item.id, { status: newStatus });
+      await logLedgerEvent("rf.case.status_changed", item.id, {
+        previous_status: previousStatus ?? null,
+        new_status: newStatus,
+      });
+      await loadCases();
+    } catch (error) {
+      console.error(error);
+      alert("No se pudo cambiar el estado del caso.");
+    } finally {
+      setUpdatingStatusId(null);
     }
   }
 
@@ -198,7 +229,18 @@ export default function CaseManagement() {
                   </div>
                   <div className="flex gap-4">
                     <span className="rounded-full bg-yellow-500/20 px-5 py-3 text-xs font-black tracking-[0.2em] text-yellow-300">{item.priority}</span>
-                    <span className="rounded-full bg-green-500/20 px-5 py-3 text-xs font-black tracking-[0.2em] text-green-300">{item.status}</span>
+                    <select
+                      value={item.status ?? "OPEN"}
+                      onChange={(e) => handleStatusChange(item, e.target.value)}
+                      disabled={updatingStatusId === item.id}
+                      className="rounded-full border-0 bg-green-500/20 px-5 py-3 text-xs font-black tracking-[0.2em] text-green-300 outline-none disabled:opacity-50"
+                    >
+                      {CASE_STATUSES.map((s) => (
+                        <option key={s} value={s} className="bg-[#0d1117] text-white">
+                          {STATUS_LABELS[s] ?? s}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 
