@@ -1,0 +1,22 @@
+-- El trigger trg_repomo_on_journal_line (de 2026-07-12-repomo-automatico.sql)
+-- se dispara en cada insert de journal_lines y recalcula REPOMO/inflacion
+-- sobre TODO el historico de la empresa sin acotar por periodo fiscal,
+-- escribiendo en repomo_calculations e inflation_adjustments.
+--
+-- Encontrado durante la auditoria de Fase 3: ninguna parte de la
+-- aplicacion lee esas dos tablas. El reporte real de reexpresion por
+-- inflacion (/accounting/hyperinflation) es completamente independiente
+-- -- recalcula todo on-demand desde journal_lines/chart_of_accounts/
+-- depreciation_entries, sin tocar estas tablas. Este trigger quedo
+-- corriendo de una version anterior, haciendo trabajo real (recorre
+-- todos los asientos de la empresa) en cada insercion, para alimentar
+-- datos que nadie consulta -- y que además no están acotados por
+-- periodo, por lo que no son confiables si alguien los mirara
+-- directamente en Supabase.
+--
+-- Se desactiva el trigger y la funcion. Las tablas repomo_calculations
+-- e inflation_adjustments y su data historica NO se tocan en esta
+-- migracion -- quedan como estaban, por si se quiere revisar o
+-- exportar ese historico antes de decidir su destino final.
+drop trigger if exists trg_repomo_on_journal_line on public.journal_lines;
+drop function if exists public.calculate_repomo_automatic();
