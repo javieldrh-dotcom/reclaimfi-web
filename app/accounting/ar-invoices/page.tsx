@@ -350,7 +350,7 @@ export default function ArInvoicesPage() {
                   {collectingInvoiceId === inv.id && (
                     <tr style={{ borderBottom: "1px solid #1F2937" }}>
                       <td colSpan={6} style={{ padding: "0 10px 20px 10px" }}>
-                        <div style={{ background: "#11161F", border: "1px solid #1F2937", borderRadius: 10, padding: 16, maxWidth: 480 }}>
+                        <div style={{ background: "#11161F", border: "1px solid #1F2937", borderRadius: 10, padding: 16, maxWidth: 480, margin: "0 auto" }}>
                           <p style={{ fontSize: 14, color: "#8B93A7", marginBottom: 8 }}>Cuenta de caja/banco que recibe el pago:</p>
                           <select value={paymentAccountId} onChange={(e) => setPaymentAccountId(e.target.value)} style={{ ...theme.inputStyle, fontSize: 16, width: "100%" }}>
                             <option value="">Selecciona la cuenta</option>

@@ -300,12 +300,12 @@ export default function AuditPlanningPage() {
   }
 
   return (
-    <div style={{ padding: 20, fontFamily: "monospace", color: "white", maxWidth: 1000 }}>
+    <div style={{ padding: 20, fontFamily: "monospace", color: "white", maxWidth: 1000, margin: "0 auto" }}>
       <h1>PLANIFICACION DE AUDITORIA</h1>
       <p style={{ color: "#8B93A7" }}>{caseInfo ? caseInfo.case_code + " - " + caseInfo.title : "Caso " + caseId}</p>
 
       <h2 style={{ marginTop: 32, color: "#60a5fa" }}>Materialidad</h2>
-      <p style={{ fontSize: 13, color: "#8B93A7", maxWidth: 700 }}>
+      <p style={{ fontSize: 13, color: "#8B93A7", maxWidth: 700, marginTop: 6 }}>
         La materialidad es el umbral a partir del cual una diferencia o un hallazgo se considera relevante para ESTE caso. Sin ella, cualquier hallazgo es subjetivo.
         {existingMateriality && " Ya existe una materialidad guardada para este caso -- al recalcular, se reemplaza."}
       </p>
@@ -339,7 +339,7 @@ export default function AuditPlanningPage() {
       {materialityMessage && <p style={{ marginTop: 8, color: materialityMessage.startsWith("Error") ? "#f87171" : "#4ade80" }}>{materialityMessage}</p>}
 
       <h2 style={{ marginTop: 40, color: "#60a5fa" }}>Evaluacion de Riesgo por Asercion</h2>
-      <p style={{ fontSize: 13, color: "#8B93A7", maxWidth: 700 }}>
+      <p style={{ fontSize: 13, color: "#8B93A7", maxWidth: 700, marginTop: 6 }}>
         Para cada area significativa, evalua el riesgo inherente y el riesgo de control en cada una de las 5 aserciones de auditoria (NIA 315). El riesgo combinado se sugiere automaticamente (el mayor de los dos), pero puedes sobreescribirlo si tu juicio profesional difiere.
       </p>
       <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
@@ -401,7 +401,7 @@ export default function AuditPlanningPage() {
       {riskMessage && <p style={{ marginTop: 12, color: riskMessage.startsWith("Error") ? "#f87171" : "#4ade80" }}>{riskMessage}</p>}
 
       <h2 style={{ marginTop: 40, color: "#60a5fa" }}>Programa de Auditoria</h2>
-      <p style={{ fontSize: 13, color: "#8B93A7", maxWidth: 700 }}>
+      <p style={{ fontSize: 13, color: "#8B93A7", maxWidth: 700, marginTop: 6 }}>
         Procedimientos planificados por area. Cada uno se prepara (quien lo ejecuto) y se revisa (otra persona distinta -- nadie revisa su propio trabajo).
       </p>
       <div style={{ display: "flex", gap: 10, marginTop: 10, flexWrap: "wrap" }}>
@@ -444,7 +444,7 @@ export default function AuditPlanningPage() {
                 <td style={{ padding: 6 }}>{p.area}</td>
                 <td style={{ padding: 6 }}>{p.assertion ? ASSERTIONS.find((a) => a.code === p.assertion)?.label ?? p.assertion : "-"}</td>
                 <td style={{ padding: 6 }}>{p.procedure_type}</td>
-                <td style={{ padding: 6, maxWidth: 240 }}>
+                <td style={{ padding: 6, maxWidth: 240, margin: 0 }}>
                   {p.description}
                   {p.status !== "COMPLETADO" && p.prepared_by && (
                     <div style={{ marginTop: 4 }}>
@@ -478,7 +478,7 @@ export default function AuditPlanningPage() {
       )}
 
       <h2 style={{ marginTop: 40, color: "#60a5fa" }}>Muestreo (MUS)</h2>
-      <p style={{ fontSize: 13, color: "#8B93A7", maxWidth: 700 }}>
+      <p style={{ fontSize: 13, color: "#8B93A7", maxWidth: 700, marginTop: 6 }}>
         Muestreo por Unidades Monetarias asumiendo cero errores esperados. Calcula el tamano de muestra a partir del monto de la poblacion y el error tolerable (normalmente la materialidad de ejecucion).
       </p>
       <div style={{ display: "flex", gap: 10, marginTop: 10, flexWrap: "wrap" }}>
