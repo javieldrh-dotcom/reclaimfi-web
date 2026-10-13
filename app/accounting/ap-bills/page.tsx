@@ -21,6 +21,13 @@ export default function ApBillsPage() {
   const [checkingAnomaly, setCheckingAnomaly] = useState(false);
   const [anomalyResult, setAnomalyResult] = useState<any>(null);
 
+  // Panel de pago: que factura esta "abierta" para pagar y con que cuenta
+  // de caja/banco.
+  const [payingBillId, setPayingBillId] = useState<string | null>(null);
+  const [paymentAccountId, setPaymentAccountId] = useState("");
+  const [paying, setPaying] = useState(false);
+  const [payMessage, setPayMessage] = useState("");
+
   async function loadBills(cid: string) {
     const { data } = await supabase.from("ap_bills").select("*").eq("company_id", cid).order("issue_date", { ascending: false });
     setBills(data ?? []);
@@ -34,7 +41,7 @@ export default function ApBillsPage() {
       const cid = uc?.company_id ?? null;
       setCompanyId(cid);
       if (cid) {
-        const { data: acc } = await supabase.from("chart_of_accounts").select("id, account_code, account_name, account_type").eq("company_id", cid).in("account_type", ["LIABILITY", "EXPENSE"]);
+        const { data: acc } = await supabase.from("chart_of_accounts").select("id, account_code, account_name, account_type").eq("company_id", cid).in("account_type", ["LIABILITY", "EXPENSE", "ASSET"]);
         setAccounts(acc ?? []);
         await loadBills(cid);
       }
@@ -115,9 +122,63 @@ export default function ApBillsPage() {
     await loadBills(companyId);
   }
 
-  async function markAsPaid(billId: string) {
-    await supabase.from("ap_bills").update({ status: "PAID" }).eq("id", billId);
-    if (companyId) await loadBills(companyId);
+  function openPayPanel(billId: string) {
+    setPayingBillId(payingBillId === billId ? null : billId);
+    setPaymentAccountId("");
+    setPayMessage("");
+  }
+
+  // A diferencia del markAsPaid() anterior (que solo cambiaba el status),
+  // esto genera el asiento contable real del desembolso -- debito a la
+  // MISMA cuenta de Cuentas por Pagar que se acredito al crear la factura
+  // (se obtiene del asiento original, no se asume), credito a la cuenta de
+  // caja/banco elegida. Sin este asiento, el saldo de CxP en el Libro
+  // Mayor nunca bajaba aunque la factura se marcara "Pagada".
+  async function recordPayment(bill: any) {
+    if (!companyId || !paymentAccountId) {
+      setPayMessage("Selecciona la cuenta de caja/banco con la que se pago.");
+      return;
+    }
+    if (!window.confirm("Se registrara el pago de " + bill.amount + " a " + bill.vendor_name + " con su asiento contable. Confirmar?")) return;
+
+    setPaying(true);
+    setPayMessage("");
+
+    const { data: originalLines } = await supabase.from("journal_lines").select("account_id, credit").eq("journal_entry_id", bill.journal_entry_id).gt("credit", 0);
+    const apAccountIdOriginal = originalLines?.[0]?.account_id;
+    if (!apAccountIdOriginal) { setPayMessage("No se pudo determinar la cuenta de Cuentas por Pagar original de esta factura."); setPaying(false); return; }
+
+    const today = new Date().toISOString().slice(0, 10);
+    const { data: lastEntry } = await supabase.from("journal_entries").select("entry_number").eq("company_id", companyId).eq("status", "ACTIVE").not("entry_number", "is", null).order("entry_number", { ascending: false }).limit(1).maybeSingle();
+    const nextNumber = (lastEntry?.entry_number || 0) + 1;
+
+    const { data: entry, error: entryError } = await supabase.from("journal_entries").insert([{
+      company_id: companyId,
+      description: "Pago a Proveedor - Factura " + bill.bill_number + " - " + bill.vendor_name,
+      entry_date: today,
+      entry_number: nextNumber,
+    }]).select("id").single();
+    if (entryError || !entry) { setPayMessage("Error al crear asiento: " + entryError?.message); setPaying(false); return; }
+
+    const { error: linesError } = await supabase.from("journal_lines").insert([
+      { journal_entry_id: entry.id, account_id: apAccountIdOriginal, debit: bill.amount, credit: 0 },
+      { journal_entry_id: entry.id, account_id: paymentAccountId, debit: 0, credit: bill.amount },
+    ]);
+    if (linesError) { setPayMessage("Error al guardar asiento: " + linesError.message); setPaying(false); return; }
+
+    const { error: updateError } = await supabase.from("ap_bills").update({
+      status: "PAID",
+      paid_amount: bill.amount,
+      paid_at: new Date().toISOString(),
+      payment_method: "MANUAL",
+      payment_account_id: paymentAccountId,
+    }).eq("id", bill.id);
+    if (updateError) { setPayMessage("El asiento se creo (Nº" + nextNumber + ") pero no se pudo actualizar la factura: " + updateError.message); setPaying(false); return; }
+
+    setPayMessage("Pago registrado con asiento Nº" + nextNumber + ".");
+    setPaying(false);
+    setPayingBillId(null);
+    await loadBills(companyId);
   }
 
   async function reverseBill(billId: string, journalEntryId: string | null, vendorNameLocal: string) {
@@ -233,25 +294,44 @@ export default function ApBillsPage() {
             </thead>
             <tbody>
               {bills.slice(0, displayLimit).map((b) => (
-                <tr key={b.id} style={{ borderBottom: "1px solid #1F2937" }}>
-                  <td style={{ padding: 10, fontSize: 20 }}>{b.bill_number}</td>
-                  <td style={{ padding: 10, fontSize: 20 }}>{b.vendor_name}</td>
-                  <td style={{ padding: 10, fontSize: 20 }}>{b.due_date}</td>
-                  <td style={{ padding: 10, fontSize: 20, ...theme.numberStyle }}>{b.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                  <td style={{ padding: 10, fontSize: 20, color: b.status === "PAID" ? "#4ade80" : b.status === "VOIDED" ? "#FB923C" : "#facc15" }}>{b.status}</td>
-                  <td style={{ padding: 10 }}>
-                    {b.status === "PENDING" && (
-                      <>
-                        <button onClick={() => markAsPaid(b.id)} style={{ background: "none", border: "1px solid #4ade80", color: "#4ade80", padding: "6px 14px", borderRadius: 8, fontSize: 15, marginRight: 6 }}>
-                          Marcar Pagada
-                        </button>
-                        <button onClick={() => reverseBill(b.id, b.journal_entry_id, b.vendor_name)} style={{ background: "none", border: "1px solid #FB923C", color: "#FB923C", padding: "6px 14px", borderRadius: 8, fontSize: 15 }}>
-                          Reversar
-                        </button>
-                      </>
-                    )}
-                  </td>
-                </tr>
+                <>
+                  <tr key={b.id} style={{ borderBottom: payingBillId === b.id ? "none" : "1px solid #1F2937" }}>
+                    <td style={{ padding: 10, fontSize: 20 }}>{b.bill_number}</td>
+                    <td style={{ padding: 10, fontSize: 20 }}>{b.vendor_name}</td>
+                    <td style={{ padding: 10, fontSize: 20 }}>{b.due_date}</td>
+                    <td style={{ padding: 10, fontSize: 20, ...theme.numberStyle }}>{b.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    <td style={{ padding: 10, fontSize: 20, color: b.status === "PAID" ? "#4ade80" : b.status === "VOIDED" ? "#FB923C" : "#facc15" }}>{b.status}</td>
+                    <td style={{ padding: 10 }}>
+                      {b.status === "PENDING" && (
+                        <>
+                          <button onClick={() => openPayPanel(b.id)} style={{ background: "none", border: "1px solid #4ade80", color: "#4ade80", padding: "6px 14px", borderRadius: 8, fontSize: 15, marginRight: 6 }}>
+                            {payingBillId === b.id ? "Cerrar" : "Pagar"}
+                          </button>
+                          <button onClick={() => reverseBill(b.id, b.journal_entry_id, b.vendor_name)} style={{ background: "none", border: "1px solid #FB923C", color: "#FB923C", padding: "6px 14px", borderRadius: 8, fontSize: 15 }}>
+                            Reversar
+                          </button>
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                  {payingBillId === b.id && (
+                    <tr style={{ borderBottom: "1px solid #1F2937" }}>
+                      <td colSpan={6} style={{ padding: "0 10px 20px 10px" }}>
+                        <div style={{ background: "#11161F", border: "1px solid #1F2937", borderRadius: 10, padding: 16, maxWidth: 480 }}>
+                          <p style={{ fontSize: 14, color: "#8B93A7", marginBottom: 8 }}>Cuenta de caja/banco con la que se pago:</p>
+                          <select value={paymentAccountId} onChange={(e) => setPaymentAccountId(e.target.value)} style={{ ...theme.inputStyle, fontSize: 16, width: "100%" }}>
+                            <option value="">Selecciona la cuenta</option>
+                            {accounts.filter(a => a.account_type === "ASSET").map((a) => <option key={a.id} value={a.id}>{a.account_code} - {a.account_name}</option>)}
+                          </select>
+                          <button onClick={() => recordPayment(b)} disabled={paying || !paymentAccountId} style={{ marginTop: 10, background: "none", border: "1px solid #4ade80", color: "#4ade80", padding: "8px 16px", borderRadius: 8, fontSize: 15, opacity: (paying || !paymentAccountId) ? 0.5 : 1 }}>
+                            Confirmar Pago
+                          </button>
+                          {payMessage && <p style={{ marginTop: 10, fontSize: 14, color: payMessage.includes("Error") ? "#f87171" : theme.accent }}>{payMessage}</p>}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </>
               ))}
             </tbody>
           </table>
