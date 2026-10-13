@@ -33,7 +33,26 @@ export default function BankAccountsPage() {
 
   async function loadBankAccounts(cid: string) {
     const { data } = await supabase.from("bank_accounts").select("*, chart_of_accounts(account_code, account_name)").eq("company_id", cid).order("created_at", { ascending: false });
-    setBankAccounts(data ?? []);
+    const list = data ?? [];
+
+    // Saldo actual = saldo inicial + todos los movimientos importados
+    // (MATCHED + UNMATCHED; los IGNORED se excluyen porque no son reales,
+    // p.ej. duplicados de carga). Se calcula aqui en vez de guardarlo como
+    // columna porque depende de bank_transactions, que cambia con cada
+    // importacion -- un saldo guardado se desactualizaria.
+    const { data: allTx } = await supabase.from("bank_transactions").select("bank_account_id, amount, status").eq("company_id", cid).neq("status", "IGNORED");
+    const byAccount = new Map<string, { balanceDelta: number; unmatchedCount: number }>();
+    (allTx ?? []).forEach((t: any) => {
+      const entry = byAccount.get(t.bank_account_id) ?? { balanceDelta: 0, unmatchedCount: 0 };
+      entry.balanceDelta += t.amount;
+      if (t.status === "UNMATCHED") entry.unmatchedCount += 1;
+      byAccount.set(t.bank_account_id, entry);
+    });
+
+    setBankAccounts(list.map((b: any) => {
+      const agg = byAccount.get(b.id) ?? { balanceDelta: 0, unmatchedCount: 0 };
+      return { ...b, currentBalance: (b.opening_balance || 0) + agg.balanceDelta, unmatchedCount: agg.unmatchedCount };
+    }));
   }
 
   useEffect(() => {
@@ -91,6 +110,10 @@ export default function BankAccountsPage() {
     if (!selectedAccount) return;
     const { data } = await supabase.from("bank_transactions").select("*").eq("bank_account_id", selectedAccount.id).order("transaction_date", { ascending: false });
     setTransactions(data ?? []);
+    // El saldo y el contador de pendientes en la tabla de arriba dependen
+    // de bank_transactions, asi que cualquier cambio aqui (importar,
+    // conciliar, ignorar, revertir) debe reflejarse tambien ahi.
+    if (companyId) await loadBankAccounts(companyId);
   }
 
   // Formato esperado, una linea por movimiento: AAAA-MM-DD, descripcion, monto[, referencia]
@@ -231,6 +254,8 @@ export default function BankAccountsPage() {
                 <th style={{ padding: 10 }}>Tipo</th>
                 <th style={{ padding: 10 }}>Moneda</th>
                 <th style={{ padding: 10 }}>Cuenta Contable</th>
+                <th style={{ padding: 10 }}>Saldo Actual</th>
+                <th style={{ padding: 10 }}>Pendientes</th>
                 <th style={{ padding: 10 }}>Estado</th>
                 <th style={{ padding: 10 }}></th>
               </tr>
@@ -243,6 +268,8 @@ export default function BankAccountsPage() {
                   <td style={{ padding: 10, fontSize: 20 }}>{b.account_type}</td>
                   <td style={{ padding: 10, fontSize: 20 }}>{b.currency}</td>
                   <td style={{ padding: 10, fontSize: 16 }}>{b.chart_of_accounts ? b.chart_of_accounts.account_code + " - " + b.chart_of_accounts.account_name : "— sin enlazar —"}</td>
+                  <td style={{ padding: 10, fontSize: 20, ...theme.numberStyle }}>{b.currentBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                  <td style={{ padding: 10, fontSize: 18, color: b.unmatchedCount > 0 ? "#facc15" : "#4ade80", fontWeight: 700 }}>{b.unmatchedCount > 0 ? b.unmatchedCount + " sin conciliar" : "Al dia"}</td>
                   <td style={{ padding: 10, fontSize: 18, color: b.is_active ? "#4ade80" : "#8B93A7" }}>{b.is_active ? "Activa" : "Inactiva"}</td>
                   <td style={{ padding: 10 }}>
                     <button onClick={() => openAccount(b)} style={{ background: "none", border: "1px solid " + theme.accent, color: theme.accent, padding: "6px 14px", borderRadius: 8, fontSize: 15, marginRight: 6 }}>
