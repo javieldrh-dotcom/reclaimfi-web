@@ -21,6 +21,7 @@ export default function CostSummaryPage() {
   const [bcvRate, setBcvRate] = useState(0);
   const [bcvMessage, setBcvMessage] = useState("");
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [realLabor, setRealLabor] = useState<{ amount: number; runsCount: number } | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -55,6 +56,7 @@ export default function CostSummaryPage() {
 
   async function calculateSummary(projectId: string) {
     setSelectedProjectId(projectId);
+    setRealLabor(null);
     setLoading(true);
 
     const { data: partidas } = await supabase.from("apu_partidas").select("*").eq("apu_project_id", projectId);
@@ -90,7 +92,29 @@ export default function CostSummaryPage() {
     const profitPercentage = directTotal > 0 ? (totalProfit / directTotal) * 100 : 0;
 
     setSummary({ totalMaterials, totalEquipment, totalLabor, totalAdmin, totalProfit, adminPercentage, profitPercentage, grandTotal, partidaCount: (partidas ?? []).length });
+    await loadRealLaborCost(projectId);
     setLoading(false);
+  }
+
+  // Diferenciador "APU <-> Contabilidad en tiempo real": el costo de mano
+  // de obra LICITADO (arriba, con factor FSCL) viene de las partidas del
+  // proyecto. El costo REAL viene de las nominas ya pagadas y enlazadas a
+  // este proyecto via employees.apu_project_id / payroll_details.apu_project_id
+  // (ver app/accounting/payroll/page.tsx). Se suma gross_amount +
+  // patronal_amount porque el costo licitado con factor FSCL tambien
+  // incluye las cargas patronales -- comparar manzanas con manzanas.
+  async function loadRealLaborCost(projectId: string) {
+    const { data: details } = await supabase
+      .from("payroll_details")
+      .select("gross_amount, patronal_amount, payroll_run_id")
+      .eq("apu_project_id", projectId);
+    if (!details || details.length === 0) {
+      setRealLabor({ amount: 0, runsCount: 0 });
+      return;
+    }
+    const amount = details.reduce((s: number, d: any) => s + (d.gross_amount || 0) + (d.patronal_amount || 0), 0);
+    const runsCount = new Set(details.map((d: any) => d.payroll_run_id)).size;
+    setRealLabor({ amount, runsCount });
   }
 
   async function downloadPdf() {
@@ -174,7 +198,32 @@ export default function CostSummaryPage() {
             <h3 style={{ fontSize: 22, color: theme.accent, fontWeight: 700, marginBottom: 16 }}>Elementos de Costo ({summary.partidaCount} partidas)</h3>
             <div style={{ display: "flex", justifyContent: "space-between", padding: 8, fontSize: 20 }}><span>Materiales</span><span style={theme.numberStyle}>{summary.totalMaterials.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span></div>
             <div style={{ display: "flex", justifyContent: "space-between", padding: 8, fontSize: 20 }}><span>Equipos</span><span style={theme.numberStyle}>{summary.totalEquipment.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span></div>
-            <div style={{ display: "flex", justifyContent: "space-between", padding: 8, fontSize: 20 }}><span>Labor (con factor FSCL)</span><span style={theme.numberStyle}>{summary.totalLabor.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span></div>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: 8, fontSize: 20 }}><span>Labor Licitado (con factor FSCL)</span><span style={theme.numberStyle}>{summary.totalLabor.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span></div>
+            {realLabor && (
+              <div style={{ padding: 8, marginBottom: 4, background: "#0B0E14", borderRadius: 8 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 16, color: "#8B93A7" }}>
+                  <span>Labor Real (nomina pagada{realLabor.runsCount > 0 ? ", " + realLabor.runsCount + " corrida(s)" : ""})</span>
+                  <span style={theme.numberStyle}>{realLabor.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                </div>
+                {realLabor.runsCount > 0 && summary.totalLabor > 0 && (() => {
+                  const variance = realLabor.amount - summary.totalLabor;
+                  const variancePct = (variance / summary.totalLabor) * 100;
+                  const over = variance > 0;
+                  return (
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 15, color: over ? "#f87171" : "#4ade80", marginTop: 4 }}>
+                      <span>Variacion</span>
+                      <span>{over ? "+" : ""}{variance.toLocaleString(undefined, { maximumFractionDigits: 2 })} ({over ? "+" : ""}{variancePct.toFixed(1)}%)</span>
+                    </div>
+                  );
+                })()}
+                {realLabor.runsCount === 0 && (
+                  <p style={{ fontSize: 13, color: "#8B93A7", marginTop: 4 }}>Sin nominas pagadas enlazadas a este proyecto todavia.</p>
+                )}
+                <p style={{ fontSize: 12, color: "#8B93A7", marginTop: 4 }}>
+                  Nota: compara montos en la misma moneda en que se proceso la nomina del proyecto; si la nomina se pago en VES y la oferta esta en USD, convierte antes de interpretar la variacion.
+                </p>
+              </div>
+            )}
             <div style={{ display: "flex", justifyContent: "space-between", padding: 8, fontSize: 20 }}><span>Administracion ({summary.adminPercentage.toFixed(1)}%)</span><span style={theme.numberStyle}>{summary.totalAdmin.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span></div>
             <div style={{ display: "flex", justifyContent: "space-between", padding: 8, fontSize: 20 }}><span>Utilidad ({summary.profitPercentage.toFixed(1)}%)</span><span style={theme.numberStyle}>{summary.totalProfit.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span></div>
             <div style={{ marginTop: 16, padding: 16, background: "#0B0E14", borderRadius: 12, display: "flex", justifyContent: "space-between", fontSize: 26, fontWeight: 900, color: "#4ade80" }}>

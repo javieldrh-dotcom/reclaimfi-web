@@ -4,16 +4,27 @@ import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
 import VerticalPageLayout from "@/app/components/VerticalPageLayout";
 import AccountSearchSelect from "@/app/components/AccountSearchSelect";
+import { applyThirdPartyCharges, fetchPayrollChargesConfig, VE_DEFAULT_PAYROLL_CHARGES, type PayrollChargesConfig } from "@/app/lib/jurisdictionTax";
 
+// Diferenciador "APU <-> Contabilidad en tiempo real", parte nomina: las
+// tasas IVSS/INCES/FAOV ya no estan fijas en el codigo -- se leen de
+// jurisdiction_modules (module_key PAYROLL_CHARGES) segun el
+// jurisdiction_code de la empresa, con las mismas tasas VE de siempre como
+// respaldo (ver VE_DEFAULT_PAYROLL_CHARGES). Ademas, cada empleado puede
+// enlazarse opcionalmente a un proyecto APU (employees.apu_project_id) para
+// comparar el costo real de nomina contra el costo licitado del proyecto.
 export default function PayrollPage() {
   const theme = getVerticalTheme("accounting");
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [employees, setEmployees] = useState<any[]>([]);
   const [runs, setRuns] = useState<any[]>([]);
   const [accounts, setAccounts] = useState<any[]>([]);
+  const [apuProjects, setApuProjects] = useState<any[]>([]);
+  const [payrollChargesConfig, setPayrollChargesConfig] = useState<PayrollChargesConfig | null>(null);
   const [empName, setEmpName] = useState("");
   const [empPosition, setEmpPosition] = useState("");
   const [empSalary, setEmpSalary] = useState("");
+  const [empApuProjectId, setEmpApuProjectId] = useState("");
   const [message, setMessage] = useState("");
   const [periodStart, setPeriodStart] = useState("");
   const [payrollCurrency, setPayrollCurrency] = useState("USD");
@@ -45,6 +56,12 @@ export default function PayrollPage() {
       if (cid) {
         const { data: acc } = await supabase.from("chart_of_accounts").select("id, account_code, account_name, account_type").eq("company_id", cid).in("account_type", ["ASSET", "LIABILITY", "EXPENSE"]);
         setAccounts(acc ?? []);
+        const { data: projects } = await supabase.from("apu_projects").select("id, project_description").eq("company_id", cid).order("created_at", { ascending: false });
+        setApuProjects(projects ?? []);
+        const { data: company } = await supabase.from("companies").select("jurisdiction_code").eq("id", cid).maybeSingle();
+        const jCode = company?.jurisdiction_code || "VE";
+        const config = await fetchPayrollChargesConfig(supabase, jCode);
+        setPayrollChargesConfig(config);
         await loadEmployees(cid);
         await loadRuns(cid);
       }
@@ -79,10 +96,11 @@ export default function PayrollPage() {
       full_name: empName,
       position: empPosition,
       daily_salary: parseFloat(empSalary),
+      apu_project_id: empApuProjectId || null,
     }]);
     if (error) { setMessage("Error: " + error.message); return; }
     setMessage("Empleado registrado correctamente.");
-    setEmpName(""); setEmpPosition(""); setEmpSalary("");
+    setEmpName(""); setEmpPosition(""); setEmpSalary(""); setEmpApuProjectId("");
     if (companyId) await loadEmployees(companyId);
   }
 
@@ -113,19 +131,19 @@ export default function PayrollPage() {
     const end = new Date(periodEnd);
     const daysInPeriod = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
-    const IVSS_EMPLOYEE_RATE = 0.04;
-    const IVSS_PATRONAL_RATE = 0.09;
-    const INCES_RATE = 0.02;
-    const FAOV_PATRONAL_RATE = 0.02;
-    const TOTAL_PATRONAL_RATE = IVSS_PATRONAL_RATE + INCES_RATE + FAOV_PATRONAL_RATE;
+    // Cargas de nomina por jurisdiccion (ver jurisdictionTax.ts). Si la
+    // empresa no tiene fila PAYROLL_CHARGES cargada para su
+    // jurisdiction_code, se usan las mismas tasas VE de siempre -- ninguna
+    // empresa VE existente ve un resultado distinto al de antes.
+    const charges = payrollChargesConfig ?? VE_DEFAULT_PAYROLL_CHARGES;
 
     const details = employees.map((emp) => {
       const fxRate = parseFloat(payrollExchangeRate) || 1;
       const gross = emp.daily_salary * daysInPeriod * fxRate;
-      const socialSecurity = gross * IVSS_EMPLOYEE_RATE;
+      const { subTotalTerceros: socialSecurity } = applyThirdPartyCharges(gross, charges.employee_pct);
       const net = gross - socialSecurity;
-      const patronal = gross * TOTAL_PATRONAL_RATE;
-      return { employee_id: emp.id, days_worked: daysInPeriod, gross_amount: gross, social_security: socialSecurity, other_deductions: 0, net_amount: net, patronal_amount: patronal };
+      const { subTotalTerceros: patronal } = applyThirdPartyCharges(gross, charges.employer_pct);
+      return { employee_id: emp.id, apu_project_id: emp.apu_project_id ?? null, days_worked: daysInPeriod, gross_amount: gross, social_security: socialSecurity, other_deductions: 0, net_amount: net, patronal_amount: patronal };
     });
 
     const totalGross = details.reduce((s, d) => s + d.gross_amount, 0);
@@ -164,7 +182,7 @@ export default function PayrollPage() {
     }]).select("id").single();
     if (runError || !run) { setMessage("Error al guardar nomina: " + runError?.message); setProcessing(false); return; }
 
-    await supabase.from("payroll_details").insert(details.map((d) => ({ employee_id: d.employee_id, days_worked: d.days_worked, gross_amount: d.gross_amount, social_security: d.social_security, other_deductions: d.other_deductions, net_amount: d.net_amount, payroll_run_id: run.id })));
+    await supabase.from("payroll_details").insert(details.map((d) => ({ employee_id: d.employee_id, apu_project_id: d.apu_project_id, days_worked: d.days_worked, gross_amount: d.gross_amount, social_security: d.social_security, other_deductions: d.other_deductions, net_amount: d.net_amount, patronal_amount: d.patronal_amount, payroll_run_id: run.id })));
 
     setMessage("Nomina procesada (Nº" + nextEntryNumber + "). Total Neto: " + totalNet.toLocaleString(undefined, { maximumFractionDigits: 2 }) + ". Obligaciones Patronales: " + totalPatronal.toLocaleString(undefined, { maximumFractionDigits: 2 }) + ". Asiento balanceado generado correctamente.");
     setProcessing(false);
@@ -207,20 +225,32 @@ export default function PayrollPage() {
           <input value={empName} onChange={(e) => setEmpName(e.target.value)} style={inputStyle} placeholder="Nombre completo" />
           <input value={empPosition} onChange={(e) => setEmpPosition(e.target.value)} style={{ ...inputStyle, marginTop: 8 }} placeholder="Cargo" />
           <input type="number" value={empSalary} onChange={(e) => setEmpSalary(e.target.value)} style={{ ...inputStyle, marginTop: 8 }} placeholder="Salario Diario" />
+          <select value={empApuProjectId} onChange={(e) => setEmpApuProjectId(e.target.value)} style={{ ...inputStyle, marginTop: 8 }}>
+            <option value="">Sin asignar a proyecto APU (administrativo)</option>
+            {apuProjects.map((p) => (
+              <option key={p.id} value={p.id}>{p.project_description}</option>
+            ))}
+          </select>
           <button onClick={createEmployee} style={{ ...theme.buttonStyle, marginTop: 12, fontSize: 16, width: "100%" }}>
             REGISTRAR EMPLEADO
           </button>
           {message && <p style={{ marginTop: 8, fontSize: 16, color: message.includes("Error") || message.includes("No hay") || message.includes("Completa") ? "#f87171" : theme.accent }}>{message}</p>}
           <h3 style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginTop: 20, marginBottom: 8 }}>Empleados Activos ({employees.length})</h3>
-          {employees.map((e) => (
-            <div key={e.id} style={{ padding: 10, borderBottom: "1px solid #1F2937", fontSize: 16 }}>
-              {e.full_name} - {e.position} - {e.daily_salary.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/dia
-            </div>
-          ))}
+          {employees.map((e) => {
+            const proj = apuProjects.find((p) => p.id === e.apu_project_id);
+            return (
+              <div key={e.id} style={{ padding: 10, borderBottom: "1px solid #1F2937", fontSize: 16 }}>
+                {e.full_name} - {e.position} - {e.daily_salary.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/dia
+                {proj && <span style={{ color: theme.accent, fontSize: 13 }}> · {proj.project_description}</span>}
+              </div>
+            );
+          })}
         </div>
         <div style={theme.cardStyle}>
           <h3 style={{ fontSize: 20, color: theme.accent, fontWeight: 700, marginBottom: 12 }}>Procesar Nomina</h3>
-          <p style={{ fontSize: 13, color: "#8B93A7", marginBottom: 10 }}>IVSS Empleado 4% | IVSS Patronal 9% + INCES 2% + FAOV 2% = 13% Patronal</p>
+          <p style={{ fontSize: 13, color: "#8B93A7", marginBottom: 10 }}>
+            {payrollChargesConfig ? payrollChargesConfig.name : "IVSS Empleado 4% | IVSS Patronal 9% + INCES 2% + FAOV 2% = 13% Patronal (por defecto VE)"}
+          </p>
           <div style={{ display: "flex", gap: 10 }}>
             <input type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} style={inputStyle} />
             <input type="date" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} style={inputStyle} />

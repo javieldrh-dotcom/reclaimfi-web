@@ -29,6 +29,13 @@ export interface LaborCostFormulaConfig {
   [key: string]: unknown;
 }
 
+export interface PayrollChargesConfig {
+  name: string;
+  employee_pct: Record<string, number>;
+  employer_pct: Record<string, number>;
+  [key: string]: unknown;
+}
+
 const FALLBACK_JURISDICTION = "VE";
 
 export async function fetchIncomeTaxConfig(
@@ -59,6 +66,21 @@ export async function fetchLaborCostFormulaConfig(
     .eq("enabled", true)
     .maybeSingle();
   return (data?.config as LaborCostFormulaConfig) ?? null;
+}
+
+export async function fetchPayrollChargesConfig(
+  supabase: any,
+  jurisdictionCode: string | null | undefined
+): Promise<PayrollChargesConfig | null> {
+  const code = jurisdictionCode || FALLBACK_JURISDICTION;
+  const { data } = await supabase
+    .from("jurisdiction_modules")
+    .select("config")
+    .eq("jurisdiction_code", code)
+    .eq("module_key", "PAYROLL_CHARGES")
+    .eq("enabled", true)
+    .maybeSingle();
+  return (data?.config as PayrollChargesConfig) ?? null;
 }
 
 // Formula progresiva por tramos, generica. Reemplaza calculateTarifa2()
@@ -118,4 +140,14 @@ export const VE_DEFAULT_THIRD_PARTY_CHARGES_PCT: Record<string, number> = {
   inces: 2,
   lph: 2,
   paro_forzoso: 2,
+};
+
+// Respaldo de nomina (IVSS/INCES/FAOV), mismo patron: si jurisdiction_modules
+// no tiene fila PAYROLL_CHARGES para el pais de la empresa, se usan estas
+// tasas -- las mismas que ya estaban escritas a mano en
+// app/accounting/payroll/page.tsx, asi que ninguna empresa VE existente ve
+// un resultado distinto al de antes.
+export const VE_DEFAULT_PAYROLL_CHARGES: { employee_pct: Record<string, number>; employer_pct: Record<string, number> } = {
+  employee_pct: { ivss_empleado: 4 },
+  employer_pct: { ivss_patronal: 9, inces: 2, faov: 2 },
 };
