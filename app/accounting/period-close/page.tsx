@@ -4,6 +4,28 @@ import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
 import VerticalPageLayout from "@/app/components/VerticalPageLayout";
 import { logCompanyLedgerEvent } from "@/app/lib/logLedgerEvent";
+import { computeAccountingAnomalies } from "@/app/lib/forensics/computeAccountingAnomalies";
+
+// Diferenciador "auditoria continua, no retroactiva": el mismo motor
+// forense que antes solo corria sobre casos de investigacion reconstruidos
+// (Benford + outliers por z-score) ahora corre tambien aqui, sobre la
+// contabilidad real del periodo que se esta cerrando -- ANTES de que el
+// aprobador confirme los 3 asientos NIIF, no meses despues en una
+// auditoria externa. No bloquea el cierre (el contador mantiene el
+// criterio final): solo deja la anomalia visible y registrada.
+function formatAnomalySummary(result: Awaited<ReturnType<typeof computeAccountingAnomalies>>): string | null {
+  const parts: string[] = [];
+  if (result.outliers.flagged.length > 0) {
+    const top = result.outliers.flagged.slice(0, 5)
+      .map((f) => `${f.accountName}: ${f.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })} (vs. típico ${f.accountTypicalAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}, z=${f.zScore.toFixed(2)})`)
+      .join("; ");
+    parts.push(`${result.outliers.flagged.length} movimiento(s) atípico(s) detectado(s) por cuenta: ${top}`);
+  }
+  if (result.benford.applicable && result.benford.conformity && result.benford.conformity !== "ALTA" && result.benford.conformity !== "ACEPTABLE") {
+    parts.push(`Ley de Benford: conformidad "${result.benford.conformity}" sobre ${result.benford.sampleSize} montos (posible señal de manipulación, no una prueba por sí sola).`);
+  }
+  return parts.length > 0 ? parts.join(" | ") : null;
+}
 
 export default function PeriodClosePage() {
   const theme = getVerticalTheme("accounting");
@@ -102,11 +124,15 @@ export default function PeriodClosePage() {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData?.user) { setLoading(false); return; }
 
+    const anomalies = await computeAccountingAnomalies(companyId, periodStart, periodEnd);
+    const anomalySummary = formatAnomalySummary(anomalies);
+
     const { data: periodRow, error: periodError } = await supabase.from("fiscal_periods").insert([{
       company_id: companyId,
       period_start: periodStart,
       period_end: periodEnd,
       status: "PENDING_CLOSE",
+      anomaly_summary: anomalySummary,
     }]).select("id").single();
     if (periodError || !periodRow) { setMessage("No se pudo registrar la solicitud de cierre: " + periodError?.message); setLoading(false); return; }
 
@@ -118,7 +144,8 @@ export default function PeriodClosePage() {
       status: "PENDING",
     }]);
     if (approvalError) { setMessage("El periodo quedo registrado como pendiente, pero hubo un error al crear la solicitud de aprobacion: " + approvalError.message); }
-    else { setMessage("Cierre solicitado. Queda pendiente de confirmacion antes de registrar los asientos de cierre."); }
+    else if (anomalySummary) { setMessage("Cierre solicitado — ATENCIÓN: se detectaron anomalías antes de aprobar. Revisa el detalle en la lista de periodos."); }
+    else { setMessage("Cierre solicitado. Queda pendiente de confirmacion antes de registrar los asientos de cierre. Sin anomalías detectadas por el motor forense."); }
 
     setLoading(false);
     await loadPeriods(companyId);
@@ -254,24 +281,31 @@ export default function PeriodClosePage() {
         <div style={{ marginTop: 40 }}>
           <h2 style={{ fontSize: 24, color: theme.accent, fontWeight: 700 }}>Periodos</h2>
           {periods.map((p) => (
-            <div key={p.id} style={{ padding: 14, borderBottom: "1px solid #1F2937", fontSize: 20, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
-              <span>
-                {p.period_start} a {p.period_end}
-                {p.status === "PENDING_CLOSE" ? (
-                  <span style={{ color: "#facc15" }}> - PENDIENTE DE APROBACION</span>
-                ) : (
-                  <> - Resultado: <span style={theme.numberStyle}>{p.net_result?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span> - {p.status}</>
+            <div key={p.id} style={{ padding: 14, borderBottom: "1px solid #1F2937" }}>
+              <div style={{ fontSize: 20, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
+                <span>
+                  {p.period_start} a {p.period_end}
+                  {p.status === "PENDING_CLOSE" ? (
+                    <span style={{ color: "#facc15" }}> - PENDIENTE DE APROBACION</span>
+                  ) : (
+                    <> - Resultado: <span style={theme.numberStyle}>{p.net_result?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span> - {p.status}</>
+                  )}
+                </span>
+                {p.status === "PENDING_CLOSE" && (
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button onClick={() => confirmClose(p)} disabled={loading} style={{ padding: "8px 16px", background: "none", border: "1px solid #4ade80", color: "#4ade80", borderRadius: 8, fontSize: 15, cursor: "pointer" }}>
+                      Confirmar y Registrar
+                    </button>
+                    <button onClick={() => rejectClose(p)} disabled={loading} style={{ padding: "8px 16px", background: "none", border: "1px solid #f87171", color: "#f87171", borderRadius: 8, fontSize: 15, cursor: "pointer" }}>
+                      Rechazar
+                    </button>
+                  </div>
                 )}
-              </span>
-              {p.status === "PENDING_CLOSE" && (
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button onClick={() => confirmClose(p)} disabled={loading} style={{ padding: "8px 16px", background: "none", border: "1px solid #4ade80", color: "#4ade80", borderRadius: 8, fontSize: 15, cursor: "pointer" }}>
-                    Confirmar y Registrar
-                  </button>
-                  <button onClick={() => rejectClose(p)} disabled={loading} style={{ padding: "8px 16px", background: "none", border: "1px solid #f87171", color: "#f87171", borderRadius: 8, fontSize: 15, cursor: "pointer" }}>
-                    Rechazar
-                  </button>
-                </div>
+              </div>
+              {p.status === "PENDING_CLOSE" && p.anomaly_summary && (
+                <p style={{ marginTop: 8, fontSize: 14, color: "#f87171", background: "#f8717115", padding: 10, borderRadius: 8, border: "1px solid #f8717140" }}>
+                  ⚠ Auditoría continua — {p.anomaly_summary}
+                </p>
               )}
             </div>
           ))}

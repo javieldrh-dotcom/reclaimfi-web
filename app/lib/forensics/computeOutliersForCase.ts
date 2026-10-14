@@ -22,7 +22,10 @@ export interface OutlierResult {
 }
 
 export const MIN_SAMPLES_PER_ACCOUNT = 5;
-const Z_THRESHOLD = 2.5;
+// Exportado (antes privado) para que computeAccountingAnomalies.ts use
+// exactamente el mismo umbral en lugar de duplicarlo -- un solo numero
+// "2.5" que define que es anomalo, no dos copias que puedan divergir.
+export const Z_THRESHOLD = 2.5;
 
 export async function computeOutliersForCase(caseId: string): Promise<{ result: OutlierResult | null; error: string | null }> {
   const { data: company } = await supabase
