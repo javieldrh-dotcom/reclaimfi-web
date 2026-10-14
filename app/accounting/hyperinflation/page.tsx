@@ -3,6 +3,20 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
 import VerticalPageLayout from "@/app/components/VerticalPageLayout";
+import { computeHyperinflationRisk, type HyperinflationRiskResult } from "@/app/lib/accounting/computeHyperinflationRisk";
+
+// Diferenciador "radar de riesgo-pais": avisa ANTES de que el pais cruce
+// el umbral de NIC 29 (inflacion acumulada ~100% en 3 anios), no cuando
+// ya es obligatorio reexpresar. El banner se recalcula cada vez que se
+// cambia el pais/indice seleccionado -- no hace falta correr la
+// reexpresion completa para verlo.
+const RISK_LABELS: Record<HyperinflationRiskResult["level"], { label: string; color: string }> = {
+  SIN_DATOS: { label: "Sin suficiente historia de indices (se necesitan ~36 meses) para medir la tasa acumulada.", color: "#8B93A7" },
+  NORMAL: { label: "Normal — inflacion acumulada de 3 anios por debajo del 50%.", color: "#4ade80" },
+  VIGILANCIA: { label: "Vigilancia — inflacion acumulada de 3 anios entre 50% y 80%. Sin accion requerida todavia.", color: "#facc15" },
+  ALERTA: { label: "Alerta — inflacion acumulada de 3 anios entre 80% y 100%. Se acerca al umbral de NIC 29.", color: "#FB923C" },
+  ACTIVA: { label: "Economia hiperinflacionaria activa — inflacion acumulada de 3 anios igual o superior a 100% (NIC 29, parrafo 3(f)). La reexpresion ya es obligatoria.", color: "#f87171" },
+};
 
 export default function HyperinflationPage() {
   const theme = getVerticalTheme("accounting");
@@ -16,6 +30,7 @@ export default function HyperinflationPage() {
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [risk, setRisk] = useState<HyperinflationRiskResult | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -35,6 +50,11 @@ export default function HyperinflationPage() {
     }
     load();
   }, []);
+
+  useEffect(() => {
+    if (!countryCode || !indexName) { setRisk(null); return; }
+    computeHyperinflationRisk(countryCode, indexName).then(setRisk);
+  }, [countryCode, indexName]);
 
   function monthKey(dateStr: string) {
     return dateStr.slice(0, 7);
@@ -216,6 +236,20 @@ export default function HyperinflationPage() {
         ) : (
           <p style={{ marginTop: 10, fontSize: 13, color: "#FB923C" }}>No hay ningun Indice de Precios cargado todavia. Ve a Indices de Precios para cargar el de tu pais antes de usar esta herramienta.</p>
         )}
+
+        {risk && (
+          <div style={{ marginTop: 16, padding: 14, borderRadius: 10, background: RISK_LABELS[risk.level].color + "15", border: "1px solid " + RISK_LABELS[risk.level].color + "50" }}>
+            <p style={{ fontWeight: 700, color: RISK_LABELS[risk.level].color }}>
+              Radar de riesgo-pais ({countryCode}/{indexName}): {RISK_LABELS[risk.level].label}
+            </p>
+            {risk.cumulative36MonthPct !== null && (
+              <p style={{ marginTop: 4, fontSize: 13, color: "#8B93A7" }}>
+                Inflacion acumulada ultimos 36 meses: {risk.cumulative36MonthPct.toLocaleString(undefined, { maximumFractionDigits: 1 })}% (de {risk.baselineDate} a {risk.latestDate}).
+              </p>
+            )}
+          </div>
+        )}
+
         <button onClick={calculateRestatement} style={{ ...theme.buttonStyle, marginTop: 16, fontSize: 18 }}>
           {loading ? "CALCULANDO..." : "CALCULAR REEXPRESION MES A MES"}
         </button>
