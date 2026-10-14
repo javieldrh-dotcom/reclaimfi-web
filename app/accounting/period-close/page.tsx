@@ -15,6 +15,13 @@ import { computeAccountingAnomalies } from "@/app/lib/forensics/computeAccountin
 // criterio final): solo deja la anomalia visible y registrada.
 function formatAnomalySummary(result: Awaited<ReturnType<typeof computeAccountingAnomalies>>): string | null {
   const parts: string[] = [];
+  // Primero el chequeo mas grave: si esto falla, los estados financieros
+  // de la empresa (no solo este periodo) estan descuadrados de raiz.
+  if (!result.balanceIntegrity.balanced) {
+    parts.push(
+      `⚠️ INTEGRIDAD CONTABLE: Debitos (${result.balanceIntegrity.totalDebit.toLocaleString(undefined, { maximumFractionDigits: 2 })}) ≠ Creditos (${result.balanceIntegrity.totalCredit.toLocaleString(undefined, { maximumFractionDigits: 2 })}), diferencia ${result.balanceIntegrity.difference.toLocaleString(undefined, { maximumFractionDigits: 2 })}. Esto no deberia ser posible si todo asiento se guardo balanceado -- revisa si algun modulo escribio journal_lines sin pasar por esa validacion antes de cerrar.`
+    );
+  }
   if (result.outliers.flagged.length > 0) {
     const top = result.outliers.flagged.slice(0, 5)
       .map((f) => `${f.accountName}: ${f.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })} (vs. típico ${f.accountTypicalAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}, z=${f.zScore.toFixed(2)})`)

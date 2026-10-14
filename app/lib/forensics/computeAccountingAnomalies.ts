@@ -14,6 +14,15 @@ import { EXPECTED_BENFORD, leadingDigit, bootstrapMadCI, conformityFromMad } fro
 // ANTES de que el aprobador confirme, no meses despues en una auditoria
 // externa.
 export interface AccountingAnomaliesResult {
+  // Chequeo mas fundamental que outliers/Benford: si cada asiento se
+  // valida balanceado al guardarse (ver app/accounting/journal/page.tsx,
+  // "El asiento no cuadra"), la suma de TODOS los debitos activos de la
+  // empresa debe ser exactamente igual a la suma de todos los creditos,
+  // de forma acumulada (no solo dentro del periodo) -- es la ecuacion
+  // contable basica, Activo = Pasivo + Patrimonio, expresada en terminos
+  // de debitos/creditos. Si no cuadra, algun modulo escribio journal_lines
+  // sin pasar por esa validacion.
+  balanceIntegrity: { totalDebit: number; totalCredit: number; difference: number; balanced: boolean };
   outliers: { accountsAnalyzed: number; accountsSkipped: number; flagged: FlaggedTransaction[] };
   benford: { applicable: boolean; sampleSize: number; conformity: string | null; reason: string | null };
 }
@@ -23,6 +32,29 @@ export async function computeAccountingAnomalies(
   periodStart: string,
   periodEnd: string
 ): Promise<AccountingAnomaliesResult> {
+  // --- Integridad de la ecuacion contable (acumulada hasta el fin del
+  // periodo, no solo dentro del rango -- el balance general es
+  // acumulativo por naturaleza) ---
+  const { data: allActiveEntries } = await supabase
+    .from("journal_entries")
+    .select("id")
+    .eq("company_id", companyId)
+    .eq("status", "ACTIVE")
+    .lte("entry_date", periodEnd);
+  const allActiveIds = (allActiveEntries ?? []).map((e: any) => e.id);
+
+  let totalDebit = 0;
+  let totalCredit = 0;
+  if (allActiveIds.length > 0) {
+    const { data: allLines } = await supabase.from("journal_lines").select("debit, credit").in("journal_entry_id", allActiveIds);
+    for (const l of allLines ?? []) {
+      totalDebit += l.debit || 0;
+      totalCredit += l.credit || 0;
+    }
+  }
+  const difference = totalDebit - totalCredit;
+  const balanceIntegrity = { totalDebit, totalCredit, difference, balanced: Math.abs(difference) < 0.01 };
+
   const { data: entries } = await supabase
     .from("journal_entries")
     .select("id, description, entry_date")
@@ -36,6 +68,7 @@ export async function computeAccountingAnomalies(
 
   if (entryIds.length === 0) {
     return {
+      balanceIntegrity,
       outliers: { accountsAnalyzed: 0, accountsSkipped: 0, flagged: [] },
       benford: { applicable: false, sampleSize: 0, conformity: null, reason: "Sin asientos en el periodo." },
     };
@@ -112,6 +145,7 @@ export async function computeAccountingAnomalies(
   }
 
   return {
+    balanceIntegrity,
     outliers: { accountsAnalyzed, accountsSkipped, flagged },
     benford,
   };
