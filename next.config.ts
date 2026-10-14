@@ -14,9 +14,9 @@ const securityHeaders = [
   { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
 ];
 
-// Content-Security-Policy, en modo REPORT-ONLY a proposito.
+// Content-Security-Policy, en modo BLOQUEANTE.
 //
-// Dominios externos que el navegador SI contacta directamente hoy
+// Dominios externos que el navegador SI contacta directamente
 // (confirmado por busqueda en todo app/, no supuesto):
 // - PayPal SDK: <script src="https://www.paypal.com/sdk/js...">
 //   en app/subscribe/page.tsx y app/accounting/ar-invoices/page.tsx.
@@ -35,19 +35,17 @@ const securityHeaders = [
 //   dominio en produccion, no se contacta fonts.googleapis.com en
 //   tiempo de ejecucion.
 //
-// Por que Report-Only y no bloqueante todavia: esta lista se armo por
-// busqueda estatica en el codigo, no probandola contra el sitio real en
-// un navegador (este entorno no tiene uno) -- el riesgo exacto que ya
-// se habia señalado antes (una CSP mal calibrada rompe el checkout o el
-// login en silencio) sigue siendo real si se activara bloqueante de
-// una vez. En modo Report-Only el navegador NUNCA bloquea nada, solo
-// registra en la consola (F12 -> Console) cualquier recurso que la
-// politica habria bloqueado. Antes de pasarla a bloqueante (quitar
-// "-Report-Only" del nombre de la cabecera abajo), navega al menos por:
-// login, el dashboard principal, una suscripcion por PayPal
-// (/subscribe) y un cobro de factura por PayPal (/accounting/ar-invoices),
-// y confirma que la consola no muestra ningun "Refused to ..." –
-// si aparece alguno, el dominio que falta se agrega a la lista aqui.
+// Se corrio primero en modo Report-Only (el navegador solo registraba en
+// consola lo que habria bloqueado, sin bloquear nada de verdad) mientras
+// Javiel navegaba login, dashboard, /subscribe y /accounting/ar-invoices
+// con la consola abierta (F12). Confirmado el 2026-10-14: ningun
+// "Refused to ..." en ninguno de los dos flujos de PayPal -- la lista de
+// dominios de abajo cubre todo lo que el sitio contacta en esas rutas, asi
+// que se activa bloqueante. Si en el futuro se agrega un proveedor nuevo
+// (otro procesador de pago, un CDN, un widget externo) y algo se rompe
+// en silencio, revisar la consola del navegador: un recurso bloqueado
+// por esta politica aparece ahi como "Refused to ..." y el dominio que
+// falte se agrega a la lista correspondiente abajo.
 const cspDirectives = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' https://www.paypal.com https://www.paypalobjects.com",
@@ -62,7 +60,7 @@ const cspDirectives = [
 ].join("; ");
 
 securityHeaders.push({
-  key: "Content-Security-Policy-Report-Only",
+  key: "Content-Security-Policy",
   value: cspDirectives,
 });
 
