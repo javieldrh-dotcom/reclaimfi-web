@@ -245,6 +245,7 @@ export default function AdminDashboard() {
         <Link href="/admin/subscriptions" style={quickCard("#818CF8")}>Suscripciones</Link>
         <Link href="/admin/api-keys" style={quickCard("#818CF8")}>Claves de API Externas</Link>
         <Link href="/admin/resources" style={quickCard("#818CF8")}>Recursos de la Plataforma</Link>
+        <Link href="/admin/jurisdiction-modules" style={quickCard("#818CF8")}>Modulos por Jurisdiccion</Link>
         <Link href="/admin/command-center" style={quickCard("#818CF8")}>Centro de Mando</Link>
       </div>
 
