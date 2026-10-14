@@ -1,8 +1,20 @@
-// Calculo del Factor Sobre Costo de Labor (FSCL) bajo el Contrato Colectivo
-// Petrolero (CCTP), extraido de app/apu/fscl/page.tsx para poder probarlo
-// sin React ni Supabase -- mismo patron que app/lib/forensics/* (Fase 3) y
-// app/lib/reportHash.ts (Fase 4). La UI sigue siendo la unica que llama a
-// esta funcion; este archivo no agrega ningun comportamiento nuevo.
+// Calculo del Factor Sobre Costo de Labor (FSCL), originalmente solo bajo
+// el Contrato Colectivo Petrolero (CCTP) de Venezuela, extraido de
+// app/apu/fscl/page.tsx para poder probarlo sin React ni Supabase -- mismo
+// patron que app/lib/forensics/* (Fase 3) y app/lib/reportHash.ts (Fase 4).
+//
+// Globalizado (ver app/lib/jurisdictionTax.ts y el Claude Doc "Globalizar
+// ReclaimFi"): el cuarto parametro opcional recibe los porcentajes de
+// "pagos a terceros" (seguro social, etc.) de CUALQUIER pais, leidos de
+// jurisdiction_modules. Si se omite, usa los valores venezolanos de
+// siempre (11% SSO + 2% INCES + 2% LPH + 2% Paro Forzoso) -- por eso los
+// tests existentes, que no pasan este parametro, siguen pasando sin
+// cambios.
+// Import relativo (no "@/...") porque vitest.config.ts no tiene
+// configurado el alias "@/" -- ver el mismo patron en el resto de
+// app/lib/apu/*.
+import { applyThirdPartyCharges, VE_DEFAULT_THIRD_PARTY_CHARGES_PCT } from "../jurisdictionTax";
+
 export interface FsclInput {
   dailyBasicSalary: number;
   calendarDays: number; // tipicamente 365
@@ -33,9 +45,17 @@ export interface FsclResult {
   inces: number;
   lph: number;
   paroForzoso: number;
+  // Mapa generico de cargas de terceros, por clave del pais (ver
+  // jurisdiction_modules.config.third_party_charges_pct_of_subtotal_a).
+  // Para VE coincide exactamente con seguroSocial/inces/lph/paroForzoso
+  // arriba; para otro pais con otras claves, es la unica fuente confiable.
+  charges: Record<string, number>;
 }
 
-export function calculateFscl(input: FsclInput): FsclResult {
+export function calculateFscl(
+  input: FsclInput,
+  thirdPartyChargesPct: Record<string, number> = VE_DEFAULT_THIRD_PARTY_CHARGES_PCT
+): FsclResult {
   const sb = input.dailyBasicSalary || 0;
   const calDays = input.calendarDays || 365;
   const nonWorked = input.nonWorkedDays || 0;
@@ -58,11 +78,11 @@ export function calculateFscl(input: FsclInput): FsclResult {
   const clinica = input.clinicaAmount || 0;
   const subTotalC = epp + agua + clinica;
 
-  const seguroSocial = subTotalA * 0.11;
-  const inces = subTotalA * 0.02;
-  const lph = subTotalA * 0.02;
-  const paroForzoso = subTotalA * 0.02;
-  const subTotalTerceros = seguroSocial + inces + lph + paroForzoso;
+  const { charges, subTotalTerceros } = applyThirdPartyCharges(subTotalA, thirdPartyChargesPct);
+  const seguroSocial = charges.seguro_social || 0;
+  const inces = charges.inces || 0;
+  const lph = charges.lph || 0;
+  const paroForzoso = charges.paro_forzoso || 0;
 
   const totalAnnualCost = subTotalA + subTotalB + subTotalC + subTotalTerceros;
   const totalDailyCost = totalAnnualCost / calDays;
@@ -71,6 +91,6 @@ export function calculateFscl(input: FsclInput): FsclResult {
   return {
     worked, subTotalA, subTotalB, subTotalC, subTotalTerceros,
     totalAnnualCost, totalDailyCost, factor,
-    seguroSocial, inces, lph, paroForzoso,
+    seguroSocial, inces, lph, paroForzoso, charges,
   };
 }
