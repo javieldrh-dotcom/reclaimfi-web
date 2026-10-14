@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   calculateBracketTax,
   applyThirdPartyCharges,
+  filterEmployerChargesByHeadcount,
   VE_DEFAULT_THIRD_PARTY_CHARGES_PCT,
   VE_DEFAULT_PAYROLL_CHARGES,
   type IncomeTaxConfig,
@@ -118,10 +119,10 @@ describe("applyThirdPartyCharges", () => {
     const employee = applyThirdPartyCharges(gross, VE_DEFAULT_PAYROLL_CHARGES.employee_pct);
     const employer = applyThirdPartyCharges(gross, VE_DEFAULT_PAYROLL_CHARGES.employer_pct);
 
-    // IVSS empleado 4% de 2000 = 80
-    expect(employee.subTotalTerceros).toBeCloseTo(80, 6);
-    // IVSS patronal 9% + INCES 2% + FAOV 2% = 13% de 2000 = 260
-    expect(employer.subTotalTerceros).toBeCloseTo(260, 6);
+    // IVSS empleado 4% + LPH empleado 1% + Paro Forzoso empleado 0.5% = 5.5% de 2000 = 110
+    expect(employee.subTotalTerceros).toBeCloseTo(110, 6);
+    // IVSS patronal 9% + INCES 2% + FAOV 2% + Paro Forzoso patronal 2% = 15% de 2000 = 300
+    expect(employer.subTotalTerceros).toBeCloseTo(300, 6);
   });
 
   it("retorna cero cuando no hay cargas configuradas (jurisdiccion sin ese concepto)", () => {
@@ -133,5 +134,35 @@ describe("applyThirdPartyCharges", () => {
   it("escala linealmente con la base (subTotalA de cero da cero cargas)", () => {
     const { subTotalTerceros } = applyThirdPartyCharges(0, VE_DEFAULT_THIRD_PARTY_CHARGES_PCT);
     expect(subTotalTerceros).toBe(0);
+  });
+});
+
+describe("filterEmployerChargesByHeadcount", () => {
+  it("excluye INCES cuando la empresa tiene menos de 5 empleados activos (Ley INCES art. 49)", () => {
+    const filtered = filterEmployerChargesByHeadcount(VE_DEFAULT_PAYROLL_CHARGES, 3);
+    expect(filtered).not.toHaveProperty("inces");
+    expect(filtered.ivss_patronal).toBe(9);
+    expect(filtered.faov).toBe(2);
+    expect(filtered.paro_forzoso_patronal).toBe(2);
+  });
+
+  it("incluye INCES cuando la empresa tiene exactamente 5 empleados activos (umbral inclusive)", () => {
+    const filtered = filterEmployerChargesByHeadcount(VE_DEFAULT_PAYROLL_CHARGES, 5);
+    expect(filtered.inces).toBe(2);
+  });
+
+  it("incluye INCES cuando la empresa tiene mas de 5 empleados activos", () => {
+    const filtered = filterEmployerChargesByHeadcount(VE_DEFAULT_PAYROLL_CHARGES, 20);
+    expect(filtered.inces).toBe(2);
+  });
+
+  it("no excluye nada cuando el config no define employer_pct_min_employees (jurisdiccion sin ese requisito)", () => {
+    const noThresholdConfig = {
+      name: "Jurisdiccion sin umbrales",
+      employee_pct: {},
+      employer_pct: { carga_x: 5, carga_y: 3 },
+    };
+    const filtered = filterEmployerChargesByHeadcount(noThresholdConfig, 1);
+    expect(filtered).toEqual({ carga_x: 5, carga_y: 3 });
   });
 });

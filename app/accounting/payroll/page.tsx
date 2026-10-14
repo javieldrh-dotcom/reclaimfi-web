@@ -4,7 +4,7 @@ import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
 import VerticalPageLayout from "@/app/components/VerticalPageLayout";
 import AccountSearchSelect from "@/app/components/AccountSearchSelect";
-import { applyThirdPartyCharges, fetchPayrollChargesConfig, VE_DEFAULT_PAYROLL_CHARGES, type PayrollChargesConfig } from "@/app/lib/jurisdictionTax";
+import { applyThirdPartyCharges, fetchPayrollChargesConfig, filterEmployerChargesByHeadcount, VE_DEFAULT_PAYROLL_CHARGES, type PayrollChargesConfig } from "@/app/lib/jurisdictionTax";
 
 // Diferenciador "APU <-> Contabilidad en tiempo real", parte nomina: las
 // tasas IVSS/INCES/FAOV ya no estan fijas en el codigo -- se leen de
@@ -136,13 +136,18 @@ export default function PayrollPage() {
     // jurisdiction_code, se usan las mismas tasas VE de siempre -- ninguna
     // empresa VE existente ve un resultado distinto al de antes.
     const charges = payrollChargesConfig ?? VE_DEFAULT_PAYROLL_CHARGES;
+    // Cargos patronales condicionados a cantidad de empleados (ej. INCES
+    // en VE solo con 5+ activos, Ley INCES art. 49) -- se evalua una
+    // sola vez por corrida, contra la cantidad de empleados activos de
+    // la empresa, no por empleado individual.
+    const employerPctApplicable = filterEmployerChargesByHeadcount(charges, employees.length);
 
     const details = employees.map((emp) => {
       const fxRate = parseFloat(payrollExchangeRate) || 1;
       const gross = emp.daily_salary * daysInPeriod * fxRate;
       const { subTotalTerceros: socialSecurity } = applyThirdPartyCharges(gross, charges.employee_pct);
       const net = gross - socialSecurity;
-      const { subTotalTerceros: patronal } = applyThirdPartyCharges(gross, charges.employer_pct);
+      const { subTotalTerceros: patronal } = applyThirdPartyCharges(gross, employerPctApplicable);
       return { employee_id: emp.id, apu_project_id: emp.apu_project_id ?? null, days_worked: daysInPeriod, gross_amount: gross, social_security: socialSecurity, other_deductions: 0, net_amount: net, patronal_amount: patronal };
     });
 
@@ -249,7 +254,10 @@ export default function PayrollPage() {
         <div style={theme.cardStyle}>
           <h3 style={{ fontSize: 20, color: theme.accent, fontWeight: 700, marginBottom: 12 }}>Procesar Nomina</h3>
           <p style={{ fontSize: 13, color: "#8B93A7", marginBottom: 10 }}>
-            {payrollChargesConfig ? payrollChargesConfig.name : "IVSS Empleado 4% | IVSS Patronal 9% + INCES 2% + FAOV 2% = 13% Patronal (por defecto VE)"}
+            {(payrollChargesConfig ?? VE_DEFAULT_PAYROLL_CHARGES).name}
+            {employees.length > 0 && employees.length < 5 && (payrollChargesConfig ?? VE_DEFAULT_PAYROLL_CHARGES).employer_pct_min_employees && (
+              <span style={{ color: "#facc15" }}> · con {employees.length} empleado(s) activo(s), algunos cargos patronales con minimo de trabajadores (ej. INCES) no se aplican esta corrida.</span>
+            )}
           </p>
           <div style={{ display: "flex", gap: 10 }}>
             <input type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} style={inputStyle} />

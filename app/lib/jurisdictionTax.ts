@@ -33,6 +33,11 @@ export interface PayrollChargesConfig {
   name: string;
   employee_pct: Record<string, number>;
   employer_pct: Record<string, number>;
+  // Opcional: cantidad minima de empleados activos para que un cargo de
+  // employer_pct aplique (ej. INCES en VE solo aplica con 5+
+  // trabajadores, Ley INCES art. 49). Se indexa por la misma clave que
+  // employer_pct. Un cargo sin entrada aqui siempre aplica.
+  employer_pct_min_employees?: Record<string, number>;
   [key: string]: unknown;
 }
 
@@ -135,6 +140,33 @@ export function applyThirdPartyCharges(
 // jurisdiction_modules todavia no tiene fila para el pais de la empresa
 // -- asi ninguna empresa existente ve un factor FSCL distinto al de hoy
 // si por algun motivo la consulta a jurisdiction_modules no trae datos.
+//
+// Verificado contra fuente legal (14-oct-2026): estos 4 montos son
+// EXCLUSIVAMENTE la carga patronal (lo que paga la empresa, no lo que se
+// le retiene al trabajador) de cada regimen, sumados:
+// - seguro_social 11%: el aporte patronal de IVSS varia 9/10/11% segun
+//   la clasificacion de riesgo de la actividad (Minimo/Medio/Maximo --
+//   Decreto 8.921, Reglamento Ley SS art. 192). 11% corresponde a
+//   Riesgo Maximo, que es la clasificacion esperada para la actividad de
+//   perforacion/extraccion/petroquimica que licita con PDVSA (contexto
+//   de este modulo APU) -- si FSCL se usa para un contratista de otra
+//   actividad con riesgo Minimo o Medio, el porcentaje correcto es 9% o
+//   10%, no 11%. Editable por jurisdiccion/proyecto en
+//   /admin/jurisdiction-modules.
+// - inces 2%: aporte patronal, aplica solo si la entidad de trabajo tiene
+//   5 o mas trabajadores (Ley INCES, Gaceta 6.155 Extraordinario, art.
+//   49). FSCL no conoce la nomina real del contratista licitante (es un
+//   factor de costeo, no un calculo de nomina), asi que asume que aplica
+//   -- razonable para una empresa que licita una obra de magnitud
+//   suficiente para requerir FSCL, pero queda como supuesto a confirmar
+//   caso por caso.
+// - lph 2%: aporte patronal al FAOV (Ley de Vivienda y Habitat,
+//   BANAVIH). El trabajador aporta 1% adicional, pero eso es una
+//   retencion sobre SU salario, no un costo para el contratista, por eso
+//   no se incluye aqui.
+// - paro_forzoso 2%: aporte patronal al Regimen Prestacional de Empleo
+//   (Ley del RPE, Gaceta 38.281, art. 46). El trabajador aporta 0.5%
+//   adicional (retencion, no costo patronal), tampoco se incluye aqui.
 export const VE_DEFAULT_THIRD_PARTY_CHARGES_PCT: Record<string, number> = {
   seguro_social: 11,
   inces: 2,
@@ -142,12 +174,53 @@ export const VE_DEFAULT_THIRD_PARTY_CHARGES_PCT: Record<string, number> = {
   paro_forzoso: 2,
 };
 
-// Respaldo de nomina (IVSS/INCES/FAOV), mismo patron: si jurisdiction_modules
-// no tiene fila PAYROLL_CHARGES para el pais de la empresa, se usan estas
-// tasas -- las mismas que ya estaban escritas a mano en
-// app/accounting/payroll/page.tsx, asi que ninguna empresa VE existente ve
-// un resultado distinto al de antes.
-export const VE_DEFAULT_PAYROLL_CHARGES: { employee_pct: Record<string, number>; employer_pct: Record<string, number> } = {
-  employee_pct: { ivss_empleado: 4 },
-  employer_pct: { ivss_patronal: 9, inces: 2, faov: 2 },
+// Respaldo de nomina (IVSS/INCES/LPH/Paro Forzoso). Corregido el
+// 14-oct-2026 contra fuente legal: la version anterior (antes de esta
+// correccion) solo tenia IVSS 4% retenido al empleado y 9%+2%+2%
+// patronal -- le faltaban por completo las retenciones de LPH (1%) y
+// Paro Forzoso (0.5%) al empleado, y el aporte patronal de Paro
+// Forzoso/RPE (2%). Esto SI cambia el monto neto pagado y las
+// obligaciones patronales de cualquier empresa VE que corra nomina
+// desde este cambio en adelante -- a diferencia de las correcciones
+// anteriores de esta sesion, que preservaban el comportamiento
+// existente a proposito. Fuentes:
+// - ivss_empleado 4%: retencion al trabajador, sin cambios.
+// - ivss_patronal 9%: aporte patronal de IVSS en Riesgo Minimo (el
+//   supuesto mas conservador cuando no se conoce la clasificacion real
+//   de riesgo de la empresa -- puede ser 10% o 11% si la actividad es
+//   de riesgo Medio o Maximo; Decreto 8.921, Reglamento Ley SS art. 192).
+// - inces 2%: aporte patronal, aplica solo si la empresa tiene 5 o mas
+//   trabajadores activos (Ley INCES, Gaceta 6.155, art. 49) -- a
+//   diferencia de FSCL, aqui SI se conoce la nomina real, asi que
+//   app/accounting/payroll/page.tsx excluye este cargo cuando hay menos
+//   de 5 empleados activos en vez de asumir que siempre aplica.
+// - faov 2% (patronal) + lph_empleado 1% (retencion): Ley de Vivienda y
+//   Habitat / BANAVIH.
+// - paro_forzoso_patronal 2% + paro_forzoso_empleado 0.5%: Ley del
+//   Regimen Prestacional de Empleo, Gaceta 38.281, art. 46.
+export const VE_DEFAULT_PAYROLL_CHARGES: PayrollChargesConfig = {
+  name: "Cargas de Nomina Venezuela (IVSS/INCES/LPH-FAOV/Paro Forzoso-RPE)",
+  employee_pct: { ivss_empleado: 4, lph_empleado: 1, paro_forzoso_empleado: 0.5 },
+  employer_pct: { ivss_patronal: 9, inces: 2, faov: 2, paro_forzoso_patronal: 2 },
+  employer_pct_min_employees: { inces: 5 },
 };
+
+// Aplica employer_pct_min_employees: quita del mapa de cargas patronales
+// cualquier cargo cuyo minimo de empleados activos no se cumpla (ej.
+// INCES con menos de 5 empleados en VE). Generico por jurisdiccion --
+// app/accounting/payroll/page.tsx llama esto en vez de leer
+// employer_pct directo, para que la regla viva en el dato
+// (jurisdiction_modules), no en el codigo de la pantalla.
+export function filterEmployerChargesByHeadcount(
+  config: PayrollChargesConfig,
+  activeEmployeeCount: number
+): Record<string, number> {
+  const minByKey = config.employer_pct_min_employees ?? {};
+  const filtered: Record<string, number> = {};
+  for (const [key, pct] of Object.entries(config.employer_pct || {})) {
+    const minRequired = minByKey[key];
+    if (minRequired !== undefined && activeEmployeeCount < minRequired) continue;
+    filtered[key] = pct;
+  }
+  return filtered;
+}
