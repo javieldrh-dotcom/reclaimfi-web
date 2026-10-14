@@ -1,139 +1,323 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/app/lib/supabase";
+import { getVerticalTheme } from "@/app/core/design/tokens";
+import VerticalPageLayout from "@/app/components/VerticalPageLayout";
+import { logCompanyLedgerEvent } from "@/app/lib/logLedgerEvent";
+import { computeAccountingAnomalies } from "@/app/lib/forensics/computeAccountingAnomalies";
 
-interface ChatMessage {
-  role: "user" | "assistant";
-  text: string;
+// Diferenciador "auditoria continua, no retroactiva": el mismo motor
+// forense que antes solo corria sobre casos de investigacion reconstruidos
+// (Benford + outliers por z-score) ahora corre tambien aqui, sobre la
+// contabilidad real del periodo que se esta cerrando -- ANTES de que el
+// aprobador confirme los 3 asientos NIIF, no meses despues en una
+// auditoria externa. No bloquea el cierre (el contador mantiene el
+// criterio final): solo deja la anomalia visible y registrada.
+function formatAnomalySummary(result: Awaited<ReturnType<typeof computeAccountingAnomalies>>): string | null {
+  const parts: string[] = [];
+  // Primero el chequeo mas grave: si esto falla, los estados financieros
+  // de la empresa (no solo este periodo) estan descuadrados de raiz.
+  if (!result.balanceIntegrity.balanced) {
+    parts.push(
+      `⚠️ INTEGRIDAD CONTABLE: Debitos (${result.balanceIntegrity.totalDebit.toLocaleString(undefined, { maximumFractionDigits: 2 })}) ≠ Creditos (${result.balanceIntegrity.totalCredit.toLocaleString(undefined, { maximumFractionDigits: 2 })}), diferencia ${result.balanceIntegrity.difference.toLocaleString(undefined, { maximumFractionDigits: 2 })}. Esto no deberia ser posible si todo asiento se guardo balanceado -- revisa si algun modulo escribio journal_lines sin pasar por esa validacion antes de cerrar.`
+    );
+  }
+  if (result.outliers.flagged.length > 0) {
+    const top = result.outliers.flagged.slice(0, 5)
+      .map((f) => `${f.accountName}: ${f.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })} (vs. típico ${f.accountTypicalAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}, z=${f.zScore.toFixed(2)})`)
+      .join("; ");
+    parts.push(`${result.outliers.flagged.length} movimiento(s) atípico(s) detectado(s) por cuenta: ${top}`);
+  }
+  if (result.benford.applicable && result.benford.conformity && result.benford.conformity !== "ALTA" && result.benford.conformity !== "ACEPTABLE") {
+    parts.push(`Ley de Benford: conformidad "${result.benford.conformity}" sobre ${result.benford.sampleSize} montos (posible señal de manipulación, no una prueba por sí sola).`);
+  }
+  return parts.length > 0 ? parts.join(" | ") : null;
 }
 
-export default function AccountingChatWidget() {
-  const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState<"datos" | "ayuda">("datos");
-  const [question, setQuestion] = useState("");
-  const [messagesDatos, setMessagesDatos] = useState<ChatMessage[]>([]);
-  const [messagesAyuda, setMessagesAyuda] = useState<ChatMessage[]>([]);
+export default function PeriodClosePage() {
+  const theme = getVerticalTheme("accounting");
+  const [companyId, setCompanyId] = useState<string | null>(null);
+  const [revenueAccounts, setRevenueAccounts] = useState<any[]>([]);
+  const [expenseAccounts, setExpenseAccounts] = useState<any[]>([]);
+  const [retainedEarningsId, setRetainedEarningsId] = useState<string | null>(null);
+  const [profitLossAccountId, setProfitLossAccountId] = useState<string | null>(null);
+  const [periods, setPeriods] = useState<any[]>([]);
+  const [periodStart, setPeriodStart] = useState("");
+  const [periodEnd, setPeriodEnd] = useState("");
+  const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
-  const bottomRef = useRef<HTMLDivElement>(null);
 
-  const bg = "#0A1628";
-  const surface = "#12213B";
-  const border = "#1E3A5F";
-  const sky = "#FACC15";
-  const inkSoft = "#8FA3C4";
-
-  const messages = tab === "datos" ? messagesDatos : messagesAyuda;
-  const setMessages = tab === "datos" ? setMessagesDatos : setMessagesAyuda;
-  const endpoint = tab === "datos" ? "/api/chat-query" : "/api/help-query";
+  async function loadPeriods(cid: string) {
+    const { data } = await supabase.from("fiscal_periods").select("*").eq("company_id", cid).order("period_end", { ascending: false });
+    setPeriods(data ?? []);
+  }
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, open, tab]);
+    async function load() {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData?.user) return;
+      const { data: uc } = await supabase.from("user_companies").select("company_id").eq("user_id", userData.user.id).order("last_active_at", { ascending: false }).limit(1).single();
+      const cid = uc?.company_id ?? null;
+      setCompanyId(cid);
+      if (cid) {
+        const { data: rev } = await supabase.from("chart_of_accounts").select("id, account_code, account_name").eq("company_id", cid).eq("account_type", "REVENUE");
+        const { data: exp } = await supabase.from("chart_of_accounts").select("id, account_code, account_name").eq("company_id", cid).eq("account_type", "EXPENSE");
+        const { data: re } = await supabase.from("chart_of_accounts").select("id").eq("company_id", cid).ilike("account_name", "%Resultados Acumulados%").limit(1).single();
+        setRevenueAccounts(rev ?? []);
+        setExpenseAccounts(exp ?? []);
+        setRetainedEarningsId(re?.id ?? null);
+        let { data: pyg } = await supabase.from("chart_of_accounts").select("id").eq("company_id", cid).ilike("account_name", "%Perdidas y Ganancias%").limit(1).maybeSingle();
+        if (!pyg) { const alt = await supabase.from("chart_of_accounts").select("id").eq("company_id", cid).ilike("account_name", "%P%rdidas y Ganancias%").limit(1).maybeSingle(); pyg = alt.data; }
+        if (!pyg) {
+          const { data: created } = await supabase.from("chart_of_accounts").insert([{ company_id: cid, account_code: "3199-01", account_name: "Perdidas y Ganancias (Cuenta Puente de Cierre)", account_type: "EQUITY" }]).select("id").single();
+          pyg = created;
+        }
+        setProfitLossAccountId(pyg?.id ?? null);
+        await loadPeriods(cid);
+      }
+    }
+    load();
+  }, []);
 
-  async function sendQuestion() {
-    const q = question.trim();
-    if (!q || loading) return;
-    setMessages((prev) => [...prev, { role: "user", text: q }]);
-    setQuestion("");
+  // Antes "Ejecutar Cierre de Ejercicio" calculaba y registraba los 3 asientos
+  // NIIF de una sola vez, sin ningun paso de confirmacion - la accion mas
+  // irreversible y de mayor impacto de todo el modulo contable (cierra
+  // Ingresos/Gastos y traslada el resultado a Patrimonio) no tenia ni
+  // siquiera un boton de deshacer. Ahora se separa en dos pasos
+  // (maker-checker, Fase 2 de la hoja de ruta), igual patron que la
+  // adjudicacion APU: requestClose() solo valida y deja una fila en
+  // fiscal_periods con status PENDING_CLOSE + una solicitud en "approvals";
+  // confirmClose() es quien de verdad registra los 3 asientos. Como hoy solo
+  // ADMIN/CONTADOR tienen EDIT_ACCOUNTING, cualquiera de esos roles puede
+  // confirmar, incluido quien solicito el cierre - esto deja un registro
+  // explicito y auditable de la decision.
+  async function computeCloseTotals(pStart: string, pEnd: string) {
+    const revenueIds = revenueAccounts.map((a) => a.id);
+    const expenseIds = expenseAccounts.map((a) => a.id);
+
+    const { data: revLines } = await supabase.from("journal_lines").select("debit, credit, account_id, journal_entries!inner(entry_date, status)").in("account_id", revenueIds).eq("journal_entries.status", "ACTIVE").gte("journal_entries.entry_date", pStart).lte("journal_entries.entry_date", pEnd);
+    const { data: expLines } = await supabase.from("journal_lines").select("debit, credit, account_id, journal_entries!inner(entry_date, status)").in("account_id", expenseIds).eq("journal_entries.status", "ACTIVE").gte("journal_entries.entry_date", pStart).lte("journal_entries.entry_date", pEnd);
+
+    const revenueByAccount: Record<string, number> = {};
+    (revLines ?? []).forEach((l: any) => {
+      revenueByAccount[l.account_id] = (revenueByAccount[l.account_id] || 0) + ((l.credit || 0) - (l.debit || 0));
+    });
+
+    const expenseByAccount: Record<string, number> = {};
+    (expLines ?? []).forEach((l: any) => {
+      expenseByAccount[l.account_id] = (expenseByAccount[l.account_id] || 0) + ((l.debit || 0) - (l.credit || 0));
+    });
+
+    const totalRevenue = Object.values(revenueByAccount).reduce((s, v) => s + v, 0);
+    const totalExpense = Object.values(expenseByAccount).reduce((s, v) => s + v, 0);
+    return { revenueByAccount, expenseByAccount, totalRevenue, totalExpense, netResult: totalRevenue - totalExpense };
+  }
+
+  async function requestClose() {
+    setMessage("");
     setLoading(true);
-    try {
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: q }),
-      });
-      const json = await res.json();
-      const answer = json.success ? json.answer : "Error: " + json.error;
-      setMessages((prev) => [...prev, { role: "assistant", text: answer }]);
-    } catch (err: any) {
-      setMessages((prev) => [...prev, { role: "assistant", text: "Error de conexion: " + err.message }]);
+
+    if (!companyId || !periodStart || !periodEnd) { setMessage("Completa las fechas del periodo."); setLoading(false); return; }
+    if (!retainedEarningsId) { setMessage("No se encontro la cuenta de Resultados Acumulados."); setLoading(false); return; }
+    if (!profitLossAccountId) { setMessage("No se pudo crear o encontrar la cuenta puente Perdidas y Ganancias."); setLoading(false); return; }
+
+    const { totalRevenue, totalExpense } = await computeCloseTotals(periodStart, periodEnd);
+    if (totalRevenue === 0 && totalExpense === 0) {
+      setMessage("No hay movimientos de Ingresos/Gastos en este periodo para cerrar.");
+      setLoading(false);
+      return;
     }
+
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData?.user) { setLoading(false); return; }
+
+    const anomalies = await computeAccountingAnomalies(companyId, periodStart, periodEnd);
+    const anomalySummary = formatAnomalySummary(anomalies);
+
+    const { data: periodRow, error: periodError } = await supabase.from("fiscal_periods").insert([{
+      company_id: companyId,
+      period_start: periodStart,
+      period_end: periodEnd,
+      status: "PENDING_CLOSE",
+      anomaly_summary: anomalySummary,
+    }]).select("id").single();
+    if (periodError || !periodRow) { setMessage("No se pudo registrar la solicitud de cierre: " + periodError?.message); setLoading(false); return; }
+
+    const { error: approvalError } = await supabase.from("approvals").insert([{
+      company_id: companyId,
+      module: "PERIOD_CLOSE",
+      record_id: periodRow.id,
+      requested_by: userData.user.id,
+      status: "PENDING",
+    }]);
+    if (approvalError) { setMessage("El periodo quedo registrado como pendiente, pero hubo un error al crear la solicitud de aprobacion: " + approvalError.message); }
+    else if (anomalySummary) { setMessage("Cierre solicitado — ATENCIÓN: se detectaron anomalías antes de aprobar. Revisa el detalle en la lista de periodos."); }
+    else { setMessage("Cierre solicitado. Queda pendiente de confirmacion antes de registrar los asientos de cierre. Sin anomalías detectadas por el motor forense."); }
+
     setLoading(false);
+    await loadPeriods(companyId);
   }
 
-  function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      sendQuestion();
+  async function confirmClose(period: any) {
+    if (!companyId) return;
+    if (!window.confirm("Confirmar el cierre de este periodo y registrar los 3 asientos NIIF? Esta accion no se puede deshacer desde aqui.")) return;
+    setLoading(true);
+
+    const { totalRevenue, totalExpense, netResult, revenueByAccount, expenseByAccount } = await computeCloseTotals(period.period_start, period.period_end);
+    if (totalRevenue === 0 && totalExpense === 0) {
+      setMessage("Ya no hay movimientos de Ingresos/Gastos en este periodo. No se confirmo el cierre.");
+      setLoading(false);
+      return;
     }
+
+    async function nextEntryNumber() {
+      const { data: last } = await supabase.from("journal_entries").select("entry_number").eq("company_id", companyId!).eq("status", "ACTIVE").not("entry_number", "is", null).order("entry_number", { ascending: false }).limit(1).maybeSingle();
+      return (last?.entry_number || 0) + 1;
+    }
+
+    const num1 = await nextEntryNumber();
+    const { data: entry1, error: e1 } = await supabase.from("journal_entries").insert([{
+      company_id: companyId,
+      description: "Cierre de Cuentas de Ingresos - " + period.period_start + " a " + period.period_end,
+      entry_date: period.period_end,
+      entry_number: num1,
+    }]).select("id").single();
+    if (e1 || !entry1) { setMessage("Error asiento 1: " + e1?.message); setLoading(false); return; }
+    const lines1: any[] = [];
+    Object.entries(revenueByAccount).forEach(([accId, amount]) => {
+      if (amount !== 0) lines1.push({ journal_entry_id: entry1.id, account_id: accId, debit: amount, credit: 0 });
+    });
+    lines1.push({ journal_entry_id: entry1.id, account_id: profitLossAccountId, debit: 0, credit: totalRevenue });
+    await supabase.from("journal_lines").insert(lines1);
+
+    const num2 = num1 + 1;
+    const { data: entry2, error: e2 } = await supabase.from("journal_entries").insert([{
+      company_id: companyId,
+      description: "Cierre de Cuentas de Gastos y Costos - " + period.period_start + " a " + period.period_end,
+      entry_date: period.period_end,
+      entry_number: num2,
+    }]).select("id").single();
+    if (e2 || !entry2) { setMessage("Error asiento 2: " + e2?.message); setLoading(false); return; }
+    const lines2: any[] = [];
+    lines2.push({ journal_entry_id: entry2.id, account_id: profitLossAccountId, debit: totalExpense, credit: 0 });
+    Object.entries(expenseByAccount).forEach(([accId, amount]) => {
+      if (amount !== 0) lines2.push({ journal_entry_id: entry2.id, account_id: accId, debit: 0, credit: amount });
+    });
+    await supabase.from("journal_lines").insert(lines2);
+
+    const num3 = num2 + 1;
+    const { data: entry3, error: e3 } = await supabase.from("journal_entries").insert([{
+      company_id: companyId,
+      description: "Traspaso del Resultado Neto a Patrimonio - " + period.period_start + " a " + period.period_end,
+      entry_date: period.period_end,
+      entry_number: num3,
+    }]).select("id").single();
+    if (e3 || !entry3) { setMessage("Error asiento 3: " + e3?.message); setLoading(false); return; }
+    const lines3: any[] = [];
+    if (netResult >= 0) {
+      lines3.push({ journal_entry_id: entry3.id, account_id: profitLossAccountId, debit: netResult, credit: 0 });
+      lines3.push({ journal_entry_id: entry3.id, account_id: retainedEarningsId, debit: 0, credit: netResult });
+    } else {
+      lines3.push({ journal_entry_id: entry3.id, account_id: retainedEarningsId, debit: Math.abs(netResult), credit: 0 });
+      lines3.push({ journal_entry_id: entry3.id, account_id: profitLossAccountId, debit: 0, credit: Math.abs(netResult) });
+    }
+    await supabase.from("journal_lines").insert(lines3);
+
+    await supabase.from("fiscal_periods").update({
+      status: "CLOSED",
+      closing_entry_id: entry3.id,
+      closed_at: new Date().toISOString(),
+      net_result: netResult,
+    }).eq("id", period.id);
+
+    const { data: userData } = await supabase.auth.getUser();
+    const { data: pendingApproval } = await supabase.from("approvals").select("id").eq("company_id", companyId).eq("module", "PERIOD_CLOSE").eq("record_id", period.id).eq("status", "PENDING").order("created_at", { ascending: false }).limit(1).maybeSingle();
+    if (pendingApproval) {
+      await supabase.from("approvals").update({ status: "APPROVED", approved_by: userData?.user?.id ?? null }).eq("id", pendingApproval.id);
+    }
+
+    // Fase 5: cadena de custodia unificada - dos eventos encadenados por
+    // empresa (no hay caso forense involucrado): la decision de aprobar,
+    // y el resultado concreto del cierre (asientos + resultado neto).
+    await logCompanyLedgerEvent("rf.period.close_approved", companyId, {
+      period_id: period.id, period_start: period.period_start, period_end: period.period_end,
+    });
+    await logCompanyLedgerEvent("rf.period.closed", companyId, {
+      period_id: period.id, period_start: period.period_start, period_end: period.period_end,
+      net_result: netResult, entry_numbers: [num1, num2, num3],
+    });
+
+    setMessage("Periodo cerrado correctamente con 3 asientos NIIF (Nº" + num1 + ", " + num2 + ", " + num3 + "). Resultado: " + netResult.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+    setLoading(false);
+    await loadPeriods(companyId);
   }
+
+  async function rejectClose(period: any) {
+    if (!companyId) return;
+    if (!window.confirm("Rechazar esta solicitud de cierre? No se registrara ningun asiento y la solicitud se eliminara.")) return;
+
+    const { data: userData } = await supabase.auth.getUser();
+    const { data: pendingApproval } = await supabase.from("approvals").select("id").eq("company_id", companyId).eq("module", "PERIOD_CLOSE").eq("record_id", period.id).eq("status", "PENDING").order("created_at", { ascending: false }).limit(1).maybeSingle();
+    if (pendingApproval) {
+      await supabase.from("approvals").update({ status: "REJECTED", approved_by: userData?.user?.id ?? null }).eq("id", pendingApproval.id);
+    }
+
+    await supabase.from("fiscal_periods").delete().eq("id", period.id);
+    await logCompanyLedgerEvent("rf.period.close_rejected", companyId, {
+      period_start: period.period_start, period_end: period.period_end,
+    });
+    setMessage("Solicitud de cierre rechazada.");
+    await loadPeriods(companyId);
+  }
+  const inputStyle = { ...theme.inputStyle, fontSize: 20 };
 
   return (
-    <div style={{ position: "fixed", bottom: 24, right: 24, zIndex: 100 }}>
-      {open && (
-        <div style={{ width: 400, height: 540, background: bg, border: "1px solid " + border, borderRadius: 16, boxShadow: "0 12px 32px rgba(0,0,0,0.5)", display: "flex", flexDirection: "column", marginBottom: 12, overflow: "hidden" }}>
-          <div style={{ padding: "16px 18px 0", borderBottom: "1px solid " + border }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <span style={{ color: sky, fontWeight: 800, fontSize: 16 }}>Asistente</span>
-              <button onClick={() => setOpen(false)} aria-label="Cerrar" style={{ background: "none", border: "none", cursor: "pointer", color: inkSoft, padding: 4 }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-              </button>
-            </div>
-            <div style={{ display: "flex", gap: 4, marginBottom: 12 }}>
-              <button onClick={() => setTab("datos")} style={{ flex: 1, padding: "10px 0", background: tab === "datos" ? sky + "18" : "transparent", color: tab === "datos" ? sky : inkSoft, border: "1px solid " + (tab === "datos" ? sky : border), borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-                Mis Datos
-              </button>
-              <button onClick={() => setTab("ayuda")} style={{ flex: 1, padding: "10px 0", background: tab === "ayuda" ? sky + "18" : "transparent", color: tab === "ayuda" ? sky : inkSoft, border: "1px solid " + (tab === "ayuda" ? sky : border), borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-                Ayuda
-              </button>
-            </div>
-          </div>
+    <VerticalPageLayout vertical="accounting" title="Cierre de Ejercicio" subtitle="Genera el asiento de cierre: lleva Ingresos y Gastos a cero y traslada el resultado a Resultados Acumulados" fullWidth>
+      <div style={{ maxWidth: 600, margin: "0 auto" }}>
+        <label style={{ fontSize: 18, color: theme.accent, fontWeight: 700 }}>Inicio del Periodo</label>
+        <input type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} style={{ ...inputStyle, marginTop: 6 }} />
+        <label style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginTop: 14, display: "block" }}>Fin del Periodo</label>
+        <input type="date" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} style={{ ...inputStyle, marginTop: 6 }} />
+        <button onClick={requestClose} disabled={loading} style={{ ...theme.buttonStyle, marginTop: 18, fontSize: 18, background: "#f87171" }}>
+          {loading ? "PROCESANDO..." : "SOLICITAR CIERRE DE EJERCICIO"}
+        </button>
+        {message && <p style={{ marginTop: 10, fontSize: 18, color: message.includes("Error") || message.includes("No hay") ? "#f87171" : theme.accent }}>{message}</p>}
+      </div>
 
-          <div style={{ padding: "8px 14px", background: sky + "0C", borderBottom: "1px solid " + border }}>
-            <p style={{ fontSize: 11, color: inkSoft, lineHeight: 1.5 }}>
-              Estas hablando con un asistente automatizado de inteligencia artificial, no una persona. Verifica los resultados antes de usarlos oficialmente.
-            </p>
-          </div>
-
-          <div style={{ flex: 1, overflowY: "auto", padding: 14 }}>
-            {messages.length === 0 && (
-              <p style={{ fontSize: 13, color: inkSoft, padding: 8 }}>
-                {tab === "datos"
-                  ? 'Pregunta sobre tus datos contables, ej: "¿cual es mi saldo en banco?" o "¿cuanto llevo de gastos este ano?"'
-                  : 'Pregunta como usar la plataforma, ej: "¿donde registro un asiento?" o "¿como veo el Balance de Comprobacion?"'}
-              </p>
-            )}
-            {messages.map((m, i) => (
-              <div key={i} style={{ marginBottom: 10, display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start" }}>
-                <div style={{
-                  maxWidth: "85%", padding: "10px 14px", borderRadius: 12, fontSize: 14, lineHeight: 1.6,
-                  background: m.role === "user" ? sky : surface,
-                  color: m.role === "user" ? bg : "#FFFFFF",
-                  border: m.role === "user" ? "none" : "1px solid " + border,
-                }}>
-                  {m.text}
-                </div>
+      {periods.length > 0 && (
+        <div style={{ marginTop: 40 }}>
+          <h2 style={{ fontSize: 24, color: theme.accent, fontWeight: 700 }}>Periodos</h2>
+          {periods.map((p) => (
+            <div key={p.id} style={{ padding: 14, borderBottom: "1px solid #1F2937" }}>
+              <div style={{ fontSize: 20, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
+                <span>
+                  {p.period_start} a {p.period_end}
+                  {p.status === "PENDING_CLOSE" ? (
+                    <span style={{ color: "#facc15" }}> - PENDIENTE DE APROBACION</span>
+                  ) : (
+                    <> - Resultado: <span style={theme.numberStyle}>{p.net_result?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span> - {p.status}</>
+                  )}
+                </span>
+                {p.status === "PENDING_CLOSE" && (
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button onClick={() => confirmClose(p)} disabled={loading} style={{ padding: "8px 16px", background: "none", border: "1px solid #4ade80", color: "#4ade80", borderRadius: 8, fontSize: 15, cursor: "pointer" }}>
+                      Confirmar y Registrar
+                    </button>
+                    <button onClick={() => rejectClose(p)} disabled={loading} style={{ padding: "8px 16px", background: "none", border: "1px solid #f87171", color: "#f87171", borderRadius: 8, fontSize: 15, cursor: "pointer" }}>
+                      Rechazar
+                    </button>
+                  </div>
+                )}
               </div>
-            ))}
-            {loading && <p style={{ fontSize: 13, color: inkSoft, padding: 8 }}>Pensando...</p>}
-            <div ref={bottomRef} />
-          </div>
-          <div style={{ padding: 12, borderTop: "1px solid " + border, display: "flex", gap: 8 }}>
-            <textarea
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Escribe tu pregunta..."
-              rows={1}
-              style={{ flex: 1, resize: "none", background: surface, border: "1px solid " + border, borderRadius: 10, padding: 10, color: "white", fontSize: 14 }}
-            />
-            <button onClick={sendQuestion} disabled={loading} aria-label="Enviar" style={{ background: sky, border: "none", borderRadius: 10, padding: "0 16px", color: bg, fontWeight: 800, cursor: "pointer", opacity: loading ? 0.6 : 1 }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>
-            </button>
-          </div>
+              {p.status === "PENDING_CLOSE" && p.anomaly_summary && (
+                <p style={{ marginTop: 8, fontSize: 14, color: "#f87171", background: "#f8717115", padding: 10, borderRadius: 8, border: "1px solid #f8717140" }}>
+                  ⚠ Auditoría continua — {p.anomaly_summary}
+                </p>
+              )}
+            </div>
+          ))}
         </div>
       )}
-      <div
-        onClick={() => setOpen(!open)}
-        role="button"
-        aria-label={open ? "Cerrar asistente" : "Abrir asistente"}
-        style={{ width: 76, height: 76, borderRadius: "50%", background: sky, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: "0 8px 24px " + sky + "60", marginLeft: "auto" }}
-      >
-        {open ? (
-          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#0A1628" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-        ) : (
-          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#0A1628" strokeWidth="2"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" /></svg>
-        )}
-      </div>
-    </div>
+    </VerticalPageLayout>
   );
 }
