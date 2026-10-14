@@ -7,6 +7,14 @@ import { generateApuCostSummaryPdf } from "@/app/core/reports/generateApuCostSum
 import { hashReportData } from "@/app/lib/reportHash";
 import { logCompanyLedgerEvent } from "@/app/lib/logLedgerEvent";
 
+interface PayrollHistoryEntry {
+  runId: string;
+  periodStart: string;
+  periodEnd: string;
+  amount: number;
+  cumulative: number;
+}
+
 export default function CostSummaryPage() {
   const theme = getVerticalTheme("apu");
   const [companyId, setCompanyId] = useState<string | null>(null);
@@ -21,7 +29,7 @@ export default function CostSummaryPage() {
   const [bcvRate, setBcvRate] = useState(0);
   const [bcvMessage, setBcvMessage] = useState("");
   const [downloadingPdf, setDownloadingPdf] = useState(false);
-  const [realLabor, setRealLabor] = useState<{ amount: number; runsCount: number } | null>(null);
+  const [realLabor, setRealLabor] = useState<{ amount: number; runsCount: number; history: PayrollHistoryEntry[] } | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -109,12 +117,31 @@ export default function CostSummaryPage() {
       .select("gross_amount, patronal_amount, payroll_run_id")
       .eq("apu_project_id", projectId);
     if (!details || details.length === 0) {
-      setRealLabor({ amount: 0, runsCount: 0 });
+      setRealLabor({ amount: 0, runsCount: 0, history: [] });
       return;
     }
-    const amount = details.reduce((s: number, d: any) => s + (d.gross_amount || 0) + (d.patronal_amount || 0), 0);
-    const runsCount = new Set(details.map((d: any) => d.payroll_run_id)).size;
-    setRealLabor({ amount, runsCount });
+
+    // Costo real por corrida de nomina (una corrida puede incluir mas de
+    // un empleado de este proyecto, de ahi el reduce agrupando por
+    // payroll_run_id antes de consultar las fechas del periodo).
+    const byRun = new Map<string, number>();
+    for (const d of details as any[]) {
+      const cur = byRun.get(d.payroll_run_id) ?? 0;
+      byRun.set(d.payroll_run_id, cur + (d.gross_amount || 0) + (d.patronal_amount || 0));
+    }
+    const runIds = Array.from(byRun.keys());
+
+    const { data: runs } = await supabase.from("payroll_runs").select("id, period_start, period_end").in("id", runIds);
+    const runsSorted = (runs ?? []).slice().sort((a: any, b: any) => (a.period_end < b.period_end ? -1 : a.period_end > b.period_end ? 1 : 0));
+
+    let cumulative = 0;
+    const history: PayrollHistoryEntry[] = runsSorted.map((r: any) => {
+      const runAmount = byRun.get(r.id) ?? 0;
+      cumulative += runAmount;
+      return { runId: r.id, periodStart: r.period_start, periodEnd: r.period_end, amount: runAmount, cumulative };
+    });
+
+    setRealLabor({ amount: cumulative, runsCount: runIds.length, history });
   }
 
   async function downloadPdf() {
@@ -222,6 +249,31 @@ export default function CostSummaryPage() {
                 <p style={{ fontSize: 12, color: "#8B93A7", marginTop: 4 }}>
                   Nota: compara montos en la misma moneda en que se proceso la nomina del proyecto; si la nomina se pago en VES y la oferta esta en USD, convierte antes de interpretar la variacion.
                 </p>
+
+                {realLabor.history.length > 0 && (
+                  <div style={{ marginTop: 12 }}>
+                    <p style={{ fontSize: 13, color: theme.accent, fontWeight: 700, marginBottom: 6 }}>Consumo del Presupuesto de Labor por Periodo</p>
+                    <div style={{ display: "flex", fontSize: 12, color: "#8B93A7", padding: "4px 6px", borderBottom: "1px solid #1F2937" }}>
+                      <span style={{ flex: 2 }}>Periodo</span>
+                      <span style={{ flex: 1, textAlign: "right" }}>Corrida</span>
+                      <span style={{ flex: 1, textAlign: "right" }}>Acumulado</span>
+                      <span style={{ flex: 1, textAlign: "right" }}>% Presupuesto</span>
+                    </div>
+                    {realLabor.history.map((h) => {
+                      const pctConsumed = summary.totalLabor > 0 ? (h.cumulative / summary.totalLabor) * 100 : 0;
+                      return (
+                        <div key={h.runId} style={{ display: "flex", fontSize: 13, padding: "6px 6px", borderBottom: "1px solid #1F2937" }}>
+                          <span style={{ flex: 2 }}>{h.periodStart} a {h.periodEnd}</span>
+                          <span style={{ flex: 1, textAlign: "right" }}>{h.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                          <span style={{ flex: 1, textAlign: "right" }}>{h.cumulative.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                          <span style={{ flex: 1, textAlign: "right", color: pctConsumed > 100 ? "#f87171" : pctConsumed > 85 ? "#facc15" : "#4ade80", fontWeight: 700 }}>
+                            {pctConsumed.toFixed(1)}%
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
             <div style={{ display: "flex", justifyContent: "space-between", padding: 8, fontSize: 20 }}><span>Administracion ({summary.adminPercentage.toFixed(1)}%)</span><span style={theme.numberStyle}>{summary.totalAdmin.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span></div>
