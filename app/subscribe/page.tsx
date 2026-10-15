@@ -59,7 +59,7 @@ function SubscribePageContent() {
     if (existingScript) existingScript.remove();
     const script = document.createElement("script");
     script.id = "paypal-sdk-script";
-    script.src = "https://www.paypal.com/sdk/js?client-id=BAA14BzB_9VhviO_C0gWpUwrrpSkF4AMRkzz-wI1E0_VGAEawrXQ-09k-jOguRdCZZzifZFfD41n2B97V4&vault=true&intent=subscription";
+    script.src = "https://www.paypal.com/sdk/js?client-id=BAArju91dqDZ3Vza2oWaiZYT0mCwgTB6n-TFh1jXTNh3mN66SvE_K8zi27NoLbIAUVye2cadyPFYpql_GE&vault=true&intent=subscription";
     script.onload = () => {
       const container = document.getElementById("paypal-button-container");
       if (container) container.innerHTML = "";

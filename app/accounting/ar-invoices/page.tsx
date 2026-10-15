@@ -227,7 +227,7 @@ export default function ArInvoicesPage() {
     script.id = "paypal-sdk-script-orders";
     // Mismo client-id publico ya usado en app/subscribe/page.tsx, pero con
     // intent=capture (orden de pago unico) en vez de intent=subscription.
-    script.src = "https://www.paypal.com/sdk/js?client-id=BAA14BzB_9VhviO_C0gWpUwrrpSkF4AMRkzz-wI1E0_VGAEawrXQ-09k-jOguRdCZZzifZFfD41n2B97V4&currency=USD&intent=capture";
+    script.src = "https://www.paypal.com/sdk/js?client-id=BAArju91dqDZ3Vza2oWaiZYT0mCwgTB6n-TFh1jXTNh3mN66SvE_K8zi27NoLbIAUVye2cadyPFYpql_GE&currency=USD&intent=capture";
     script.onload = renderButtons;
     document.body.appendChild(script);
   }, [collectingInvoiceId, paymentAccountId, functionalCurrency, invoices, companyId]);
