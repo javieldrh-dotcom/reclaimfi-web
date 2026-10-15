@@ -337,7 +337,7 @@ function SubscribePageContent() {
             <p style={{ marginTop: 4, fontSize: 13, color: "#6b7280", maxWidth: 650 }}>
               Transferencia, Pago Movil o billetera cripto. Sube tu comprobante y un administrador activara tu acceso (usualmente el mismo dia habil).
             </p>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 18, marginTop: 14, maxWidth: 1300, opacity: 0.92 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 220px))", gap: 18, marginTop: 14, maxWidth: 1300, opacity: 0.92 }}>
               {manualMethods.map((m) => renderMethodCard(m, "small"))}
             </div>
           </>
@@ -360,7 +360,9 @@ function SubscribePageContent() {
           <div style={{ marginTop: 24, padding: 28, background: "#12161F", border: "1px solid #818CF860", borderRadius: 16, maxWidth: 1300, boxShadow: "0 8px 30px #818CF815" }}>
             <p style={{ fontSize: 15, color: "#8B93A7", fontWeight: 600 }}>DATOS PARA PAGAR CON {selectedMethod.method_name.toUpperCase()}</p>
             <p style={{ marginTop: 12, fontSize: 17, fontFamily: "monospace", background: "#0B0E14", padding: 14, borderRadius: 10 }}>{selectedMethod.account_details}</p>
-            <p style={{ marginTop: 8, fontSize: 14, color: "#8B93A7" }}>Titular: {selectedMethod.account_holder}</p>
+            {selectedMethod.account_holder && (
+              <p style={{ marginTop: 8, fontSize: 14, color: "#8B93A7" }}>Titular: {selectedMethod.account_holder}</p>
+            )}
             {selectedMethod.method_code === "BINANCE_PAY" && (
               <a href="https://s.binance.com/RFaCraV0" target="_blank" rel="noopener noreferrer" style={{ display: "inline-block", marginTop: 16, padding: "12px 24px", background: "#F0B90B", color: "#0B0E14", borderRadius: 10, textDecoration: "none", fontWeight: 700, fontSize: 15 }}>
                 Abrir Binance Pay
