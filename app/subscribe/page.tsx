@@ -323,7 +323,7 @@ function SubscribePageContent() {
             <p style={{ marginTop: 4, fontSize: 14, color: "#8B93A7", maxWidth: 650 }}>
               Paga con tarjeta de debito/credito o con tu cuenta de PayPal. Tu acceso se activa de inmediato, sin esperar verificacion manual.
             </p>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 24, marginTop: 16, maxWidth: 1300 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 280px))", gap: 24, marginTop: 16, maxWidth: 1300 }}>
               {automaticMethods.map((m) => renderMethodCard(m, "large"))}
             </div>
           </>
