@@ -1,33 +1,23 @@
--- Solo lectura: el codigo exacto, tal cual esta hoy en produccion, de la
--- funcion check_period_not_closed() y de los triggers que la usan en
--- journal_entries/journal_lines. Esto es para documentar correctamente
--- 2026-10-12-period-lock-trigger.sql en el repositorio sin adivinar.
-select jsonb_pretty(
-  jsonb_build_object(
-    'funcion', (
-      select pg_get_functiondef(oid)
-      from pg_proc
-      where proname = 'check_period_not_closed'
-        and pronamespace = 'public'::regnamespace
-    ),
-    'triggers', (
-      select jsonb_agg(
-        jsonb_build_object(
-          'tabla', tgrelid::regclass::text,
-          'nombre', tgname,
-          'definicion', pg_get_triggerdef(oid)
-        )
-      )
-      from pg_trigger
-      where tgname like '%period%' and not tgisinternal
-    )
-  )
-) as resultado;docs(schema): consolidar migraciones sueltas en supabase/migrations/
+-- Reconstruccion de esta migracion. El archivo original quedo con el
+-- contenido equivocado (la misma consulta de introspeccion de
+-- 2026-10-12-period-lock-trigger.sql, mas un mensaje de commit de git
+-- pegado por error al final) -- nunca contuvo el DDL que su propio nombre
+-- describe.
+--
+-- Que hace: agrega 'PENDING_CLOSE' a los valores permitidos de
+-- fiscal_periods.status (ver app/accounting/period-close/page.tsx, que ya
+-- usa ese estado para el flujo de solicitud de cierre con aprobacion, y
+-- app/lib/accounting/periodLock.ts, que ya documenta que un periodo en
+-- PENDING_CLOSE tambien bloquea el Diario). El constraint real que esto
+-- reproduce esta confirmado en
+-- supabase/migrations/2026-10-12-baseline-schema-documentation.sql
+-- (fiscal_periods_status_check), por lo que este archivo ya no cambia nada
+-- en una base de datos que corrio esa migracion baseline -- queda aqui
+-- solo para no perder el registro historico correcto de este cambio
+-- puntual y dejar un nombre de migracion que sí coincide con su contenido.
+--
+-- Idempotente: se puede correr de nuevo sin error.
 
-Recupera y documenta en la carpeta unica de migraciones 8 archivos que
-habian quedado sueltos en app/lib/supabase/migrations/ (nunca se habian
-movido realmente) mas 2 que solo se habian corrido a mano en Supabase sin
-dejar registro en el repo. Elimina la carpeta vieja, ya duplicada.
-
-Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
-Claude-Session: https://claude.ai/code/session_01TTDZ8CZA9sFHH8q6arpVU7
+alter table public.fiscal_periods drop constraint if exists fiscal_periods_status_check;
+alter table public.fiscal_periods add constraint fiscal_periods_status_check
+  check (status = any (array['OPEN'::text, 'PENDING_CLOSE'::text, 'CLOSED'::text]));
