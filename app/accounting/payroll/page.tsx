@@ -5,6 +5,7 @@ import { getVerticalTheme } from "@/app/core/design/tokens";
 import VerticalPageLayout from "@/app/components/VerticalPageLayout";
 import AccountSearchSelect from "@/app/components/AccountSearchSelect";
 import { applyThirdPartyCharges, fetchPayrollChargesConfig, filterEmployerChargesByHeadcount, VE_DEFAULT_PAYROLL_CHARGES, type PayrollChargesConfig } from "@/app/lib/jurisdictionTax";
+import { generatePayslipPdf } from "@/app/core/reports/generatePayslipPdf";
 
 // Diferenciador "APU <-> Contabilidad en tiempo real", parte nomina: las
 // tasas IVSS/INCES/FAOV ya no estan fijas en el codigo -- se leen de
@@ -16,8 +17,16 @@ import { applyThirdPartyCharges, fetchPayrollChargesConfig, filterEmployerCharge
 export default function PayrollPage() {
   const theme = getVerticalTheme("accounting");
   const [companyId, setCompanyId] = useState<string | null>(null);
+  const [companyName, setCompanyName] = useState("");
+  const [companyRif, setCompanyRif] = useState("");
   const [employees, setEmployees] = useState<any[]>([]);
   const [runs, setRuns] = useState<any[]>([]);
+  // Recibos de pago: detalle por empleado de cada corrida, cargado solo
+  // cuando el usuario expande esa corrida (no de entrada, para no traer
+  // payroll_details de todas las corridas historicas sin necesidad).
+  const [expandedRunId, setExpandedRunId] = useState<string | null>(null);
+  const [runDetails, setRunDetails] = useState<Record<string, any[]>>({});
+  const [loadingDetailsFor, setLoadingDetailsFor] = useState<string | null>(null);
   const [accounts, setAccounts] = useState<any[]>([]);
   const [apuProjects, setApuProjects] = useState<any[]>([]);
   const [payrollChargesConfig, setPayrollChargesConfig] = useState<PayrollChargesConfig | null>(null);
@@ -58,7 +67,9 @@ export default function PayrollPage() {
         setAccounts(acc ?? []);
         const { data: projects } = await supabase.from("apu_projects").select("id, project_description").eq("company_id", cid).order("created_at", { ascending: false });
         setApuProjects(projects ?? []);
-        const { data: company } = await supabase.from("companies").select("jurisdiction_code").eq("id", cid).maybeSingle();
+        const { data: company } = await supabase.from("companies").select("name, tax_id, jurisdiction_code").eq("id", cid).maybeSingle();
+        setCompanyName(company?.name ?? "");
+        setCompanyRif(company?.tax_id ?? "");
         const jCode = company?.jurisdiction_code || "VE";
         const config = await fetchPayrollChargesConfig(supabase, jCode);
         setPayrollChargesConfig(config);
@@ -116,6 +127,44 @@ export default function PayrollPage() {
     } catch (err: any) {
       setMessage("Error al consultar la tasa: " + err.message);
     }
+  }
+
+  async function toggleRunDetails(runId: string) {
+    if (expandedRunId === runId) { setExpandedRunId(null); return; }
+    setExpandedRunId(runId);
+    if (runDetails[runId]) return;
+    setLoadingDetailsFor(runId);
+    const { data } = await supabase
+      .from("payroll_details")
+      .select("*, employees(full_name, position)")
+      .eq("payroll_run_id", runId);
+    setRunDetails((prev) => ({ ...prev, [runId]: data ?? [] }));
+    setLoadingDetailsFor(null);
+  }
+
+  function downloadPayslip(run: any, detail: any) {
+    const doc = generatePayslipPdf({
+      companyName,
+      companyRif,
+      employeeName: detail.employees?.full_name ?? "Empleado",
+      employeePosition: detail.employees?.position ?? "",
+      periodStart: run.period_start,
+      periodEnd: run.period_end,
+      daysWorked: detail.days_worked,
+      grossAmount: detail.gross_amount,
+      socialSecurity: detail.social_security || 0,
+      otherDeductions: detail.other_deductions || 0,
+      netAmount: detail.net_amount,
+      patronalAmount: detail.patronal_amount || 0,
+      // payroll_runs no persiste la moneda/tasa usada en esa corrida
+      // (gap conocido, fuera de alcance de este cambio) -- se muestra
+      // USD como moneda funcional de la plataforma en vez del selector
+      // actual de la pantalla, que puede haber cambiado desde que esa
+      // corrida especifica se proceso.
+      currency: "USD",
+    });
+    const fileName = "Recibo_" + (detail.employees?.full_name ?? "empleado").replace(/\s+/g, "_") + "_" + run.period_end + ".pdf";
+    doc.save(fileName);
   }
 
   async function processPayroll() {
@@ -277,7 +326,30 @@ export default function PayrollPage() {
           <h3 style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginTop: 24, marginBottom: 8 }}>Nominas Procesadas</h3>
           {runs.map((r) => (
             <div key={r.id} style={{ padding: 10, borderBottom: "1px solid #1F2937", fontSize: 16 }}>
-              {r.period_start} a {r.period_end} - Neto: <span style={theme.numberStyle}>{r.total_net?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+                <span>
+                  {r.period_start} a {r.period_end} - Neto: <span style={theme.numberStyle}>{r.total_net?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </span>
+                <button onClick={() => toggleRunDetails(r.id)} style={{ background: "none", border: "1px solid " + theme.accent, color: theme.accent, padding: "4px 12px", borderRadius: 8, fontSize: 13, cursor: "pointer" }}>
+                  {expandedRunId === r.id ? "Ocultar Recibos" : "Ver Recibos"}
+                </button>
+              </div>
+              {expandedRunId === r.id && (
+                <div style={{ marginTop: 8, paddingLeft: 8 }}>
+                  {loadingDetailsFor === r.id && <p style={{ fontSize: 13, color: "#8B93A7" }}>Cargando...</p>}
+                  {runDetails[r.id]?.map((d) => (
+                    <div key={d.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderBottom: "1px solid #1F2937" }}>
+                      <span style={{ fontSize: 14 }}>
+                        {d.employees?.full_name ?? "Empleado"} <span style={{ color: "#8B93A7" }}>- Neto {d.net_amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      </span>
+                      <button onClick={() => downloadPayslip(r, d)} style={{ background: "none", border: "1px solid #FACC15", color: "#FACC15", padding: "4px 10px", borderRadius: 6, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap" }}>
+                        Recibo PDF
+                      </button>
+                    </div>
+                  ))}
+                  {runDetails[r.id]?.length === 0 && <p style={{ fontSize: 13, color: "#8B93A7" }}>Sin detalle por empleado para esta corrida.</p>}
+                </div>
+              )}
             </div>
           ))}
         </div>
