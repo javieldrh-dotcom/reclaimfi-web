@@ -69,6 +69,15 @@ const navItems = [
       { href: "/accounting/price-indices", label: "Indices de Precios" },
     ],
   },
+  {
+    groupLabel: "ADMINISTRACION",
+    items: [
+      { href: "/admin", label: "Panel de Administracion" },
+      { href: "/admin/companies/new", label: "Nueva Empresa" },
+      { href: "/admin/jurisdiction-modules", label: "Modulos por Jurisdiccion" },
+      { href: "/admin/users", label: "Gestion de Usuarios (Plataforma)" },
+    ],
+  },
 ];
 export default function AccountingLayout({ children }: { children: React.ReactNode }) {
   return (
