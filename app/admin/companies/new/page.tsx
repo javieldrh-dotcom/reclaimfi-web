@@ -137,11 +137,29 @@ export default function NewCompanyPage() {
       return;
     }
 
-    const { data: templateAccounts } = await supabase
+    // Primero se busca una plantilla ESPECIFICA del pais elegido (ej. una
+    // plantilla de Construccion pensada para EEUU, con cuentas de
+    // retainage/overbillings en vez del estilo venezolano). Si no existe
+    // ninguna fila con ese pais para este sector, se usa la plantilla
+    // universal (template_jurisdiction_code IS NULL) -- el mismo
+    // comportamiento de siempre para Venezuela y cualquier otro pais sin
+    // plantilla propia todavia.
+    let { data: templateAccounts } = await supabase
       .from("chart_of_accounts")
       .select("id, account_code, account_name, account_type, monetary_type, parent_account_id")
       .is("company_id", null)
-      .eq("industry_sector", sector);
+      .eq("industry_sector", sector)
+      .eq("template_jurisdiction_code", country);
+
+    if (!templateAccounts || templateAccounts.length === 0) {
+      const { data: universalTemplate } = await supabase
+        .from("chart_of_accounts")
+        .select("id, account_code, account_name, account_type, monetary_type, parent_account_id")
+        .is("company_id", null)
+        .is("template_jurisdiction_code", null)
+        .eq("industry_sector", sector);
+      templateAccounts = universalTemplate ?? [];
+    }
 
     let installedCount = 0;
     if (templateAccounts && templateAccounts.length > 0) {
