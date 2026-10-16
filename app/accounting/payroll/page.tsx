@@ -31,6 +31,7 @@ export default function PayrollPage() {
   const [apuProjects, setApuProjects] = useState<any[]>([]);
   const [payrollChargesConfig, setPayrollChargesConfig] = useState<PayrollChargesConfig | null>(null);
   const [empName, setEmpName] = useState("");
+  const [empCedula, setEmpCedula] = useState("");
   const [empPosition, setEmpPosition] = useState("");
   const [empSalary, setEmpSalary] = useState("");
   const [empApuProjectId, setEmpApuProjectId] = useState("");
@@ -157,13 +158,14 @@ export default function PayrollPage() {
     const { error } = await supabase.from("employees").insert([{
       company_id: companyId,
       full_name: empName,
+      cedula: empCedula || null,
       position: empPosition,
       daily_salary: parseFloat(empSalary),
       apu_project_id: empApuProjectId || null,
     }]);
     if (error) { setMessage("Error: " + error.message); return; }
     setMessage("Empleado registrado correctamente.");
-    setEmpName(""); setEmpPosition(""); setEmpSalary(""); setEmpApuProjectId("");
+    setEmpName(""); setEmpCedula(""); setEmpPosition(""); setEmpSalary(""); setEmpApuProjectId("");
     if (companyId) await loadEmployees(companyId);
   }
 
@@ -188,7 +190,7 @@ export default function PayrollPage() {
     setLoadingDetailsFor(runId);
     const { data } = await supabase
       .from("payroll_details")
-      .select("*, employees(full_name, position)")
+      .select("*, employees(full_name, cedula, position, hire_date, daily_salary)")
       .eq("payroll_run_id", runId);
     setRunDetails((prev) => ({ ...prev, [runId]: data ?? [] }));
     setLoadingDetailsFor(null);
@@ -199,7 +201,10 @@ export default function PayrollPage() {
       companyName,
       companyRif,
       employeeName: detail.employees?.full_name ?? "Empleado",
+      employeeCedula: detail.employees?.cedula ?? "",
       employeePosition: detail.employees?.position ?? "",
+      employeeHireDate: detail.employees?.hire_date ?? "",
+      dailySalary: detail.employees?.daily_salary ?? undefined,
       periodStart: run.period_start,
       periodEnd: run.period_end,
       daysWorked: detail.days_worked,
@@ -388,6 +393,7 @@ export default function PayrollPage() {
         <div style={theme.cardStyle}>
           <h3 style={{ fontSize: 20, color: theme.accent, fontWeight: 700, marginBottom: 12 }}>Registrar Empleado</h3>
           <input value={empName} onChange={(e) => setEmpName(e.target.value)} style={inputStyle} placeholder="Nombre completo" />
+          <input value={empCedula} onChange={(e) => setEmpCedula(e.target.value)} style={{ ...inputStyle, marginTop: 8 }} placeholder="Cedula (ej. V-12.345.678)" />
           <input value={empPosition} onChange={(e) => setEmpPosition(e.target.value)} style={{ ...inputStyle, marginTop: 8 }} placeholder="Cargo" />
           <input type="number" value={empSalary} onChange={(e) => setEmpSalary(e.target.value)} style={{ ...inputStyle, marginTop: 8 }} placeholder="Salario Diario" />
           <select value={empApuProjectId} onChange={(e) => setEmpApuProjectId(e.target.value)} style={{ ...inputStyle, marginTop: 8 }}>
