@@ -68,6 +68,24 @@ export default function PayrollPage() {
   const [patronalPayableAccounts, setPatronalPayableAccounts] = useState<Record<string, string>>({});
   const [processing, setProcessing] = useState(false);
 
+  // Prestamos y Anticipos a Empleados: antes, un prestamo solo podia
+  // registrarse escribiendo el monto a mano en "Otra Deduccion" cada
+  // corrida (sin memoria de cuanto faltaba por cobrar). Ahora
+  // payroll_loans guarda el saldo real y Nomina lo descuenta solo (el
+  // minimo entre la cuota y el saldo restante) hasta llegar a 0 -- ver
+  // migracion 2026-10-16-payroll-loans.sql. loanAssetAccount es la
+  // cuenta de ACTIVO ("Prestamos a Empleados") que se debita al otorgar
+  // el prestamo (contra cashAccount) y se acredita cada corrida al
+  // descontarlo (en vez de ir a employeeWithholdingAccount, porque
+  // recuperar un activo no es una retencion de ley ni un gasto).
+  const [loans, setLoans] = useState<any[]>([]);
+  const [loanAssetAccount, setLoanAssetAccount] = useState("");
+  const [loanEmployeeId, setLoanEmployeeId] = useState("");
+  const [loanConcept, setLoanConcept] = useState("");
+  const [loanPrincipal, setLoanPrincipal] = useState("");
+  const [loanInstallment, setLoanInstallment] = useState("");
+  const [creatingLoan, setCreatingLoan] = useState(false);
+
   // Ajustes opcionales por empleado para esta corrida especifica (horas
   // extra, dias feriados/descanso trabajados, dias de falta, ISLR). Antes
   // la nomina solo calculaba dias_trabajados x salario_diario para todos
@@ -75,9 +93,25 @@ export default function PayrollPage() {
   // estos conceptos como es uso cotidiano en Venezuela. Se guardan por
   // employee_id, vacios por defecto (0), y se reinician despues de cada
   // corrida procesada.
-  type EmployeeAdjustment = { hed: string; hen: string; fd: string; falta: string; islr: string };
+  // otraPercepcionConcepto/Monto y otraDeduccionConcepto/Monto: campos
+  // de monto LIBRE (sin formula) para percepciones/deducciones que
+  // exigen un calculo legal que este sistema no fabrica (aguinaldo,
+  // prima vacacional, vales de despensa, bonos -- percepcion; pension
+  // alimenticia, anticipos -- deduccion). El contador calcula el monto
+  // con su propio criterio/software de nomina y lo ingresa aqui tal
+  // cual; el sistema solo lo suma/resta del neto y lo refleja en el
+  // recibo con el concepto que el contador escriba.
+  type EmployeeAdjustment = {
+    hed: string; hen: string; fd: string; falta: string; islr: string;
+    otraPercepcionConcepto: string; otraPercepcionMonto: string;
+    otraDeduccionConcepto: string; otraDeduccionMonto: string;
+  };
   const [employeeAdjustments, setEmployeeAdjustments] = useState<Record<string, EmployeeAdjustment>>({});
-  const EMPTY_ADJ: EmployeeAdjustment = { hed: "", hen: "", fd: "", falta: "", islr: "" };
+  const EMPTY_ADJ: EmployeeAdjustment = {
+    hed: "", hen: "", fd: "", falta: "", islr: "",
+    otraPercepcionConcepto: "", otraPercepcionMonto: "",
+    otraDeduccionConcepto: "", otraDeduccionMonto: "",
+  };
   function getAdj(empId: string): EmployeeAdjustment {
     return employeeAdjustments[empId] || EMPTY_ADJ;
   }
@@ -111,6 +145,17 @@ export default function PayrollPage() {
   const salaryExpenseOptions = filterAccountsByKeywords(expenseAccounts, ["sueldo", "salario", "nomina"]);
   const cashOptions = filterAccountsByKeywords(assetAccounts, ["banco", "caja", "efectivo"]);
   const employeeWithholdingOptions = filterAccountsByKeywords(liabilityAccounts, ["retenc", "nomina", "empleado"]);
+  const loanAssetOptions = filterAccountsByKeywords(assetAccounts, ["prestamo", "anticipo"]);
+
+  // Cuanto se descontaria a este empleado ESTA corrida por sus
+  // prestamos/anticipos activos (minimo entre cuota y saldo restante,
+  // sumado si tiene mas de uno) -- solo de lectura aqui, el calculo
+  // real que se persiste ocurre en processPayroll().
+  function employeeLoanDeductionThisRun(empId: string): number {
+    return loans
+      .filter((l) => l.employee_id === empId)
+      .reduce((s, l) => s + Math.min(l.installment_amount, l.balance_remaining), 0);
+  }
   // Para cada carga patronal, las palabras clave son las mismas palabras
   // de su module_key (ej. "ivss_patronal" -> ["ivss","patronal"]) -- no
   // se hardcodea un diccionario de sinonimos en espanol para no romper
@@ -126,6 +171,10 @@ export default function PayrollPage() {
   async function loadRuns(cid: string) {
     const { data } = await supabase.from("payroll_runs").select("*").eq("company_id", cid).order("period_end", { ascending: false });
     setRuns(data ?? []);
+  }
+  async function loadLoans(cid: string) {
+    const { data } = await supabase.from("payroll_loans").select("*, employees(full_name)").eq("company_id", cid).eq("status", "ACTIVE").order("created_at", { ascending: false });
+    setLoans(data ?? []);
   }
 
   useEffect(() => {
@@ -148,6 +197,7 @@ export default function PayrollPage() {
         setPayrollChargesConfig(config);
         await loadEmployees(cid);
         await loadRuns(cid);
+        await loadLoans(cid);
       }
     }
     load();
@@ -168,6 +218,7 @@ export default function PayrollPage() {
     if (target === "salary") setSalaryExpenseAccount(newAcc.id);
     if (target === "cash") setCashAccount(newAcc.id);
     if (target === "empwith") setEmployeeWithholdingAccount(newAcc.id);
+    if (target === "loanasset") setLoanAssetAccount(newAcc.id);
     // "patronalexp:<key>" / "patronalpay:<key>" -- un par gasto/pasivo
     // por cada carga patronal (ivss_patronal, inces, faov, etc.).
     if (target.startsWith("patronalexp:")) {
@@ -197,6 +248,73 @@ export default function PayrollPage() {
     setMessage("Empleado registrado correctamente.");
     setEmpName(""); setEmpCedula(""); setEmpPosition(""); setEmpSalary(""); setEmpApuProjectId(""); setEmpExtraIds({});
     if (companyId) await loadEmployees(companyId);
+  }
+
+  // Otorga un prestamo/anticipo nuevo: registra el saldo en
+  // payroll_loans y, por separado, el asiento real del desembolso
+  // (debito Prestamos a Empleados / credito Banco-Caja) -- el descuento
+  // posterior en cada corrida de nomina es un movimiento contable
+  // distinto (ver processPayroll) y no se mezcla con este.
+  async function createLoan() {
+    setMessage("");
+    if (!companyId || !loanEmployeeId || !loanPrincipal || !loanInstallment) {
+      setMessage("Completa empleado, monto del prestamo/anticipo y cuota por nomina.");
+      return;
+    }
+    if (!loanAssetAccount || !cashAccount) {
+      setMessage("Selecciona la cuenta de Prestamos a Empleados (arriba) y la cuenta de Banco/Caja de donde sale el dinero.");
+      return;
+    }
+    const principal = parseFloat(loanPrincipal);
+    const installment = parseFloat(loanInstallment);
+    if (!(principal > 0) || !(installment > 0)) {
+      setMessage("El monto y la cuota deben ser mayores a cero.");
+      return;
+    }
+    setCreatingLoan(true);
+
+    const empName = employees.find((e) => e.id === loanEmployeeId)?.full_name ?? "Empleado";
+    const { data: lastEntry } = await supabase.from("journal_entries").select("entry_number").eq("company_id", companyId).order("entry_number", { ascending: false }).limit(1).single();
+    const nextEntryNumber = (lastEntry?.entry_number || 0) + 1;
+    const { data: entry, error: entryError } = await supabase.from("journal_entries").insert([{
+      company_id: companyId,
+      description: "Prestamo/Anticipo a " + empName + (loanConcept.trim() ? " (" + loanConcept.trim() + ")" : ""),
+      entry_date: new Date().toISOString().slice(0, 10),
+      entry_number: nextEntryNumber,
+    }]).select("id").single();
+    if (entryError || !entry) { setMessage("Error al crear el asiento del desembolso: " + entryError?.message); setCreatingLoan(false); return; }
+
+    await supabase.from("journal_lines").insert([
+      { journal_entry_id: entry.id, account_id: loanAssetAccount, debit: principal, credit: 0 },
+      { journal_entry_id: entry.id, account_id: cashAccount, debit: 0, credit: principal },
+    ]);
+
+    const { error: loanError } = await supabase.from("payroll_loans").insert([{
+      company_id: companyId,
+      employee_id: loanEmployeeId,
+      concept: loanConcept.trim() || "Prestamo/Anticipo",
+      principal_amount: principal,
+      installment_amount: installment,
+      balance_remaining: principal,
+      status: "ACTIVE",
+    }]);
+    if (loanError) { setMessage("Error al registrar el prestamo: " + loanError.message); setCreatingLoan(false); return; }
+
+    setMessage("Prestamo/Anticipo registrado (asiento Nº" + nextEntryNumber + "). Se descontara " + installment.toLocaleString(undefined, { maximumFractionDigits: 2 }) + " por nomina hasta cubrir el saldo.");
+    setLoanEmployeeId(""); setLoanConcept(""); setLoanPrincipal(""); setLoanInstallment("");
+    setCreatingLoan(false);
+    await loadLoans(companyId);
+  }
+
+  // Cierre manual sin asiento -- para cuando el saldo se cobro o
+  // condono por un medio distinto al descuento automatico por nomina
+  // (ej. el empleado pago en efectivo aparte, o la empresa decidio
+  // condonarlo). El contador debe registrar ese cobro/condonacion por
+  // su cuenta si aplica; esto solo cierra el seguimiento del saldo.
+  async function markLoanPaid(loanId: string) {
+    if (!window.confirm("Marcar este prestamo/anticipo como cerrado? Esto NO genera ningun asiento contable -- usalo solo si el saldo ya se cobro o condono por otro medio (registra ese movimiento aparte si corresponde).")) return;
+    await supabase.from("payroll_loans").update({ status: "PAID", balance_remaining: 0, paid_off_at: new Date().toISOString() }).eq("id", loanId);
+    if (companyId) await loadLoans(companyId);
   }
 
   async function fetchBcvRate() {
@@ -289,6 +407,10 @@ export default function PayrollPage() {
       },
       islrAmount: detail.islr_amount || 0,
       otherDeductions: detail.other_deductions || 0,
+      // Solo existe en corridas procesadas despues de que se agrego
+      // soporte de prestamos/anticipos (ver processPayroll) -- en
+      // corridas anteriores simplemente no aparece el renglon 950.
+      loanDeductionAmount: detail.extra_concepts?.prestamos_monto || 0,
       netAmount: detail.net_amount,
       patronalAmount: detail.patronal_amount || 0,
       // Moneda real con la que se proceso ESA corrida especifica (no la
@@ -333,11 +455,27 @@ export default function PayrollPage() {
       return;
     }
 
+    // Si hay prestamos/anticipos activos a descontar esta corrida, se
+    // exige la cuenta de activo ("Prestamos a Empleados") igual que se
+    // exigen las cuentas patronales -- sin ella no hay donde acreditar
+    // la recuperacion del prestamo y el asiento no balancearia.
+    const hasActiveLoans = loans.some((l) => l.balance_remaining > 0);
+    if (hasActiveLoans && !loanAssetAccount) {
+      setMessage("Hay prestamos/anticipos activos -- selecciona la cuenta \"Prestamos a Empleados\" arriba antes de procesar.");
+      setProcessing(false);
+      return;
+    }
+
     // patronalByKey acumula cada carga patronal (ivss_patronal, inces,
     // faov, etc.) por separado entre todos los empleados, para poder
     // generar una linea de asiento por cada una -- a diferencia de antes,
     // que sumaba todo en un solo monto "patronal".
     const patronalByKey: Record<string, number> = {};
+    // loanBalanceUpdates: cuanto se descuenta de CADA prestamo individual
+    // esta corrida -- se aplica a payroll_loans DESPUES de guardar la
+    // corrida exitosamente (ver mas abajo), nunca antes, para no dejar
+    // saldos descontados de una corrida que termino fallando.
+    const loanBalanceUpdates: Record<string, number> = {};
 
     const details = employees.map((emp) => {
       const fxRate = parseFloat(payrollExchangeRate) || 1;
@@ -366,6 +504,8 @@ export default function PayrollPage() {
       const diasFeriadosDescanso = parseFloat(a.fd) || 0;
       const diasFalta = parseFloat(a.falta) || 0;
       const islrAmount = parseFloat(a.islr) || 0;
+      const otraPercepcionMonto = parseFloat(a.otraPercepcionMonto) || 0;
+      const otraDeduccionMonto = parseFloat(a.otraDeduccionMonto) || 0;
 
       const baseSalaryAmount = emp.daily_salary * daysInPeriod * fxRate;
       const horaNormal = (emp.daily_salary * fxRate) / 8;
@@ -383,7 +523,31 @@ export default function PayrollPage() {
       // mostrar cada retencion por separado (uso cotidiano en Venezuela)
       // sin tener que recalcular despues con tasas que pudieron cambiar.
       const { charges: employeeCharges, subTotalTerceros: socialSecurity } = applyThirdPartyCharges(gross, charges.employee_pct);
-      const net = gross - socialSecurity - islrAmount;
+
+      // Prestamos/anticipos activos de ESTE empleado: se descuenta el
+      // minimo entre la cuota configurada y el saldo restante (para no
+      // descontar de mas en la ultima cuota), sumando si tiene mas de
+      // uno. loanBalanceUpdates guarda cuanto bajarle a cada prestamo
+      // individual -- se aplica solo si la corrida completa se guarda
+      // bien (ver despues del insert de payroll_runs).
+      const employeeLoans = loans.filter((l) => l.employee_id === emp.id && l.balance_remaining > 0);
+      let loanDeductionTotal = 0;
+      const loanConceptsForEmployee: string[] = [];
+      for (const loan of employeeLoans) {
+        const thisDeduction = Math.min(loan.installment_amount, loan.balance_remaining);
+        if (thisDeduction <= 0) continue;
+        loanDeductionTotal += thisDeduction;
+        loanBalanceUpdates[loan.id] = thisDeduction;
+        if (loan.concept) loanConceptsForEmployee.push(loan.concept);
+      }
+
+      // otraPercepcionMonto (aguinaldo, prima vacacional, vales, bonos...)
+      // se suma al neto y al gasto de nomina, pero NUNCA a la base sobre
+      // la que se calculan IVSS/ISLR arriba (gross, sin modificar) --
+      // ese monto ya viene calculado por el contador con su propio
+      // criterio legal, este sistema no lo vuelve a gravar. La cuota de
+      // prestamo tampoco afecta esa base: solo resta del neto a pagar.
+      const net = gross - socialSecurity - islrAmount - otraDeduccionMonto + otraPercepcionMonto - loanDeductionTotal;
       const { charges: patronalCharges, subTotalTerceros: patronal } = applyThirdPartyCharges(gross, employerPctApplicable);
       for (const [key, amount] of Object.entries(patronalCharges)) {
         patronalByKey[key] = (patronalByKey[key] || 0) + amount;
@@ -392,7 +556,12 @@ export default function PayrollPage() {
         employee_id: emp.id,
         apu_project_id: emp.apu_project_id ?? null,
         days_worked: daysInPeriod,
-        gross_amount: gross,
+        // gross_amount (usado en el asiento y en totales) SI incluye
+        // otraPercepcionMonto -- es gasto real de nomina de este
+        // periodo -- pero el renglon "001 Salario Basico" del recibo
+        // sigue usando solo base_salary_amount (ver downloadPayslip),
+        // y otraPercepcionMonto aparece en su propio renglon separado.
+        gross_amount: gross + otraPercepcionMonto,
         social_security: socialSecurity,
         employee_deductions_breakdown: employeeCharges,
         islr_amount: islrAmount,
@@ -406,17 +575,24 @@ export default function PayrollPage() {
           feriados_descanso_monto: feriadoDescansoMonto,
           faltas_dias: diasFalta,
           faltas_monto: faltasMonto,
+          otras_percepciones_monto: otraPercepcionMonto,
+          otras_percepciones_concepto: a.otraPercepcionConcepto || undefined,
+          otras_deducciones_concepto: a.otraDeduccionConcepto || undefined,
+          prestamos_monto: loanDeductionTotal,
+          prestamos_concepto: loanConceptsForEmployee.length > 0 ? loanConceptsForEmployee.join(", ") : undefined,
         },
-        other_deductions: 0,
+        other_deductions: otraDeduccionMonto,
+        loan_deduction: loanDeductionTotal,
         net_amount: net,
         patronal_amount: patronal,
       };
     });
 
     const totalGross = details.reduce((s, d) => s + d.gross_amount, 0);
-    const totalDeductions = details.reduce((s, d) => s + d.social_security + d.islr_amount, 0);
+    const totalDeductions = details.reduce((s, d) => s + d.social_security + d.islr_amount + d.other_deductions, 0);
     const totalNet = details.reduce((s, d) => s + d.net_amount, 0);
     const totalPatronal = details.reduce((s, d) => s + d.patronal_amount, 0);
+    const totalLoanDeductions = details.reduce((s, d) => s + d.loan_deduction, 0);
 
     const { data: lastEntry } = await supabase.from("journal_entries").select("entry_number").eq("company_id", companyId).order("entry_number", { ascending: false }).limit(1).single();
     const nextEntryNumber = (lastEntry?.entry_number || 0) + 1;
@@ -439,11 +615,21 @@ export default function PayrollPage() {
         { journal_entry_id: entry.id, account_id: patronalPayableAccounts[key], debit: 0, credit: amount },
       ]);
 
+    // Linea adicional: recuperacion de Prestamos a Empleados. No va a
+    // employeeWithholdingAccount (esa es para retenciones de ley) ni a
+    // gasto -- es la contrapartida que balancea el gasto de nomina
+    // (salaryExpenseAccount, que no cambia por los prestamos) contra un
+    // neto ya reducido por esa cuota. Ver nota en el map de arriba.
+    const loanLines = totalLoanDeductions > 0
+      ? [{ journal_entry_id: entry.id, account_id: loanAssetAccount, debit: 0, credit: totalLoanDeductions }]
+      : [];
+
     await supabase.from("journal_lines").insert([
       { journal_entry_id: entry.id, account_id: salaryExpenseAccount, debit: totalGross, credit: 0 },
       { journal_entry_id: entry.id, account_id: cashAccount, debit: 0, credit: totalNet },
       { journal_entry_id: entry.id, account_id: employeeWithholdingAccount, debit: 0, credit: totalDeductions },
       ...patronalLines,
+      ...loanLines,
     ]);
 
     const { data: run, error: runError } = await supabase.from("payroll_runs").insert([{
@@ -479,10 +665,31 @@ export default function PayrollPage() {
       payroll_run_id: run.id,
     })));
 
-    setMessage("Nomina procesada (Nº" + nextEntryNumber + "). Total Neto: " + totalNet.toLocaleString(undefined, { maximumFractionDigits: 2 }) + ". Obligaciones Patronales: " + totalPatronal.toLocaleString(undefined, { maximumFractionDigits: 2 }) + ". Asiento balanceado generado correctamente.");
+    // Aplicar el descuento a cada prestamo/anticipo SOLO ahora que la
+    // corrida completa (asiento + payroll_runs + payroll_details) se
+    // guardo bien -- si algo de lo anterior fallo, el saldo de los
+    // prestamos se queda intacto para la proxima corrida.
+    for (const [loanId, deducted] of Object.entries(loanBalanceUpdates)) {
+      const loan = loans.find((l) => l.id === loanId);
+      if (!loan) continue;
+      const newBalance = Math.max(0, loan.balance_remaining - deducted);
+      await supabase.from("payroll_loans").update({
+        balance_remaining: newBalance,
+        status: newBalance <= 0 ? "PAID" : "ACTIVE",
+        paid_off_at: newBalance <= 0 ? new Date().toISOString() : null,
+      }).eq("id", loanId);
+    }
+
+    setMessage(
+      "Nomina procesada (Nº" + nextEntryNumber + "). Total Neto: " + totalNet.toLocaleString(undefined, { maximumFractionDigits: 2 }) +
+      ". Obligaciones Patronales: " + totalPatronal.toLocaleString(undefined, { maximumFractionDigits: 2 }) +
+      (totalLoanDeductions > 0 ? ". Prestamos/Anticipos descontados: " + totalLoanDeductions.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "") +
+      ". Asiento balanceado generado correctamente."
+    );
     setProcessing(false);
     setEmployeeAdjustments({});
     await loadRuns(companyId);
+    await loadLoans(companyId);
   }
 
   const inputStyle = { ...theme.inputStyle, fontSize: 20 };
@@ -503,6 +710,10 @@ export default function PayrollPage() {
           <div style={{ display: "flex", gap: 6, flex: 1, minWidth: 220 }}>
             <AccountSearchSelect accounts={employeeWithholdingOptions} value={employeeWithholdingAccount} onChange={setEmployeeWithholdingAccount} placeholder="Retenciones al Empleado por Pagar (consolidada)..." />
             <button onClick={() => createNewAccount("LIABILITY", "empwith")} style={{ padding: "0 12px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap" }}>+ Nueva</button>
+          </div>
+          <div style={{ display: "flex", gap: 6, flex: 1, minWidth: 220 }}>
+            <AccountSearchSelect accounts={loanAssetOptions} value={loanAssetAccount} onChange={setLoanAssetAccount} placeholder="Prestamos a Empleados (activo)..." />
+            <button onClick={() => createNewAccount("ASSET", "loanasset")} style={{ padding: "0 12px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap" }}>+ Nueva</button>
           </div>
         </div>
 
@@ -540,12 +751,52 @@ export default function PayrollPage() {
 
       {employees.length > 0 && (
         <div style={{ ...theme.cardStyle, marginBottom: 20 }}>
+          <h3 style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginBottom: 6 }}>Prestamos y Anticipos a Empleados</h3>
+          <p style={{ fontSize: 12, color: "#8B93A7", marginBottom: 10 }}>
+            Registra un prestamo o anticipo con saldo: la cuota se descuenta sola en cada corrida (minimo entre la cuota y el saldo restante) hasta llegar a 0 -- ya no hace falta escribir el monto a mano cada vez en "Otra Deduccion".
+          </p>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-end" }}>
+            <select value={loanEmployeeId} onChange={(e) => setLoanEmployeeId(e.target.value)} style={{ ...inputStyle, flex: 1, minWidth: 180 }}>
+              <option value="">Empleado...</option>
+              {employees.map((e) => <option key={e.id} value={e.id}>{e.full_name}</option>)}
+            </select>
+            <input value={loanConcept} onChange={(e) => setLoanConcept(e.target.value)} style={{ ...inputStyle, flex: 1, minWidth: 180 }} placeholder="Concepto (ej. Prestamo Personal, Anticipo de Sueldo)" />
+            <input type="number" min="0" step="0.01" value={loanPrincipal} onChange={(e) => setLoanPrincipal(e.target.value)} style={{ ...inputStyle, width: 160 }} placeholder="Monto Total" />
+            <input type="number" min="0" step="0.01" value={loanInstallment} onChange={(e) => setLoanInstallment(e.target.value)} style={{ ...inputStyle, width: 160 }} placeholder="Cuota por Nomina" />
+            <button onClick={createLoan} disabled={creatingLoan} style={{ ...theme.buttonStyle, fontSize: 14, whiteSpace: "nowrap" }}>
+              {creatingLoan ? "Registrando..." : "Otorgar"}
+            </button>
+          </div>
+          {loans.length > 0 && (
+            <div style={{ marginTop: 14 }}>
+              {loans.map((l) => (
+                <div key={l.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, padding: "8px 0", borderBottom: "1px solid #1F2937" }}>
+                  <span style={{ fontSize: 13 }}>
+                    {l.employees?.full_name ?? "Empleado"} <span style={{ color: "#8B93A7" }}>- {l.concept}</span>
+                    {" · Saldo: "}
+                    <span style={theme.numberStyle}>{l.balance_remaining.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    {" de "}{l.principal_amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    {" · Cuota: "}{l.installment_amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                  <button onClick={() => markLoanPaid(l.id)} style={{ background: "none", border: "1px solid #8B93A7", color: "#8B93A7", padding: "4px 10px", borderRadius: 6, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap" }}>
+                    Cerrar Manualmente
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          {loans.length === 0 && <p style={{ fontSize: 13, color: "#8B93A7", marginTop: 10 }}>Sin prestamos/anticipos activos.</p>}
+        </div>
+      )}
+
+      {employees.length > 0 && (
+        <div style={{ ...theme.cardStyle, marginBottom: 20 }}>
           <h3 style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginBottom: 6 }}>Ajustes por Empleado (opcional, para esta corrida)</h3>
           <p style={{ fontSize: 12, color: "#8B93A7", marginBottom: 10 }}>
-            Deja en blanco lo que no aplique. Horas extra y feriados/descanso trabajados se SUMAN al sueldo basico; faltas e ISLR se RESTAN del neto. Formulas segun LOTTT Venezuela (recargo 50% hora extra diurna, 50%+30% nocturna, dia feriado/descanso trabajado paga doble) -- revisalas con tu criterio profesional si tu convencion colectiva usa otro recargo.
+            Deja en blanco lo que no aplique. Horas extra y feriados/descanso trabajados se SUMAN al sueldo basico; faltas e ISLR se RESTAN del neto. Formulas segun LOTTT Venezuela (recargo 50% hora extra diurna, 50%+30% nocturna, dia feriado/descanso trabajado paga doble) -- revisalas con tu criterio profesional si tu convencion colectiva usa otro recargo. "Otra Percepcion" y "Otra Deduccion" son de MONTO LIBRE -- calcula tu el monto (aguinaldo, prima vacacional, vales, bonos, pension alimenticia, anticipos, etc. no se calculan automaticamente aqui) y escribelo junto con el nombre del concepto; asi aparecera en el recibo.
           </p>
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 760 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1040 }}>
               <thead>
                 <tr style={{ textAlign: "left", color: theme.accent, fontSize: 12, fontWeight: 700 }}>
                   <th style={{ padding: "4px 6px" }}>Empleado</th>
@@ -554,12 +805,16 @@ export default function PayrollPage() {
                   <th style={{ padding: "4px 6px", width: 110 }}>Dias Feriados/Descanso Trabajados</th>
                   <th style={{ padding: "4px 6px", width: 90 }}>Dias de Falta</th>
                   <th style={{ padding: "4px 6px", width: 100 }}>ISLR (monto)</th>
+                  <th style={{ padding: "4px 6px", width: 160 }}>Otra Percepcion (concepto / monto)</th>
+                  <th style={{ padding: "4px 6px", width: 160 }}>Otra Deduccion (concepto / monto)</th>
+                  <th style={{ padding: "4px 6px", width: 100 }}>Cuota Prestamo (automatica)</th>
                 </tr>
               </thead>
               <tbody>
                 {employees.map((emp) => {
                   const a = getAdj(emp.id);
                   const smallNumInput = { ...theme.inputStyle, fontSize: 13, padding: "4px 8px", width: "100%" };
+                  const smallTextInput = { ...smallNumInput, marginBottom: 4 };
                   return (
                     <tr key={emp.id} style={{ borderBottom: "1px solid #1F2937" }}>
                       <td style={{ padding: "4px 6px", fontSize: 13 }}>{emp.full_name}</td>
@@ -568,6 +823,17 @@ export default function PayrollPage() {
                       <td style={{ padding: "4px 6px" }}><input type="number" min="0" step="1" value={a.fd} onChange={(e) => setAdjField(emp.id, "fd", e.target.value)} style={smallNumInput} placeholder="0" /></td>
                       <td style={{ padding: "4px 6px" }}><input type="number" min="0" step="1" value={a.falta} onChange={(e) => setAdjField(emp.id, "falta", e.target.value)} style={smallNumInput} placeholder="0" /></td>
                       <td style={{ padding: "4px 6px" }}><input type="number" min="0" step="0.01" value={a.islr} onChange={(e) => setAdjField(emp.id, "islr", e.target.value)} style={smallNumInput} placeholder="0" /></td>
+                      <td style={{ padding: "4px 6px" }}>
+                        <input value={a.otraPercepcionConcepto} onChange={(e) => setAdjField(emp.id, "otraPercepcionConcepto", e.target.value)} style={smallTextInput} placeholder="Ej. Aguinaldo" />
+                        <input type="number" min="0" step="0.01" value={a.otraPercepcionMonto} onChange={(e) => setAdjField(emp.id, "otraPercepcionMonto", e.target.value)} style={smallNumInput} placeholder="0.00" />
+                      </td>
+                      <td style={{ padding: "4px 6px" }}>
+                        <input value={a.otraDeduccionConcepto} onChange={(e) => setAdjField(emp.id, "otraDeduccionConcepto", e.target.value)} style={smallTextInput} placeholder="Ej. Pension Alimenticia" />
+                        <input type="number" min="0" step="0.01" value={a.otraDeduccionMonto} onChange={(e) => setAdjField(emp.id, "otraDeduccionMonto", e.target.value)} style={smallNumInput} placeholder="0.00" />
+                      </td>
+                      <td style={{ padding: "4px 6px", fontSize: 13, color: "#8B93A7" }}>
+                        {employeeLoanDeductionThisRun(emp.id) > 0 ? employeeLoanDeductionThisRun(emp.id).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "-"}
+                      </td>
                     </tr>
                   );
                 })}

@@ -75,6 +75,24 @@ interface PayslipData {
     feriados_descanso_monto?: number;
     faltas_dias?: number;
     faltas_monto?: number;
+    // Percepciones/deducciones de monto libre que no siguen una formula
+    // legal automatizada (aguinaldo, prima vacacional, vales de
+    // despensa, bonos -- percepcion; pension alimenticia, anticipos --
+    // deduccion). El contador calcula el monto con su propio criterio y
+    // lo ingresa en la pantalla de Nomina; aqui solo se muestra tal
+    // cual, nunca se recalcula. otras_deducciones_concepto etiqueta el
+    // renglon "900" que ya existia (antes siempre decia "Otras
+    // Deducciones" sin poder decir, por ejemplo, "Pension Alimenticia").
+    otras_percepciones_monto?: number;
+    otras_percepciones_concepto?: string;
+    otras_deducciones_concepto?: string;
+    // Nombre(s) del/los prestamo(s) o anticipo(s) descontados esta
+    // corrida (ver payroll_loans) -- separados por coma si el empleado
+    // tiene mas de uno activo. El monto va en loanDeductionAmount
+    // (nivel superior, igual que otherDeductions) porque se resta del
+    // neto pero NO es una retencion de ley ni un gasto -- es recuperacion
+    // de un activo ("Prestamos a Empleados").
+    prestamos_concepto?: string;
   };
   conceptLabels?: {
     baseSalary?: ConceptLabel;
@@ -86,6 +104,12 @@ interface PayslipData {
   };
   islrAmount?: number;
   otherDeductions: number;
+  // Cuota de prestamo(s)/anticipo(s) a empleados descontada esta
+  // corrida (ver payroll_loans). Separado de otherDeductions porque su
+  // naturaleza contable es distinta (reduce un activo, no es gasto ni
+  // retencion de ley) aunque en el recibo se muestra igual, como una
+  // deduccion mas.
+  loanDeductionAmount?: number;
   netAmount: number;
   patronalAmount: number;
   currency?: string;
@@ -302,6 +326,10 @@ export function generatePayslipPdf(data: PayslipData): jsPDF {
     conceptRow(cl.holidayWorked.code, cl.holidayWorked.label + " (" + ec.feriados_descanso_dias + "d)", ec.feriados_descanso_monto, 0);
     extraAsignaciones += ec.feriados_descanso_monto;
   }
+  if (ec?.otras_percepciones_monto && ec.otras_percepciones_monto > 0) {
+    conceptRow("800", ec.otras_percepciones_concepto || "Otras Percepciones", ec.otras_percepciones_monto, 0);
+    extraAsignaciones += ec.otras_percepciones_monto;
+  }
 
   const breakdown = data.employeeDeductionsBreakdown;
   const breakdownEntries = breakdown ? Object.entries(breakdown).filter(([, amount]) => amount > 0) : [];
@@ -320,14 +348,17 @@ export function generatePayslipPdf(data: PayslipData): jsPDF {
     conceptRow(cl.incomeTax.code, cl.incomeTax.label, 0, data.islrAmount);
   }
   if (data.otherDeductions > 0) {
-    conceptRow("900", "Otras Deducciones", 0, data.otherDeductions);
+    conceptRow("900", ec?.otras_deducciones_concepto || "Otras Deducciones", 0, data.otherDeductions);
+  }
+  if (data.loanDeductionAmount && data.loanDeductionAmount > 0) {
+    conceptRow("950", ec?.prestamos_concepto || "Prestamos/Anticipos a Cuenta", 0, data.loanDeductionAmount);
   }
 
   const totalAsignaciones = data.grossAmount + extraAsignaciones;
   const socialSecurityTotal = breakdownEntries.length > 0
     ? breakdownEntries.reduce((s, [, amount]) => s + amount, 0)
     : data.socialSecurity;
-  const totalDeducciones = socialSecurityTotal + (ec?.faltas_monto || 0) + (data.islrAmount || 0) + (data.otherDeductions || 0);
+  const totalDeducciones = socialSecurityTotal + (ec?.faltas_monto || 0) + (data.islrAmount || 0) + (data.otherDeductions || 0) + (data.loanDeductionAmount || 0);
 
   doc.setDrawColor(210);
   doc.setLineWidth(0.3);
