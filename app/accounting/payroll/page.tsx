@@ -40,11 +40,55 @@ export default function PayrollPage() {
   const [payrollExchangeRate, setPayrollExchangeRate] = useState("1");
   const [periodEnd, setPeriodEnd] = useState("");
   const [salaryExpenseAccount, setSalaryExpenseAccount] = useState("");
-  const [patronalExpenseAccount, setPatronalExpenseAccount] = useState("");
   const [cashAccount, setCashAccount] = useState("");
   const [employeeWithholdingAccount, setEmployeeWithholdingAccount] = useState("");
-  const [patronalPayableAccount, setPatronalPayableAccount] = useState("");
+  // Obligaciones patronales: antes era una sola cuenta de gasto y una
+  // sola cuenta de pasivo para TODA la carga patronal sumada (IVSS +
+  // INCES + FAOV + Paro Forzoso, etc). Javiel lleva esas cargas en
+  // cuentas separadas en su plan de cuentas (como hace la mayoria de
+  // empresas VE reales), asi que ahora hay un par gasto/pasivo POR CADA
+  // clave de employer_pct de jurisdiction_modules (ver
+  // app/lib/jurisdictionTax.ts) en vez de uno consolidado. Las
+  // retenciones al EMPLEADO (employeeWithholdingAccount, arriba) se
+  // dejan como una sola cuenta a proposito -- Javiel confirmo que esas
+  // si las lleva consolidadas.
+  const [patronalExpenseAccounts, setPatronalExpenseAccounts] = useState<Record<string, string>>({});
+  const [patronalPayableAccounts, setPatronalPayableAccounts] = useState<Record<string, string>>({});
   const [processing, setProcessing] = useState(false);
+
+  const activeCharges = payrollChargesConfig ?? VE_DEFAULT_PAYROLL_CHARGES;
+  const employerChargeKeys = Object.keys(activeCharges.employer_pct || {});
+  function chargeLabel(key: string) {
+    return key.replace(/_/g, " ").toUpperCase();
+  }
+
+  // Filtra la lista de cuentas que ofrece cada selector a las que
+  // probablemente correspondan, en vez de mostrar TODO el plan de
+  // cuentas de ese tipo (gasto o pasivo) -- Javiel reporto que el
+  // selector de obligaciones patronales mostraba cuentas que no tenian
+  // nada que ver (alquiler, inventario, etc.). Si el filtro no encuentra
+  // ninguna coincidencia (porque la cuenta se llama distinto a lo
+  // esperado), se muestra la lista completa de respaldo -- nunca deja a
+  // Javiel sin poder elegir una cuenta que si existe.
+  function filterAccountsByKeywords(list: any[], keywords: string[]) {
+    const matches = list.filter((a) =>
+      keywords.some((k) => (a.account_name || "").toLowerCase().includes(k))
+    );
+    return matches.length > 0 ? matches : list;
+  }
+  const expenseAccounts = accounts.filter((a) => a.account_type === "EXPENSE");
+  const liabilityAccounts = accounts.filter((a) => a.account_type === "LIABILITY");
+  const assetAccounts = accounts.filter((a) => a.account_type === "ASSET");
+  const salaryExpenseOptions = filterAccountsByKeywords(expenseAccounts, ["sueldo", "salario", "nomina"]);
+  const cashOptions = filterAccountsByKeywords(assetAccounts, ["banco", "caja", "efectivo"]);
+  const employeeWithholdingOptions = filterAccountsByKeywords(liabilityAccounts, ["retenc", "nomina", "empleado"]);
+  // Para cada carga patronal, las palabras clave son las mismas palabras
+  // de su module_key (ej. "ivss_patronal" -> ["ivss","patronal"]) -- no
+  // se hardcodea un diccionario de sinonimos en espanol para no romper
+  // si otra jurisdiccion usa otras claves.
+  function patronalOptions(list: any[], key: string) {
+    return filterAccountsByKeywords(list, key.split("_"));
+  }
 
   async function loadEmployees(cid: string) {
     const { data } = await supabase.from("employees").select("*").eq("company_id", cid).eq("status", "ACTIVE").order("full_name");
@@ -93,10 +137,18 @@ export default function PayrollPage() {
     if (error || !newAcc) { alert("Error al crear cuenta: " + error?.message); return; }
     setAccounts((prev) => [...prev, newAcc]);
     if (target === "salary") setSalaryExpenseAccount(newAcc.id);
-    if (target === "patronalexp") setPatronalExpenseAccount(newAcc.id);
     if (target === "cash") setCashAccount(newAcc.id);
     if (target === "empwith") setEmployeeWithholdingAccount(newAcc.id);
-    if (target === "patronalpay") setPatronalPayableAccount(newAcc.id);
+    // "patronalexp:<key>" / "patronalpay:<key>" -- un par gasto/pasivo
+    // por cada carga patronal (ivss_patronal, inces, faov, etc.).
+    if (target.startsWith("patronalexp:")) {
+      const key = target.slice("patronalexp:".length);
+      setPatronalExpenseAccounts((prev) => ({ ...prev, [key]: newAcc.id }));
+    }
+    if (target.startsWith("patronalpay:")) {
+      const key = target.slice("patronalpay:".length);
+      setPatronalPayableAccounts((prev) => ({ ...prev, [key]: newAcc.id }));
+    }
   }
 
   async function createEmployee() {
@@ -169,8 +221,8 @@ export default function PayrollPage() {
 
   async function processPayroll() {
     setMessage("");
-    if (!companyId || !periodStart || !periodEnd || !salaryExpenseAccount || !cashAccount || !employeeWithholdingAccount || !patronalExpenseAccount || !patronalPayableAccount) {
-      setMessage("Completa las fechas y selecciona las 5 cuentas contables.");
+    if (!companyId || !periodStart || !periodEnd || !salaryExpenseAccount || !cashAccount || !employeeWithholdingAccount) {
+      setMessage("Completa las fechas y selecciona las cuentas contables.");
       return;
     }
     if (employees.length === 0) { setMessage("No hay empleados activos registrados."); return; }
@@ -190,13 +242,29 @@ export default function PayrollPage() {
     // sola vez por corrida, contra la cantidad de empleados activos de
     // la empresa, no por empleado individual.
     const employerPctApplicable = filterEmployerChargesByHeadcount(charges, employees.length);
+    const applicableKeys = Object.keys(employerPctApplicable);
+    const missingAccounts = applicableKeys.filter((k) => !patronalExpenseAccounts[k] || !patronalPayableAccounts[k]);
+    if (missingAccounts.length > 0) {
+      setMessage("Falta seleccionar la cuenta de gasto y/o por pagar de: " + missingAccounts.map(chargeLabel).join(", ") + ".");
+      setProcessing(false);
+      return;
+    }
+
+    // patronalByKey acumula cada carga patronal (ivss_patronal, inces,
+    // faov, etc.) por separado entre todos los empleados, para poder
+    // generar una linea de asiento por cada una -- a diferencia de antes,
+    // que sumaba todo en un solo monto "patronal".
+    const patronalByKey: Record<string, number> = {};
 
     const details = employees.map((emp) => {
       const fxRate = parseFloat(payrollExchangeRate) || 1;
       const gross = emp.daily_salary * daysInPeriod * fxRate;
       const { subTotalTerceros: socialSecurity } = applyThirdPartyCharges(gross, charges.employee_pct);
       const net = gross - socialSecurity;
-      const { subTotalTerceros: patronal } = applyThirdPartyCharges(gross, employerPctApplicable);
+      const { charges: patronalCharges, subTotalTerceros: patronal } = applyThirdPartyCharges(gross, employerPctApplicable);
+      for (const [key, amount] of Object.entries(patronalCharges)) {
+        patronalByKey[key] = (patronalByKey[key] || 0) + amount;
+      }
       return { employee_id: emp.id, apu_project_id: emp.apu_project_id ?? null, days_worked: daysInPeriod, gross_amount: gross, social_security: socialSecurity, other_deductions: 0, net_amount: net, patronal_amount: patronal };
     });
 
@@ -216,12 +284,21 @@ export default function PayrollPage() {
     }]).select("id").single();
     if (entryError || !entry) { setMessage("Error al crear asiento: " + entryError?.message); setProcessing(false); return; }
 
+    // Una linea de gasto y una de pasivo POR CADA carga patronal con
+    // monto > 0 (no se postea una clave si quedo en 0, ej. INCES con
+    // menos de 5 empleados), en vez de las 2 lineas unicas de antes.
+    const patronalLines = Object.entries(patronalByKey)
+      .filter(([, amount]) => amount > 0)
+      .flatMap(([key, amount]) => [
+        { journal_entry_id: entry.id, account_id: patronalExpenseAccounts[key], debit: amount, credit: 0 },
+        { journal_entry_id: entry.id, account_id: patronalPayableAccounts[key], debit: 0, credit: amount },
+      ]);
+
     await supabase.from("journal_lines").insert([
       { journal_entry_id: entry.id, account_id: salaryExpenseAccount, debit: totalGross, credit: 0 },
-      { journal_entry_id: entry.id, account_id: patronalExpenseAccount, debit: totalPatronal, credit: 0 },
       { journal_entry_id: entry.id, account_id: cashAccount, debit: 0, credit: totalNet },
       { journal_entry_id: entry.id, account_id: employeeWithholdingAccount, debit: 0, credit: totalDeductions },
-      { journal_entry_id: entry.id, account_id: patronalPayableAccount, debit: 0, credit: totalPatronal },
+      ...patronalLines,
     ]);
 
     const { data: run, error: runError } = await supabase.from("payroll_runs").insert([{
@@ -251,26 +328,49 @@ export default function PayrollPage() {
         <p style={{ fontSize: 15, color: theme.accent, fontWeight: 700, marginBottom: 10 }}>Cuentas Contables (requeridas)</p>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <div style={{ display: "flex", gap: 6, flex: 1, minWidth: 220 }}>
-            <AccountSearchSelect accounts={accounts.filter(a => a.account_type === "EXPENSE")} value={salaryExpenseAccount} onChange={setSalaryExpenseAccount} placeholder="Gasto de Sueldos..." />
+            <AccountSearchSelect accounts={salaryExpenseOptions} value={salaryExpenseAccount} onChange={setSalaryExpenseAccount} placeholder="Gasto de Sueldos..." />
             <button onClick={() => createNewAccount("EXPENSE", "salary")} style={{ padding: "0 12px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap" }}>+ Nueva</button>
           </div>
           <div style={{ display: "flex", gap: 6, flex: 1, minWidth: 220 }}>
-            <AccountSearchSelect accounts={accounts.filter(a => a.account_type === "EXPENSE")} value={patronalExpenseAccount} onChange={setPatronalExpenseAccount} placeholder="Gasto Obligaciones Patronales..." />
-            <button onClick={() => createNewAccount("EXPENSE", "patronalexp")} style={{ padding: "0 12px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap" }}>+ Nueva</button>
-          </div>
-          <div style={{ display: "flex", gap: 6, flex: 1, minWidth: 220 }}>
-            <AccountSearchSelect accounts={accounts.filter(a => a.account_type === "ASSET")} value={cashAccount} onChange={setCashAccount} placeholder="Banco/Caja..." />
+            <AccountSearchSelect accounts={cashOptions} value={cashAccount} onChange={setCashAccount} placeholder="Banco/Caja..." />
             <button onClick={() => createNewAccount("ASSET", "cash")} style={{ padding: "0 12px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap" }}>+ Nueva</button>
           </div>
           <div style={{ display: "flex", gap: 6, flex: 1, minWidth: 220 }}>
-            <AccountSearchSelect accounts={accounts.filter(a => a.account_type === "LIABILITY")} value={employeeWithholdingAccount} onChange={setEmployeeWithholdingAccount} placeholder="Retenciones al Empleado por Pagar..." />
+            <AccountSearchSelect accounts={employeeWithholdingOptions} value={employeeWithholdingAccount} onChange={setEmployeeWithholdingAccount} placeholder="Retenciones al Empleado por Pagar (consolidada)..." />
             <button onClick={() => createNewAccount("LIABILITY", "empwith")} style={{ padding: "0 12px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap" }}>+ Nueva</button>
           </div>
-          <div style={{ display: "flex", gap: 6, flex: 1, minWidth: 220 }}>
-            <AccountSearchSelect accounts={accounts.filter(a => a.account_type === "LIABILITY")} value={patronalPayableAccount} onChange={setPatronalPayableAccount} placeholder="Obligaciones Patronales por Pagar..." />
-            <button onClick={() => createNewAccount("LIABILITY", "patronalpay")} style={{ padding: "0 12px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap" }}>+ Nueva</button>
-          </div>
         </div>
+
+        <p style={{ fontSize: 15, color: theme.accent, fontWeight: 700, marginTop: 20, marginBottom: 6 }}>Obligaciones Patronales (una cuenta de gasto y una por pagar para cada carga)</p>
+        <p style={{ fontSize: 12, color: "#8B93A7", marginBottom: 10 }}>{activeCharges.name}</p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {employerChargeKeys.map((key) => (
+            <div key={key} style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", padding: "8px 10px", background: "#0B0E14", borderRadius: 8 }}>
+              <span style={{ fontSize: 13, color: theme.accent, fontWeight: 700, minWidth: 140 }}>{chargeLabel(key)}</span>
+              <div style={{ display: "flex", gap: 6, flex: 1, minWidth: 220 }}>
+                <AccountSearchSelect
+                  accounts={patronalOptions(expenseAccounts, key)}
+                  value={patronalExpenseAccounts[key] || ""}
+                  onChange={(v) => setPatronalExpenseAccounts((prev) => ({ ...prev, [key]: v }))}
+                  placeholder={"Gasto " + chargeLabel(key) + "..."}
+                />
+                <button onClick={() => createNewAccount("EXPENSE", "patronalexp:" + key)} style={{ padding: "0 12px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap" }}>+ Nueva</button>
+              </div>
+              <div style={{ display: "flex", gap: 6, flex: 1, minWidth: 220 }}>
+                <AccountSearchSelect
+                  accounts={patronalOptions(liabilityAccounts, key)}
+                  value={patronalPayableAccounts[key] || ""}
+                  onChange={(v) => setPatronalPayableAccounts((prev) => ({ ...prev, [key]: v }))}
+                  placeholder={chargeLabel(key) + " por Pagar..."}
+                />
+                <button onClick={() => createNewAccount("LIABILITY", "patronalpay:" + key)} style={{ padding: "0 12px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap" }}>+ Nueva</button>
+              </div>
+            </div>
+          ))}
+        </div>
+        <p style={{ fontSize: 11, color: "#8B93A7", marginTop: 10 }}>
+          Cada selector solo muestra cuentas cuyo nombre coincide con el rubro. Si no ves la cuenta que buscas, puede que este nombrada distinto en tu plan de cuentas -- en ese caso se muestran todas las cuentas de ese tipo para que la encuentres igual.
+        </p>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
