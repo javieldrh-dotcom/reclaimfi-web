@@ -73,6 +73,7 @@ const navItems = [
     groupLabel: "ADMINISTRACION",
     items: [
       { href: "/admin", label: "Panel de Administracion" },
+      { href: "/admin/companies", label: "Empresas de la Plataforma" },
       { href: "/admin/companies/new", label: "Nueva Empresa" },
       { href: "/admin/jurisdiction-modules", label: "Modulos por Jurisdiccion" },
       { href: "/admin/users", label: "Gestion de Usuarios (Plataforma)" },

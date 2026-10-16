@@ -92,7 +92,18 @@ export default function NewCompanyPage() {
 
     const { data: company, error: companyError } = await supabase
       .from("companies")
-      .insert([{ name, tax_id: taxId, country, industry_sector: sector, owner_id: userData.user.id }])
+      // jurisdiction_code no se guardaba aqui -- companies.country y
+      // companies.jurisdiction_code son columnas DISTINTAS, y nomina/ISLR/
+      // IVA solo leen jurisdiction_code. Antes de este cambio, toda
+      // empresa nueva quedaba sin jurisdiccion asignada (o con el
+      // respaldo VE) hasta que alguien corriera un UPDATE manual en SQL --
+      // eso no escala a cientos de contadores creando clientes en
+      // distintos paises. Se usa el mismo codigo de pais elegido en el
+      // formulario como jurisdiction_code: hoy coinciden 1 a 1 (el pais
+      // ES la jurisdiccion). El dia que haga falta una jurisdiccion mas
+      // fina que el pais (ej. un estado de EEUU con reglas propias), este
+      // campo se puede separar del selector de pais sin tocar el resto.
+      .insert([{ name, tax_id: taxId, country, jurisdiction_code: country, industry_sector: sector, owner_id: userData.user.id }])
       .select("id")
       .single();
 
