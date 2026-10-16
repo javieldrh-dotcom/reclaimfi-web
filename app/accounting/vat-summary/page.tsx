@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
 import VerticalPageLayout from "@/app/components/VerticalPageLayout";
+import { fetchSalesTaxConfig, calculateFlatSalesTax, VE_DEFAULT_SALES_TAX, type SalesTaxConfig } from "@/app/lib/jurisdictionTax";
 
 export default function VatSummaryPage() {
   const theme = getVerticalTheme("accounting");
@@ -15,6 +16,14 @@ export default function VatSummaryPage() {
   const [loading, setLoading] = useState(false);
   const [declarations, setDeclarations] = useState<any[]>([]);
   const [consistencyCheck, setConsistencyCheck] = useState<any>(null);
+  // Config por jurisdiccion (ver app/lib/jurisdictionTax.ts): decide si
+  // esta pantalla usa el modelo VAT_CREDIT (casillas SENIAT, sin cambios
+  // de comportamiento para VE) o FLAT_SALES_TAX (resumen simple de venta
+  // gravable x impuesto recaudado, para jurisdicciones como EEUU que no
+  // tienen credito fiscal). Por defecto VE_DEFAULT_SALES_TAX (VAT_CREDIT)
+  // hasta que la carga termine, para no mostrar un flash del modelo plano.
+  const [salesTaxConfig, setSalesTaxConfig] = useState<SalesTaxConfig>(VE_DEFAULT_SALES_TAX);
+  const isFlatModel = salesTaxConfig.model === "FLAT_SALES_TAX";
 
   useEffect(() => {
     async function load() {
@@ -24,9 +33,11 @@ export default function VatSummaryPage() {
       const cid = uc?.company_id ?? null;
       setCompanyId(cid);
       if (cid) {
-        const { data: companyData } = await supabase.from("companies").select("name, tax_id").eq("id", cid).single();
+        const { data: companyData } = await supabase.from("companies").select("name, tax_id, jurisdiction_code").eq("id", cid).single();
         setCompanyName(companyData?.name ?? "");
         setCompanyRif(companyData?.tax_id ?? "");
+        const taxConfig = await fetchSalesTaxConfig(supabase, companyData?.jurisdiction_code);
+        setSalesTaxConfig(taxConfig);
         const { data: decl } = await supabase.from("vat_declarations").select("*").eq("company_id", cid).order("period_end", { ascending: false });
         setDeclarations(decl ?? []);
       }
@@ -43,6 +54,20 @@ export default function VatSummaryPage() {
     const periodEnd = periodYear + "-" + periodMonth + "-" + lastDay.toString().padStart(2, "0");
 
     const { data: sales } = await supabase.from("sales_book_entries").select("*").eq("company_id", companyId).eq("status", "ACTIVE").eq("is_reversed", false).gte("entry_date", periodStart).lte("entry_date", periodEnd);
+
+    // Modelo FLAT_SALES_TAX (ej. EEUU): no hay credito fiscal por
+    // compras, asi que ni se consulta purchase_book_entries ni se
+    // calculan casillas SENIAT -- el impuesto a remitir es directamente
+    // el impuesto recaudado en ventas gravables de este periodo.
+    if (isFlatModel) {
+      const taxableSales = (sales ?? []).reduce((s: number, r: any) => s + (r.taxable_base_general || 0), 0);
+      const exemptSales = (sales ?? []).reduce((s: number, r: any) => s + (r.non_taxable_amount || 0), 0);
+      const taxCollected = (sales ?? []).reduce((s: number, r: any) => s + (r.fiscal_debit || 0), 0);
+      setSummary({ ...calculateFlatSalesTax(taxableSales, exemptSales, taxCollected), periodStart, periodEnd });
+      setLoading(false);
+      return;
+    }
+
     const { data: purchases } = await supabase.from("purchase_book_entries").select("*").eq("company_id", companyId).eq("status", "ACTIVE").eq("is_reversed", false).gte("entry_date", periodStart).lte("entry_date", periodEnd);
 
     const casilla40 = (sales ?? []).reduce((s: number, r: any) => s + (r.non_taxable_amount || 0), 0);
@@ -87,7 +112,17 @@ export default function VatSummaryPage() {
 
   async function saveDeclaration() {
     if (!companyId || !summary) return;
-    await supabase.from("vat_declarations").insert([{
+    await supabase.from("vat_declarations").insert([isFlatModel ? {
+      company_id: companyId,
+      period_start: summary.periodStart,
+      period_end: summary.periodEnd,
+      total_sales: summary.totalSales,
+      total_purchases: 0,
+      fiscal_debit: summary.taxCollected,
+      fiscal_credit: 0,
+      vat_payable: summary.taxDue,
+      status: "FILED",
+    } : {
       company_id: companyId,
       period_start: summary.periodStart,
       period_end: summary.periodEnd,
@@ -112,7 +147,12 @@ export default function VatSummaryPage() {
   const monthNames = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"];
 
   return (
-    <VerticalPageLayout vertical="accounting" title="Resumen y Declaracion de IVA" subtitle="Forma IVA 99030 - Casillas oficiales SENIAT" fullWidth>
+    <VerticalPageLayout
+      vertical="accounting"
+      title={isFlatModel ? "Resumen de Impuesto de Ventas" : "Resumen y Declaracion de IVA"}
+      subtitle={salesTaxConfig.form_label || "Forma IVA 99030 - Casillas oficiales SENIAT"}
+      fullWidth
+    >
       <div style={{ maxWidth: 700, margin: "0 auto" }}>
         <p style={{ fontSize: 15, color: "#8B93A7" }}>{companyName} - RIF: {companyRif}</p>
         <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
@@ -125,7 +165,29 @@ export default function VatSummaryPage() {
           {loading ? "CALCULANDO..." : "CALCULAR PERIODO"}
         </button>
 
-        {summary && (
+        {summary && isFlatModel && (
+          <div style={{ ...theme.cardStyle, marginTop: 24 }}>
+            <h3 style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginBottom: 8 }}>VENTAS DEL PERIODO</h3>
+            {row("1", "Ventas Totales", summary.totalSales)}
+            {row("2", "Ventas Exentas / No Gravadas", summary.exemptSales)}
+            {row("3", "Ventas Gravables", summary.taxableSales)}
+            {row("4", "Impuesto Recaudado", summary.taxCollected)}
+
+            <div style={{ marginTop: 16, padding: 16, background: "#0B0E14", borderRadius: 12, display: "flex", justifyContent: "space-between", fontSize: 24, fontWeight: 900, color: summary.taxDue > 0 ? "#f87171" : "#4ade80" }}>
+              <span>Impuesto a Remitir</span>
+              <span style={theme.numberStyle}>{summary.taxDue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+            </div>
+            <p style={{ fontSize: 13, color: "#8B93A7", marginTop: 10 }}>
+              Resumen informativo: no es el formulario oficial. Verifica el formulario y la frecuencia de declaracion de tu estado/jurisdiccion antes de remitir.
+            </p>
+
+            <button onClick={saveDeclaration} style={{ ...theme.buttonStyle, marginTop: 16, fontSize: 18, width: "100%" }}>
+              GUARDAR DECLARACION
+            </button>
+          </div>
+        )}
+
+        {summary && !isFlatModel && (
           <div style={{ ...theme.cardStyle, marginTop: 24 }}>
             <h3 style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginBottom: 8 }}>DEBITOS FISCALES</h3>
             {row("40", "Ventas Internas no Gravadas", summary.casilla40)}
