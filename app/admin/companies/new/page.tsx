@@ -120,13 +120,21 @@ export default function NewCompanyPage() {
       return;
     }
 
-    const { data: adminRole } = await supabase.from("user_roles").select("id").eq("name", "ADMIN").single();
-    if (adminRole) {
-      await supabase.from("user_role_assignments").insert([{
-        user_id: userData.user.id,
-        role_id: adminRole.id,
-        company_id: company.id,
-      }]);
+    const { data: adminRole, error: adminRoleLookupError } = await supabase.from("user_roles").select("id").eq("name", "ADMIN").single();
+    if (adminRoleLookupError || !adminRole) {
+      setMessage("Empresa creada pero no se encontro el rol ADMIN en el sistema (" + (adminRoleLookupError?.message ?? "sin rol ADMIN") + "). No instales el plan de cuentas todavia, contacta soporte.");
+      setLoading(false);
+      return;
+    }
+    const { error: roleAssignError } = await supabase.from("user_role_assignments").insert([{
+      user_id: userData.user.id,
+      role_id: adminRole.id,
+      company_id: company.id,
+    }]);
+    if (roleAssignError) {
+      setMessage("Empresa creada pero no se te pudo asignar el rol ADMIN (" + roleAssignError.message + "). No instales el plan de cuentas todavia, contacta soporte.");
+      setLoading(false);
+      return;
     }
 
     const { data: templateAccounts } = await supabase
