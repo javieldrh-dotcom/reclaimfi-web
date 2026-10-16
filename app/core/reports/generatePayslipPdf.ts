@@ -38,9 +38,23 @@ interface ConceptLabel {
 interface PayslipData {
   companyName: string;
   companyRif?: string;
+  // Etiqueta del identificador fiscal de la empresa (RIF en Venezuela,
+  // RFC en Mexico, EIN en Estados Unidos, Business Number en Canada,
+  // etc). Viene de jurisdictionTax.ts PayrollChargesConfig.labels.tax_id_label.
+  // Si no viene (recibos de corridas anteriores o jurisdicciones sin
+  // configurar), se asume "RIF" -- ningun recibo existente cambia.
+  companyTaxIdLabel?: string;
   employeeName: string;
   idDocumentLabel?: string;
   employeeCedula?: string;
+  // Identificadores adicionales del trabajador mas alla del documento
+  // principal (idDocumentLabel/employeeCedula) -- por ejemplo Mexico
+  // exige 3 identificadores de empleado (RFC, CURP, NSS), no 1. Viene
+  // de PayrollChargesConfig.labels.extra_employee_ids resuelto contra
+  // employees.extra_ids (jsonb) para esta corrida. Si no vienen, el
+  // recibo simplemente no muestra renglones adicionales (comportamiento
+  // igual al de antes de este cambio).
+  extraEmployeeIds?: { label: string; value: string }[];
   employeePosition?: string;
   employeeHireDate?: string;
   dailySalary?: number;
@@ -141,10 +155,11 @@ export function generatePayslipPdf(data: PayslipData): jsPDF {
   doc.text(data.companyName || "Empresa", pageWidth / 2, y, { align: "center" });
   y += 6;
   if (data.companyRif) {
+    const taxIdLabel = data.companyTaxIdLabel || "RIF";
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(...SOFT_GRAY);
-    doc.text("RIF: " + data.companyRif, pageWidth / 2, y, { align: "center" });
+    doc.text(taxIdLabel + ": " + data.companyRif, pageWidth / 2, y, { align: "center" });
     y += 6;
   }
   doc.setFontSize(12);
@@ -164,8 +179,10 @@ export function generatePayslipPdf(data: PayslipData): jsPDF {
   y += 10;
 
   // Datos del trabajador, en dos columnas
+  const extraIds = data.extraEmployeeIds || [];
+  const extraIdRows = Math.ceil(extraIds.length / 2);
   const boxTop = y - 5;
-  const boxHeight = 30;
+  const boxHeight = 30 + extraIdRows * 10;
   doc.setFillColor(...LIGHT_BG);
   doc.rect(15, boxTop, pageWidth - 30, boxHeight, "F");
   const leftX = 18;
@@ -207,6 +224,21 @@ export function generatePayslipPdf(data: PayslipData): jsPDF {
     // por eso no usa la variable "currency" del resto del recibo.
     label(rightX, ly, "SALARIO DIARIO (REFERENCIA)");
     value(rightX, ly, data.dailySalary.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " USD");
+  }
+  ly += 10;
+
+  // Identificadores adicionales del trabajador (ej. RFC/NSS en Mexico),
+  // dos por fila junto al documento principal ya mostrado arriba.
+  for (let i = 0; i < extraIds.length; i += 2) {
+    const leftId = extraIds[i];
+    const rightId = extraIds[i + 1];
+    label(leftX, ly, leftId.label);
+    value(leftX, ly, leftId.value || "-");
+    if (rightId) {
+      label(rightX, ly, rightId.label);
+      value(rightX, ly, rightId.value || "-");
+    }
+    ly += 10;
   }
   y = boxTop + boxHeight + 10;
 

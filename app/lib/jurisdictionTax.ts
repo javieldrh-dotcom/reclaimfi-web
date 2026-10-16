@@ -70,6 +70,17 @@ export interface PayrollChargesConfig {
   // defecto, igual que siempre.
   labels?: {
     id_document?: string;
+    // Nombre del identificador fiscal de la EMPRESA en el encabezado del
+    // recibo -- "RIF" en Venezuela, "RFC" en Mexico, "EIN"/"Tax ID" en
+    // EEUU. Antes el recibo imprimia "RIF:" fijo sin importar el pais.
+    tax_id_label?: string;
+    // Identificadores ADICIONALES del trabajador, ademas de
+    // id_document/employeeCedula. Mexico necesita 3 (RFC + CURP + NSS),
+    // no solo uno -- id_document sigue siendo el documento "principal"
+    // (CURP en Mexico, va en la firma del recibo); extra_employee_ids
+    // son los demas, guardados en employees.extra_ids por la clave en
+    // "code" (ej. code:"rfc" -> employees.extra_ids.rfc).
+    extra_employee_ids?: PayrollConceptLabel[];
     concepts?: {
       base_salary?: PayrollConceptLabel;
       overtime_day?: PayrollConceptLabel;
@@ -284,6 +295,7 @@ export const VE_DEFAULT_PAYROLL_CHARGES: PayrollChargesConfig = {
   },
   labels: {
     id_document: "CEDULA",
+    tax_id_label: "RIF",
     concepts: {
       base_salary: { code: "001", label: "Salario Basico por dias trabajados" },
       overtime_day: { code: "002", label: "Horas Extras Diurnas Autorizadas" },
@@ -324,6 +336,7 @@ export const PAYROLL_CHARGES_REFERENCE_EXAMPLES: Record<string, PayrollChargesCo
     overtime_rules: { extra_diurna_multiplier: 1.5, extra_nocturna_multiplier: 1.5, feriado_descanso_multiplier: 1 },
     labels: {
       id_document: "SSN",
+      tax_id_label: "EIN",
       concepts: {
         base_salary: { code: "REG", label: "Regular Wages" },
         overtime_day: { code: "OT", label: "Overtime (1.5x)" },
@@ -350,6 +363,7 @@ export const PAYROLL_CHARGES_REFERENCE_EXAMPLES: Record<string, PayrollChargesCo
     overtime_rules: { extra_diurna_multiplier: 1.5, extra_nocturna_multiplier: 1.5, feriado_descanso_multiplier: 1.5 },
     labels: {
       id_document: "SIN",
+      tax_id_label: "Business Number (BN)",
       concepts: {
         base_salary: { code: "REG", label: "Regular Earnings" },
         overtime_day: { code: "OT", label: "Overtime (1.5x)" },
@@ -380,6 +394,15 @@ export const PAYROLL_CHARGES_REFERENCE_EXAMPLES: Record<string, PayrollChargesCo
     overtime_rules: { extra_diurna_multiplier: 2, extra_nocturna_multiplier: 2, feriado_descanso_multiplier: 2 },
     labels: {
       id_document: "CURP",
+      tax_id_label: "RFC",
+      // Mexico identifica al trabajador con 3 documentos (RFC, CURP,
+      // NSS), no solo uno -- CURP queda como id_document (el que va en
+      // la firma del recibo, igual patron que CEDULA en VE), RFC y NSS
+      // se agregan aqui como campos extra (ver employees.extra_ids).
+      extra_employee_ids: [
+        { code: "rfc", label: "RFC" },
+        { code: "nss", label: "NSS" },
+      ],
       concepts: {
         base_salary: { code: "001", label: "Sueldo Base" },
         overtime_day: { code: "019", label: "Horas Extra Dobles" },
@@ -399,6 +422,7 @@ export const PAYROLL_CHARGES_REFERENCE_EXAMPLES: Record<string, PayrollChargesCo
     overtime_rules: { extra_diurna_multiplier: 1.5, extra_nocturna_multiplier: 1.5, feriado_descanso_multiplier: 2 },
     labels: {
       id_document: "CEDULA",
+      tax_id_label: "Cedula Juridica",
       concepts: { income_tax: { code: "-", label: "Impuesto sobre la Renta (CR)" } },
       deduction_codes: { ccss_empleado: { code: "-", label: "Caja Costarricense de Seguro Social" } },
     },
@@ -410,6 +434,7 @@ export const PAYROLL_CHARGES_REFERENCE_EXAMPLES: Record<string, PayrollChargesCo
     overtime_rules: { extra_diurna_multiplier: 1.25, extra_nocturna_multiplier: 1.75, feriado_descanso_multiplier: 2 },
     labels: {
       id_document: "CEDULA",
+      tax_id_label: "NIT",
       concepts: { income_tax: { code: "-", label: "Retencion en la Fuente" } },
       deduction_codes: {
         salud_empleado: { code: "-", label: "Salud (EPS)" },
@@ -424,6 +449,7 @@ export const PAYROLL_CHARGES_REFERENCE_EXAMPLES: Record<string, PayrollChargesCo
     overtime_rules: { extra_diurna_multiplier: 1.35, extra_nocturna_multiplier: 1.35, feriado_descanso_multiplier: 2 },
     labels: {
       id_document: "CEDULA",
+      tax_id_label: "RNC",
       concepts: { income_tax: { code: "-", label: "Impuesto Sobre la Renta (ISR)" } },
       deduction_codes: {
         sfs_empleado: { code: "-", label: "Seguro Familiar de Salud (SFS)" },
@@ -438,6 +464,7 @@ export const PAYROLL_CHARGES_REFERENCE_EXAMPLES: Record<string, PayrollChargesCo
     overtime_rules: { extra_diurna_multiplier: 1.75, extra_nocturna_multiplier: 1.75, feriado_descanso_multiplier: 2 },
     labels: {
       id_document: "DNI/NIE",
+      tax_id_label: "CIF/NIF",
       concepts: { income_tax: { code: "-", label: "Retencion IRPF" } },
       deduction_codes: { seguridad_social_empleado: { code: "-", label: "Seguridad Social (cuota obrera)" } },
     },
@@ -449,6 +476,7 @@ export const PAYROLL_CHARGES_REFERENCE_EXAMPLES: Record<string, PayrollChargesCo
     overtime_rules: { extra_diurna_multiplier: 1.5, extra_nocturna_multiplier: 1.5, feriado_descanso_multiplier: 2 },
     labels: {
       id_document: "ID Number",
+      tax_id_label: "Company Registration Number",
       concepts: { income_tax: { code: "-", label: "PAYE (Pay As You Earn)" } },
       deduction_codes: { uif_empleado: { code: "-", label: "Unemployment Insurance Fund (UIF)" } },
     },
@@ -460,6 +488,7 @@ export const PAYROLL_CHARGES_REFERENCE_EXAMPLES: Record<string, PayrollChargesCo
     overtime_rules: { extra_diurna_multiplier: 2, extra_nocturna_multiplier: 2, feriado_descanso_multiplier: 2 },
     labels: {
       id_document: "Aadhaar/PAN",
+      tax_id_label: "GSTIN",
       concepts: { income_tax: { code: "-", label: "TDS (Tax Deducted at Source)" } },
       deduction_codes: {
         epf_empleado: { code: "-", label: "Employees Provident Fund (EPF)" },
@@ -474,6 +503,7 @@ export const PAYROLL_CHARGES_REFERENCE_EXAMPLES: Record<string, PayrollChargesCo
     overtime_rules: { extra_diurna_multiplier: 1.5, extra_nocturna_multiplier: 1.5, feriado_descanso_multiplier: 2 },
     labels: {
       id_document: "T.C. Kimlik No.",
+      tax_id_label: "Vergi Numarasi",
       concepts: { income_tax: { code: "-", label: "Gelir Vergisi (Retencion de Renta)" } },
       deduction_codes: { sgk_empleado: { code: "-", label: "Sosyal Guvenlik Kurumu (SGK)" } },
     },
@@ -485,6 +515,7 @@ export const PAYROLL_CHARGES_REFERENCE_EXAMPLES: Record<string, PayrollChargesCo
     overtime_rules: { extra_diurna_multiplier: 1.5, extra_nocturna_multiplier: 2, feriado_descanso_multiplier: 2.5 },
     labels: {
       id_document: "TFN (Tax File Number)",
+      tax_id_label: "ABN (Australian Business Number)",
       concepts: { income_tax: { code: "-", label: "PAYG Withholding" } },
       deduction_codes: {},
     },

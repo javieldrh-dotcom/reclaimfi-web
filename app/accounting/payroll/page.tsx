@@ -36,6 +36,13 @@ export default function PayrollPage() {
   const [payrollChargesConfig, setPayrollChargesConfig] = useState<PayrollChargesConfig | null>(null);
   const [empName, setEmpName] = useState("");
   const [empCedula, setEmpCedula] = useState("");
+  // Identificadores adicionales del empleado mas alla de la cedula
+  // principal (ej. RFC/NSS en Mexico) -- keyed por "code" tal como lo
+  // declara activeCharges.labels.extra_employee_ids. Se guardan en
+  // employees.extra_ids (jsonb). Si la jurisdiccion activa no declara
+  // ninguno (caso VE y la mayoria), este objeto queda vacio y no se
+  // muestra ningun campo extra en el formulario.
+  const [empExtraIds, setEmpExtraIds] = useState<Record<string, string>>({});
   const [empPosition, setEmpPosition] = useState("");
   const [empSalary, setEmpSalary] = useState("");
   const [empApuProjectId, setEmpApuProjectId] = useState("");
@@ -176,6 +183,7 @@ export default function PayrollPage() {
   async function createEmployee() {
     setMessage("");
     if (!companyId || !empName || !empSalary) { setMessage("Completa nombre y salario."); return; }
+    const extraIdsEntries = Object.entries(empExtraIds).filter(([, v]) => v.trim() !== "");
     const { error } = await supabase.from("employees").insert([{
       company_id: companyId,
       full_name: empName,
@@ -183,10 +191,11 @@ export default function PayrollPage() {
       position: empPosition,
       daily_salary: parseFloat(empSalary),
       apu_project_id: empApuProjectId || null,
+      extra_ids: extraIdsEntries.length > 0 ? Object.fromEntries(extraIdsEntries) : null,
     }]);
     if (error) { setMessage("Error: " + error.message); return; }
     setMessage("Empleado registrado correctamente.");
-    setEmpName(""); setEmpCedula(""); setEmpPosition(""); setEmpSalary(""); setEmpApuProjectId("");
+    setEmpName(""); setEmpCedula(""); setEmpPosition(""); setEmpSalary(""); setEmpApuProjectId(""); setEmpExtraIds({});
     if (companyId) await loadEmployees(companyId);
   }
 
@@ -211,7 +220,7 @@ export default function PayrollPage() {
     setLoadingDetailsFor(runId);
     const { data } = await supabase
       .from("payroll_details")
-      .select("*, employees(full_name, cedula, position, hire_date, daily_salary)")
+      .select("*, employees(full_name, cedula, position, hire_date, daily_salary, extra_ids)")
       .eq("payroll_run_id", runId);
     setRunDetails((prev) => ({ ...prev, [runId]: data ?? [] }));
     setLoadingDetailsFor(null);
@@ -230,12 +239,26 @@ export default function PayrollPage() {
     const labels = activeCharges.labels ?? {};
     const concepts = labels.concepts ?? {};
     const veConcepts = veLabels.concepts!;
+    // extra_employee_ids declara QUE identificadores existen (ej. RFC,
+    // NSS); extra_ids (jsonb en employees) trae los VALORES guardados
+    // para este empleado en particular. Si el empleado no tiene valor
+    // guardado para alguno (lo registraron antes de que existiera ese
+    // campo, o lo dejaron en blanco), el renglon igual aparece con "-"
+    // en vez de desaparecer, para que se note que falta completarlo.
+    const extraIdDefs = labels.extra_employee_ids ?? [];
+    const employeeExtraIds: Record<string, string> = detail.employees?.extra_ids ?? {};
+    const extraEmployeeIds = extraIdDefs.map((def) => ({
+      label: def.label,
+      value: employeeExtraIds[def.code] ?? "",
+    }));
     const doc = generatePayslipPdf({
       companyName,
       companyRif,
+      companyTaxIdLabel: labels.tax_id_label ?? veLabels.tax_id_label,
       employeeName: detail.employees?.full_name ?? "Empleado",
       idDocumentLabel: labels.id_document ?? veLabels.id_document,
       employeeCedula: detail.employees?.cedula ?? "",
+      extraEmployeeIds,
       employeePosition: detail.employees?.position ?? "",
       employeeHireDate: detail.employees?.hire_date ?? "",
       dailySalary: detail.employees?.daily_salary ?? undefined,
@@ -559,6 +582,15 @@ export default function PayrollPage() {
           <h3 style={{ fontSize: 20, color: theme.accent, fontWeight: 700, marginBottom: 12 }}>Registrar Empleado</h3>
           <input value={empName} onChange={(e) => setEmpName(e.target.value)} style={inputStyle} placeholder="Nombre completo" />
           <input value={empCedula} onChange={(e) => setEmpCedula(e.target.value)} style={{ ...inputStyle, marginTop: 8 }} placeholder="Cedula (ej. V-12.345.678)" />
+          {(activeCharges.labels?.extra_employee_ids ?? []).map((idDef) => (
+            <input
+              key={idDef.code}
+              value={empExtraIds[idDef.code] ?? ""}
+              onChange={(e) => setEmpExtraIds((prev) => ({ ...prev, [idDef.code]: e.target.value }))}
+              style={{ ...inputStyle, marginTop: 8 }}
+              placeholder={idDef.label}
+            />
+          ))}
           <input value={empPosition} onChange={(e) => setEmpPosition(e.target.value)} style={{ ...inputStyle, marginTop: 8 }} placeholder="Cargo" />
           <input type="number" value={empSalary} onChange={(e) => setEmpSalary(e.target.value)} style={{ ...inputStyle, marginTop: 8 }} placeholder="Salario Diario" />
           <select value={empApuProjectId} onChange={(e) => setEmpApuProjectId(e.target.value)} style={{ ...inputStyle, marginTop: 8 }}>
