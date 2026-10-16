@@ -9,24 +9,19 @@ import jsPDF from "jspdf";
 // generateProfessionalDiarioPdf.ts para que todo el papeleo contable se
 // vea consistente.
 //
-// Formato ajustado a partir de 3 modelos de recibo de pago venezolano
+// Formato ajustado a partir de los modelos de recibo de pago venezolano
 // que Javiel compartio como referencia: encabezado empresa/RIF, datos
 // del trabajador (cedula, cargo, fecha de ingreso), tabla de conceptos
-// con codigo (001 Salario Basico, 152 Seguro Social Obligatorio, 153
-// Regimen Prestacional del Empleo, 154 FAOV), totales y neto a pagar.
+// con codigo (001 Salario Basico, 002/004 Horas Extra, 009 Feriados y
+// Descanso Trabajados, 101 Faltas, 151 ISLR, 152/153/154 Seguridad
+// Social/RPE/FAOV), totales y neto a pagar.
 //
-// Nota de alcance deliberada: NO se incluyen conceptos como Cestaticket
-// Socialista, Bono de Guerra Economica, horas extra o ISLR porque
-// payroll_details hoy no captura esos montos por separado (solo
-// gross_amount = sueldo basico por dias trabajados). Agregarlos
-// inventando un monto seria incorrecto -- requiere primero capturarlos
-// como campos propios al procesar la nomina. El desglose de deducciones
-// (employeeDeductionsBreakdown) solo existe para corridas procesadas
-// DESPUES de que payroll_details empezo a persistirlo por clave; si no
-// viene (recibos de corridas anteriores), el PDF cae de vuelta a un
-// monto unico de deducciones en vez de inventar un desglose que nunca
-// se guardo -- recalcular con tasas actuales podria no coincidir con lo
-// realmente pagado.
+// extraConcepts e islrAmount solo existen para corridas procesadas
+// DESPUES de que payroll_details empezo a persistirlos (igual que
+// employeeDeductionsBreakdown) -- se guardan tal cual se calcularon al
+// momento de procesar esa corrida especifica, nunca se recalculan aqui.
+// Si no vienen (recibos de corridas anteriores), esos renglones
+// simplemente no aparecen en vez de inventar un monto que nunca se pago.
 
 interface PayslipData {
   companyName: string;
@@ -42,6 +37,18 @@ interface PayslipData {
   grossAmount: number;
   socialSecurity: number;
   employeeDeductionsBreakdown?: Record<string, number>;
+  extraConcepts?: {
+    base_salary_amount?: number;
+    horas_extra_diurnas_horas?: number;
+    horas_extra_diurnas_monto?: number;
+    horas_extra_nocturnas_horas?: number;
+    horas_extra_nocturnas_monto?: number;
+    feriados_descanso_dias?: number;
+    feriados_descanso_monto?: number;
+    faltas_dias?: number;
+    faltas_monto?: number;
+  };
+  islrAmount?: number;
   otherDeductions: number;
   netAmount: number;
   patronalAmount: number;
@@ -206,6 +213,21 @@ export function generatePayslipPdf(data: PayslipData): jsPDF {
 
   conceptRow("001", "Salario Basico por dias trabajados", data.grossAmount, 0);
 
+  const ec = data.extraConcepts;
+  let extraAsignaciones = 0;
+  if (ec?.horas_extra_diurnas_monto && ec.horas_extra_diurnas_monto > 0) {
+    conceptRow("002", "Horas Extras Diurnas Autorizadas (" + ec.horas_extra_diurnas_horas + "h)", ec.horas_extra_diurnas_monto, 0);
+    extraAsignaciones += ec.horas_extra_diurnas_monto;
+  }
+  if (ec?.horas_extra_nocturnas_monto && ec.horas_extra_nocturnas_monto > 0) {
+    conceptRow("004", "Horas Extras Nocturnas Autorizadas (" + ec.horas_extra_nocturnas_horas + "h)", ec.horas_extra_nocturnas_monto, 0);
+    extraAsignaciones += ec.horas_extra_nocturnas_monto;
+  }
+  if (ec?.feriados_descanso_monto && ec.feriados_descanso_monto > 0) {
+    conceptRow("009", "Dias de Descanso y Feriados Trabajados (" + ec.feriados_descanso_dias + "d)", ec.feriados_descanso_monto, 0);
+    extraAsignaciones += ec.feriados_descanso_monto;
+  }
+
   const breakdown = data.employeeDeductionsBreakdown;
   const breakdownEntries = breakdown ? Object.entries(breakdown).filter(([, amount]) => amount > 0) : [];
   if (breakdownEntries.length > 0) {
@@ -216,14 +238,21 @@ export function generatePayslipPdf(data: PayslipData): jsPDF {
   } else if (data.socialSecurity > 0) {
     conceptRow("-", "Seguridad Social y Aportes de Ley", 0, data.socialSecurity);
   }
+  if (ec?.faltas_monto && ec.faltas_monto > 0) {
+    conceptRow("101", "Dias de Faltas al Trabajo (" + ec.faltas_dias + "d)", 0, ec.faltas_monto);
+  }
+  if (data.islrAmount && data.islrAmount > 0) {
+    conceptRow("151", "Impuesto Sobre la Renta (I.S.L.R.)", 0, data.islrAmount);
+  }
   if (data.otherDeductions > 0) {
     conceptRow("900", "Otras Deducciones", 0, data.otherDeductions);
   }
 
-  const totalAsignaciones = data.grossAmount;
-  const totalDeducciones = breakdownEntries.length > 0
-    ? breakdownEntries.reduce((s, [, amount]) => s + amount, 0) + (data.otherDeductions || 0)
-    : data.socialSecurity + (data.otherDeductions || 0);
+  const totalAsignaciones = data.grossAmount + extraAsignaciones;
+  const socialSecurityTotal = breakdownEntries.length > 0
+    ? breakdownEntries.reduce((s, [, amount]) => s + amount, 0)
+    : data.socialSecurity;
+  const totalDeducciones = socialSecurityTotal + (ec?.faltas_monto || 0) + (data.islrAmount || 0) + (data.otherDeductions || 0);
 
   doc.setDrawColor(210);
   doc.setLineWidth(0.3);
