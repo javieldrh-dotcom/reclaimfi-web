@@ -30,7 +30,8 @@ const navItems = [
       { href: "/accounting/ap-bills", label: "Cuentas por Pagar" },
       { href: "/accounting/fixed-assets", label: "Activos Fijos" },
       { href: "/accounting/payroll", label: "Nomina" },
-      { href: "/accounting/bank-reconciliation", label: "Conciliacion Bancaria" },
+      { href: "/accounting/bank-accounts", label: "Cuentas Bancarias" },
+      { href: "/accounting/bank-reconciliation", label: "Conciliacion Bancaria (texto libre, IA)" },
     ],
   },
   {
