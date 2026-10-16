@@ -158,6 +158,40 @@ export async function fetchPayrollChargesConfig(
   return (data?.config as PayrollChargesConfig) ?? null;
 }
 
+// Nombre de cuenta contable legible para una clave de carga patronal
+// (ej. "imss_patronal" -> "IMSS PATRONAL"). Unica fuente de este
+// formato -- app/accounting/payroll/page.tsx usa las mismas palabras
+// para FILTRAR el selector de cuentas (split por "_"), y
+// app/admin/companies/new/page.tsx usa esta funcion para GENERAR el
+// nombre de la cuenta en si, asi los dos lados siempre coinciden.
+export function humanizeChargeKey(key: string): string {
+  return key.replace(/_/g, " ").toUpperCase();
+}
+
+export interface PayrollAccountPlanEntry {
+  key: string;
+  expenseName: string;
+  payableName: string;
+}
+
+// Plan de cuentas contables de nomina especifico de una jurisdiccion:
+// una pareja gasto/pasivo por cada carga PATRONAL (ej. IMSS PATRONAL +
+// INFONAVIT en Mexico, CPP Patronal + EI Patronal en Canada, FICA +
+// FUTA en EEUU). Usado por app/admin/companies/new/page.tsx para
+// instalar estas cuentas automaticamente al crear una empresa -- antes
+// de esto, cada contador tenia que crear estas cuentas a mano con
+// "+ Nueva" por cada empresa nueva en cada pais, lo cual no escala a
+// centenares de contadores. No incluye las cargas al EMPLEADO: esas se
+// llevan en una sola cuenta "Retenciones al Empleado por Pagar"
+// consolidada (decision de Javiel), generica y ya presente en la
+// plantilla universal, no requiere generarse por jurisdiccion.
+export function buildPayrollAccountPlan(charges: PayrollChargesConfig): PayrollAccountPlanEntry[] {
+  return Object.keys(charges.employer_pct || {}).map((key) => {
+    const label = humanizeChargeKey(key);
+    return { key, expenseName: "Gasto " + label, payableName: label + " por Pagar" };
+  });
+}
+
 export async function fetchSalesTaxConfig(
   supabase: any,
   jurisdictionCode: string | null | undefined

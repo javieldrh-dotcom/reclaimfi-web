@@ -45,6 +45,7 @@ export default function AdminCompaniesPage() {
   const [draft, setDraft] = useState<Partial<CompanyRow>>({});
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [syncingId, setSyncingId] = useState<string | null>(null);
 
   async function loadCompanies(searchTerm = "") {
     setLoading(true);
@@ -82,6 +83,33 @@ export default function AdminCompaniesPage() {
     setMessage("Guardado correctamente.");
     setEditingId(null);
     await loadCompanies(search);
+  }
+
+  // Instala (o completa) las cuentas de gasto/pasivo de nomina
+  // correspondientes a la jurisdiccion de esta empresa -- para empresas
+  // creadas ANTES de que companies/new las generara automaticamente
+  // (ej. Tempano, Agroforestal LLC), o si se agrego una carga patronal
+  // nueva a la configuracion de la jurisdiccion despues de crear la
+  // empresa. No duplica cuentas que ya existan.
+  async function syncPayrollAccounts(id: string) {
+    setSyncingId(id);
+    setMessage("");
+    const res = await fetch("/api/admin/companies/sync-payroll-accounts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ company_id: id }),
+    });
+    const json = await res.json().catch(() => ({ success: false }));
+    setSyncingId(null);
+    if (!json.success) {
+      setMessage("Error sincronizando cuentas de nomina: " + (json.error ?? "desconocido"));
+      return;
+    }
+    setMessage(
+      json.installed > 0
+        ? "Se instalaron " + json.installed + " cuentas de nomina nuevas."
+        : (json.message || "Esta empresa ya tenia todas sus cuentas de nomina.")
+    );
   }
 
   const inputStyle = { padding: 8, background: "#0A1628", border: "1px solid #1E3A5F", borderRadius: 6, color: "white", fontSize: 13 };
@@ -148,9 +176,19 @@ export default function AdminCompaniesPage() {
                       Pais: <b style={{ color: "white" }}>{c.country ?? "-"}</b> · Jurisdiccion: <b style={{ color: c.jurisdiction_code ? "white" : "#F87171" }}>{c.jurisdiction_code ?? "SIN ASIGNAR"}</b> · Sector: <b style={{ color: "white" }}>{c.industry_sector ?? "-"}</b>
                     </p>
                   </div>
-                  <button onClick={() => startEdit(c)} style={{ padding: "8px 14px", background: "none", border: "1px solid #FACC15", color: "#FACC15", borderRadius: 6, cursor: "pointer" }}>
-                    Editar
-                  </button>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                      onClick={() => syncPayrollAccounts(c.id)}
+                      disabled={syncingId === c.id}
+                      title="Instala las cuentas de gasto/pasivo de nomina de la jurisdiccion de esta empresa (IMSS/INFONAVIT, CPP/EI, FICA/FUTA, etc.) si todavia no las tiene."
+                      style={{ padding: "8px 14px", background: "none", border: "1px solid #2DD4BF", color: "#2DD4BF", borderRadius: 6, cursor: "pointer" }}
+                    >
+                      {syncingId === c.id ? "Sincronizando..." : "Sincronizar Cuentas de Nomina"}
+                    </button>
+                    <button onClick={() => startEdit(c)} style={{ padding: "8px 14px", background: "none", border: "1px solid #FACC15", color: "#FACC15", borderRadius: 6, cursor: "pointer" }}>
+                      Editar
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

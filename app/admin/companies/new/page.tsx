@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/app/lib/supabase";
+import { buildPayrollAccountPlan, fetchPayrollChargesConfig, VE_DEFAULT_PAYROLL_CHARGES } from "@/app/lib/jurisdictionTax";
 
 const SECTORS = [
   { code: "GENERIC", label: "Servicios Profesionales" },
@@ -195,6 +196,14 @@ export default function NewCompanyPage() {
       .eq("industry_sector", sector)
       .eq("template_jurisdiction_code", country);
 
+    // Se recuerda si la plantilla instalada fue la ESPECIFICA del pais
+    // (ej. Construccion EEUU, ya curada a mano con sus propias cuentas
+    // de IMSS/FICA/etc.) o la UNIVERSAL -- solo en el segundo caso
+    // tiene sentido generar automaticamente las cuentas de nomina mas
+    // abajo, para no duplicar lo que una plantilla especifica ya trae
+    // con nombres propios.
+    const usedSpecificTemplate = !!(templateAccounts && templateAccounts.length > 0);
+
     if (!templateAccounts || templateAccounts.length === 0) {
       const { data: universalTemplate } = await supabase
         .from("chart_of_accounts")
@@ -253,9 +262,67 @@ export default function NewCompanyPage() {
       setLoading(false);
       return;
     }
-    setMessage("Empresa creada correctamente con " + installedCount + " cuentas instaladas.");
+
+    // Cuentas de nomina especificas de la jurisdiccion (IMSS/INFONAVIT,
+    // CPP/EI, FICA/FUTA, etc.) -- solo si NO se uso una plantilla
+    // especifica del pais (esa ya trae sus propias cuentas curadas a
+    // mano). Sin esto, el selector de cuentas de Nomina no tiene nada
+    // que sugerir para la carga patronal de este pais y el contador
+    // tiene que crear cada cuenta manualmente, empresa por empresa --
+    // justo lo que esto evita.
+    let payrollAccountsInstalled = 0;
+    if (!usedSpecificTemplate) {
+      payrollAccountsInstalled = await installJurisdictionPayrollAccounts(company.id, country);
+    }
+
+    setMessage(
+      "Empresa creada correctamente con " + installedCount + " cuentas instaladas" +
+        (payrollAccountsInstalled > 0 ? " (incluye " + payrollAccountsInstalled + " cuentas de nomina especificas de " + country + ")" : "") +
+        "."
+    );
     setLoading(false);
     setTimeout(() => router.push("/select-module"), 2000);
+  }
+
+  // Genera e instala las cuentas de gasto/pasivo de nomina
+  // correspondientes a la jurisdiccion de la empresa, derivadas de la
+  // misma configuracion PAYROLL_CHARGES que ya usa Nomina (o del
+  // respaldo VE si todavia no se ha cargado ninguna para este pais en
+  // Admin -> Modulos por Jurisdiccion). Idempotente: si una cuenta con
+  // ese nombre ya existe en la empresa, no la duplica -- asi tambien
+  // sirve para "reparar" una empresa existente sin arriesgar cuentas
+  // repetidas si se vuelve a correr.
+  async function installJurisdictionPayrollAccounts(companyId: string, jurisdictionCode: string): Promise<number> {
+    const config = (await fetchPayrollChargesConfig(supabase, jurisdictionCode)) ?? VE_DEFAULT_PAYROLL_CHARGES;
+    const plan = buildPayrollAccountPlan(config);
+    if (plan.length === 0) return 0;
+
+    const { data: existing } = await supabase
+      .from("chart_of_accounts")
+      .select("account_name")
+      .eq("company_id", companyId);
+    const existingNames = new Set((existing ?? []).map((a: any) => a.account_name));
+
+    const rows: any[] = [];
+    plan.forEach((entry, idx) => {
+      if (!existingNames.has(entry.expenseName)) {
+        rows.push({ company_id: companyId, account_code: "PR-" + (idx * 2 + 1).toString().padStart(3, "0"), account_name: entry.expenseName, account_type: "EXPENSE", monetary_type: "MONETARY" });
+      }
+      if (!existingNames.has(entry.payableName)) {
+        rows.push({ company_id: companyId, account_code: "PR-" + (idx * 2 + 2).toString().padStart(3, "0"), account_name: entry.payableName, account_type: "LIABILITY", monetary_type: "MONETARY" });
+      }
+    });
+    if (rows.length === 0) return 0;
+
+    const { data: inserted, error } = await supabase.from("chart_of_accounts").insert(rows).select("id");
+    if (error) {
+      // No bloquea la creacion de la empresa -- ya tiene su plan de
+      // cuentas base instalado. El contador puede seguir creando estas
+      // cuentas de nomina a mano si esto falla por algun motivo.
+      console.error("[PAYROLL ACCOUNTS AUTO-INSTALL ERROR]", error.message);
+      return 0;
+    }
+    return inserted?.length ?? 0;
   }
 
   const inputStyle = { background: "#0d1117", border: "1px solid #1a3050", borderRadius: 8, padding: 10, color: "white", width: "100%" };
