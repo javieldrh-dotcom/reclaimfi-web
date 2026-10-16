@@ -16,7 +16,7 @@ import { supabase } from "@/app/lib/supabase";
 // porcentajes de FSCL, employee_pct/employer_pct de nomina, y los que se
 // agreguen despues) -- un editor generico es mas sostenible que un
 // formulario distinto por cada modulo.
-const KNOWN_MODULE_KEYS = ["INCOME_TAX", "LABOR_COST_FORMULA", "PAYROLL_CHARGES"];
+const KNOWN_MODULE_KEYS = ["INCOME_TAX", "LABOR_COST_FORMULA", "PAYROLL_CHARGES", "SALES_TAX"];
 
 const EXAMPLE_CONFIG: Record<string, string> = {
   INCOME_TAX: JSON.stringify({
@@ -37,6 +37,16 @@ const EXAMPLE_CONFIG: Record<string, string> = {
     name: "Ejemplo: Cargas de Nomina",
     employee_pct: { seguro_social_empleado: 4 },
     employer_pct: { seguro_social_patronal: 9, otro_cargo_patronal: 2 },
+  }, null, 2),
+  // model: "VAT_CREDIT" (IVA con credito/debito fiscal, como VE y la
+  // mayoria de LatAm) o "FLAT_SALES_TAX" (impuesto de venta de una sola
+  // etapa sin credito fiscal, como los sales tax estadales de EEUU).
+  // form_label se muestra como subtitulo en Resumen de IVA/Sales Tax.
+  SALES_TAX: JSON.stringify({
+    name: "Ejemplo: Impuesto sobre Ventas",
+    model: "FLAT_SALES_TAX",
+    rate_pct: 7,
+    form_label: "Resumen informativo de impuesto de ventas (verificar formulario oficial del estado)",
   }, null, 2),
 };
 
@@ -80,7 +90,7 @@ export default function JurisdictionModulesAdminPage() {
   }
 
   function startEdit(row: any) {
-    setEditingId(row.id);
+    setEditingId(row.jurisdiction_code + ":" + row.module_key);
     setJurisdictionCode(row.jurisdiction_code);
     if (KNOWN_MODULE_KEYS.includes(row.module_key)) {
       setModuleKey(row.module_key);
@@ -117,15 +127,18 @@ export default function JurisdictionModulesAdminPage() {
     }
 
     setSaving(true);
-    const { error } = await supabase
-      .from("jurisdiction_modules")
-      .upsert(
-        { jurisdiction_code: effectiveJurisdictionCode, module_key: effectiveModuleKey, config: parsedConfig, enabled },
-        { onConflict: "jurisdiction_code,module_key" }
-      );
+    // La escritura pasa por esta ruta (service_role, gateada al propietario)
+    // porque jurisdiction_modules a proposito no tiene politica de RLS de
+    // escritura -- ver app/api/admin/jurisdiction-modules/route.ts.
+    const res = await fetch("/api/admin/jurisdiction-modules", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jurisdiction_code: effectiveJurisdictionCode, module_key: effectiveModuleKey, config: parsedConfig, enabled }),
+    });
+    const data = await res.json().catch(() => ({ success: false, error: "Respuesta invalida del servidor." }));
 
-    if (error) {
-      setMessage("Error al guardar: " + error.message);
+    if (!data.success) {
+      setMessage("Error al guardar: " + (data.error || "desconocido"));
     } else {
       setMessage((editingId ? "Modulo actualizado" : "Modulo creado") + " correctamente para " + effectiveJurisdictionCode + " / " + effectiveModuleKey + ".");
       resetForm();
@@ -135,13 +148,20 @@ export default function JurisdictionModulesAdminPage() {
   }
 
   async function handleToggleEnabled(row: any) {
-    await supabase.from("jurisdiction_modules").update({ enabled: !row.enabled }).eq("id", row.id);
+    await fetch("/api/admin/jurisdiction-modules", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jurisdiction_code: row.jurisdiction_code, module_key: row.module_key, enabled: !row.enabled }),
+    });
     await loadRows();
   }
 
   async function handleDelete(row: any) {
     if (!window.confirm("Eliminar " + row.jurisdiction_code + " / " + row.module_key + "? Las empresas de esa jurisdiccion pasaran a usar el respaldo (VE) hasta que se cargue otra fila.")) return;
-    await supabase.from("jurisdiction_modules").delete().eq("id", row.id);
+    await fetch(
+      "/api/admin/jurisdiction-modules?jurisdiction_code=" + encodeURIComponent(row.jurisdiction_code) + "&module_key=" + encodeURIComponent(row.module_key),
+      { method: "DELETE" }
+    );
     await loadRows();
   }
 
@@ -210,7 +230,7 @@ export default function JurisdictionModulesAdminPage() {
       <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 10, maxWidth: 900 }}>
         {rows.length === 0 && <p style={{ color: "#8FA3C4" }}>Sin modulos cargados todavia.</p>}
         {rows.map((r) => (
-          <div key={r.id} style={{ padding: 18, background: "#12213B", borderRadius: 12, border: "1px solid " + (r.enabled === false ? "#F8717160" : "#1E3A5F"), display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
+          <div key={r.jurisdiction_code + ":" + r.module_key} style={{ padding: 18, background: "#12213B", borderRadius: 12, border: "1px solid " + (r.enabled === false ? "#F8717160" : "#1E3A5F"), display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
             <div>
               <p style={{ fontWeight: 700 }}>
                 {r.jurisdiction_code} <span style={{ color: "#8FA3C4", fontWeight: 400 }}>/ {r.module_key}</span>

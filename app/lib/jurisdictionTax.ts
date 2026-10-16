@@ -41,6 +41,23 @@ export interface PayrollChargesConfig {
   [key: string]: unknown;
 }
 
+// "VAT_CREDIT": impuesto al valor agregado con credito/debito fiscal
+// (VE y la mayoria de LatAm) -- app/accounting/vat-summary/page.tsx NO
+// cambia su calculo de casillas para este modelo (ya es correcto y es
+// el unico usado hoy), solo lee form_label/name de aqui para mostrar un
+// titulo distinto por jurisdiccion si se carga una fila non-VE con este
+// modelo.
+// "FLAT_SALES_TAX": impuesto de venta de una sola etapa, sin credito
+// fiscal (ej. sales tax estadal en EEUU) -- usa un resumen distinto
+// (ventas gravables x tasa = impuesto recaudado), ver calculateFlatSalesTax.
+export interface SalesTaxConfig {
+  name: string;
+  model: "VAT_CREDIT" | "FLAT_SALES_TAX";
+  rate_pct?: number;
+  form_label?: string;
+  [key: string]: unknown;
+}
+
 const FALLBACK_JURISDICTION = "VE";
 
 export async function fetchIncomeTaxConfig(
@@ -86,6 +103,21 @@ export async function fetchPayrollChargesConfig(
     .eq("enabled", true)
     .maybeSingle();
   return (data?.config as PayrollChargesConfig) ?? null;
+}
+
+export async function fetchSalesTaxConfig(
+  supabase: any,
+  jurisdictionCode: string | null | undefined
+): Promise<SalesTaxConfig> {
+  const code = jurisdictionCode || FALLBACK_JURISDICTION;
+  const { data } = await supabase
+    .from("jurisdiction_modules")
+    .select("config")
+    .eq("jurisdiction_code", code)
+    .eq("module_key", "SALES_TAX")
+    .eq("enabled", true)
+    .maybeSingle();
+  return (data?.config as SalesTaxConfig) ?? VE_DEFAULT_SALES_TAX;
 }
 
 // Formula progresiva por tramos, generica. Reemplaza calculateTarifa2()
@@ -211,6 +243,38 @@ export const VE_DEFAULT_PAYROLL_CHARGES: PayrollChargesConfig = {
 // app/accounting/payroll/page.tsx llama esto en vez de leer
 // employer_pct directo, para que la regla viva en el dato
 // (jurisdiction_modules), no en el codigo de la pantalla.
+// Respaldo de IVA Venezuela: model VAT_CREDIT (credito/debito fiscal
+// SENIAT), lo que ya hace vat-summary/page.tsx hoy sin ningun cambio de
+// comportamiento. form_label reproduce el subtitulo que ya se muestra
+// hardcodeado en esa pantalla.
+export const VE_DEFAULT_SALES_TAX: SalesTaxConfig = {
+  name: "IVA Venezuela (SENIAT)",
+  model: "VAT_CREDIT",
+  rate_pct: 16,
+  form_label: "Forma IVA 99030 - Casillas oficiales SENIAT",
+};
+
+// Resumen de impuesto de venta de una sola etapa (sin credito fiscal):
+// el impuesto recaudado en ventas gravables ES el impuesto a remitir,
+// sin restar ningun "credito" por compras (a diferencia de VAT_CREDIT).
+// No reemplaza el formulario oficial de ningun estado/pais -- es un
+// resumen informativo para que el contador verifique contra el
+// formulario real antes de declarar (igual espiritu que el boton
+// "verificar consistencia" del modelo VAT_CREDIT).
+export function calculateFlatSalesTax(
+  taxableSales: number,
+  exemptSales: number,
+  taxCollected: number
+): { taxableSales: number; exemptSales: number; totalSales: number; taxCollected: number; taxDue: number } {
+  return {
+    taxableSales,
+    exemptSales,
+    totalSales: taxableSales + exemptSales,
+    taxCollected,
+    taxDue: taxCollected,
+  };
+}
+
 export function filterEmployerChargesByHeadcount(
   config: PayrollChargesConfig,
   activeEmployeeCount: number
