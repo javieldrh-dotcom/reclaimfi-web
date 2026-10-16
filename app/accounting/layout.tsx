@@ -7,6 +7,7 @@ const navItems = [
   {
     groupLabel: "CONTABILIDAD",
     items: [
+      { href: "/accounting/chart-of-accounts", label: "Plan de Cuentas" },
       { href: "/accounting/journal", label: "Libro Diario" },
       { href: "/accounting/general-ledger", label: "Libro Mayor" },
       { href: "/accounting/inventory", label: "Inventario de Mercancia" },
