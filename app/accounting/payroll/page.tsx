@@ -57,6 +57,23 @@ export default function PayrollPage() {
   const [patronalPayableAccounts, setPatronalPayableAccounts] = useState<Record<string, string>>({});
   const [processing, setProcessing] = useState(false);
 
+  // Ajustes opcionales por empleado para esta corrida especifica (horas
+  // extra, dias feriados/descanso trabajados, dias de falta, ISLR). Antes
+  // la nomina solo calculaba dias_trabajados x salario_diario para todos
+  // los empleados por igual -- Javiel pidio que el recibo pueda reflejar
+  // estos conceptos como es uso cotidiano en Venezuela. Se guardan por
+  // employee_id, vacios por defecto (0), y se reinician despues de cada
+  // corrida procesada.
+  type EmployeeAdjustment = { hed: string; hen: string; fd: string; falta: string; islr: string };
+  const [employeeAdjustments, setEmployeeAdjustments] = useState<Record<string, EmployeeAdjustment>>({});
+  const EMPTY_ADJ: EmployeeAdjustment = { hed: "", hen: "", fd: "", falta: "", islr: "" };
+  function getAdj(empId: string): EmployeeAdjustment {
+    return employeeAdjustments[empId] || EMPTY_ADJ;
+  }
+  function setAdjField(empId: string, field: keyof EmployeeAdjustment, value: string) {
+    setEmployeeAdjustments((prev) => ({ ...prev, [empId]: { ...getAdj(empId), [field]: value } }));
+  }
+
   const activeCharges = payrollChargesConfig ?? VE_DEFAULT_PAYROLL_CHARGES;
   const employerChargeKeys = Object.keys(activeCharges.employer_pct || {});
   function chargeLabel(key: string) {
@@ -208,13 +225,20 @@ export default function PayrollPage() {
       periodStart: run.period_start,
       periodEnd: run.period_end,
       daysWorked: detail.days_worked,
-      grossAmount: detail.gross_amount,
+      // Para el renglon "001 Salario Basico", se usa SOLO el salario base
+      // (dias x salario diario), no el bruto total con horas extra ya
+      // sumadas -- esas se muestran en sus propios renglones. En corridas
+      // anteriores a extra_concepts, no hay forma de separar uno de otro,
+      // asi que cae de vuelta al bruto completo tal cual se guardo.
+      grossAmount: detail.extra_concepts?.base_salary_amount ?? detail.gross_amount,
       socialSecurity: detail.social_security || 0,
       // Solo existe en corridas procesadas despues de este cambio --
       // payroll_details lo persiste tal cual se calculo al momento de
       // pagar. Recibos de corridas anteriores no lo tienen (columna
       // null) y el PDF cae de vuelta al monto agregado unico.
       employeeDeductionsBreakdown: detail.employee_deductions_breakdown || undefined,
+      extraConcepts: detail.extra_concepts || undefined,
+      islrAmount: detail.islr_amount || 0,
       otherDeductions: detail.other_deductions || 0,
       netAmount: detail.net_amount,
       patronalAmount: detail.patronal_amount || 0,
@@ -268,7 +292,33 @@ export default function PayrollPage() {
 
     const details = employees.map((emp) => {
       const fxRate = parseFloat(payrollExchangeRate) || 1;
-      const gross = emp.daily_salary * daysInPeriod * fxRate;
+
+      // Ajustes opcionales de esta corrida para este empleado. Formulas
+      // segun LOTTT Venezuela (revisar con criterio profesional si tu
+      // actividad/convencion colectiva usa otro recargo):
+      // - Hora extra diurna: recargo 50% sobre la hora normal (Art. 118).
+      // - Hora extra nocturna: recargo 50% + bono nocturno 30% (x1.95).
+      // - Dia feriado/descanso trabajado: paga doble el dia (el que ya
+      //   se remunera + el dia trabajado), Art. 119 -> x2 salario diario.
+      // - Dia de falta: se descuenta el salario completo de ese dia.
+      // - ISLR: monto de retencion se ingresa manualmente (la tabla de
+      //   ISLR por tramos/desgravamenes no se calcula automaticamente).
+      const a = getAdj(emp.id);
+      const horasExtraDiurnas = parseFloat(a.hed) || 0;
+      const horasExtraNocturnas = parseFloat(a.hen) || 0;
+      const diasFeriadosDescanso = parseFloat(a.fd) || 0;
+      const diasFalta = parseFloat(a.falta) || 0;
+      const islrAmount = parseFloat(a.islr) || 0;
+
+      const baseSalaryAmount = emp.daily_salary * daysInPeriod * fxRate;
+      const horaNormal = (emp.daily_salary * fxRate) / 8;
+      const extraDiurnaMonto = horasExtraDiurnas * horaNormal * 1.5;
+      const extraNocturnaMonto = horasExtraNocturnas * horaNormal * 1.5 * 1.3;
+      const feriadoDescansoMonto = diasFeriadosDescanso * emp.daily_salary * fxRate * 2;
+      const faltasMonto = diasFalta * emp.daily_salary * fxRate;
+
+      const gross = baseSalaryAmount + extraDiurnaMonto + extraNocturnaMonto + feriadoDescansoMonto - faltasMonto;
+
       // employeeCharges guarda el desglose por clave (ivss_empleado,
       // lph_empleado, paro_forzoso_empleado...) tal como se calculo en
       // este momento con las tasas vigentes de employee_pct -- se
@@ -276,16 +326,38 @@ export default function PayrollPage() {
       // mostrar cada retencion por separado (uso cotidiano en Venezuela)
       // sin tener que recalcular despues con tasas que pudieron cambiar.
       const { charges: employeeCharges, subTotalTerceros: socialSecurity } = applyThirdPartyCharges(gross, charges.employee_pct);
-      const net = gross - socialSecurity;
+      const net = gross - socialSecurity - islrAmount;
       const { charges: patronalCharges, subTotalTerceros: patronal } = applyThirdPartyCharges(gross, employerPctApplicable);
       for (const [key, amount] of Object.entries(patronalCharges)) {
         patronalByKey[key] = (patronalByKey[key] || 0) + amount;
       }
-      return { employee_id: emp.id, apu_project_id: emp.apu_project_id ?? null, days_worked: daysInPeriod, gross_amount: gross, social_security: socialSecurity, employee_deductions_breakdown: employeeCharges, other_deductions: 0, net_amount: net, patronal_amount: patronal };
+      return {
+        employee_id: emp.id,
+        apu_project_id: emp.apu_project_id ?? null,
+        days_worked: daysInPeriod,
+        gross_amount: gross,
+        social_security: socialSecurity,
+        employee_deductions_breakdown: employeeCharges,
+        islr_amount: islrAmount,
+        extra_concepts: {
+          base_salary_amount: baseSalaryAmount,
+          horas_extra_diurnas_horas: horasExtraDiurnas,
+          horas_extra_diurnas_monto: extraDiurnaMonto,
+          horas_extra_nocturnas_horas: horasExtraNocturnas,
+          horas_extra_nocturnas_monto: extraNocturnaMonto,
+          feriados_descanso_dias: diasFeriadosDescanso,
+          feriados_descanso_monto: feriadoDescansoMonto,
+          faltas_dias: diasFalta,
+          faltas_monto: faltasMonto,
+        },
+        other_deductions: 0,
+        net_amount: net,
+        patronal_amount: patronal,
+      };
     });
 
     const totalGross = details.reduce((s, d) => s + d.gross_amount, 0);
-    const totalDeductions = details.reduce((s, d) => s + d.social_security, 0);
+    const totalDeductions = details.reduce((s, d) => s + d.social_security + d.islr_amount, 0);
     const totalNet = details.reduce((s, d) => s + d.net_amount, 0);
     const totalPatronal = details.reduce((s, d) => s + d.patronal_amount, 0);
 
@@ -329,10 +401,24 @@ export default function PayrollPage() {
     }]).select("id").single();
     if (runError || !run) { setMessage("Error al guardar nomina: " + runError?.message); setProcessing(false); return; }
 
-    await supabase.from("payroll_details").insert(details.map((d) => ({ employee_id: d.employee_id, apu_project_id: d.apu_project_id, days_worked: d.days_worked, gross_amount: d.gross_amount, social_security: d.social_security, employee_deductions_breakdown: d.employee_deductions_breakdown, other_deductions: d.other_deductions, net_amount: d.net_amount, patronal_amount: d.patronal_amount, payroll_run_id: run.id })));
+    await supabase.from("payroll_details").insert(details.map((d) => ({
+      employee_id: d.employee_id,
+      apu_project_id: d.apu_project_id,
+      days_worked: d.days_worked,
+      gross_amount: d.gross_amount,
+      social_security: d.social_security,
+      employee_deductions_breakdown: d.employee_deductions_breakdown,
+      islr_amount: d.islr_amount,
+      extra_concepts: d.extra_concepts,
+      other_deductions: d.other_deductions,
+      net_amount: d.net_amount,
+      patronal_amount: d.patronal_amount,
+      payroll_run_id: run.id,
+    })));
 
     setMessage("Nomina procesada (Nº" + nextEntryNumber + "). Total Neto: " + totalNet.toLocaleString(undefined, { maximumFractionDigits: 2 }) + ". Obligaciones Patronales: " + totalPatronal.toLocaleString(undefined, { maximumFractionDigits: 2 }) + ". Asiento balanceado generado correctamente.");
     setProcessing(false);
+    setEmployeeAdjustments({});
     await loadRuns(companyId);
   }
 
@@ -388,6 +474,45 @@ export default function PayrollPage() {
           Cada selector solo muestra cuentas cuyo nombre coincide con el rubro. Si no ves la cuenta que buscas, puede que este nombrada distinto en tu plan de cuentas -- en ese caso se muestran todas las cuentas de ese tipo para que la encuentres igual.
         </p>
       </div>
+
+      {employees.length > 0 && (
+        <div style={{ ...theme.cardStyle, marginBottom: 20 }}>
+          <h3 style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginBottom: 6 }}>Ajustes por Empleado (opcional, para esta corrida)</h3>
+          <p style={{ fontSize: 12, color: "#8B93A7", marginBottom: 10 }}>
+            Deja en blanco lo que no aplique. Horas extra y feriados/descanso trabajados se SUMAN al sueldo basico; faltas e ISLR se RESTAN del neto. Formulas segun LOTTT Venezuela (recargo 50% hora extra diurna, 50%+30% nocturna, dia feriado/descanso trabajado paga doble) -- revisalas con tu criterio profesional si tu convencion colectiva usa otro recargo.
+          </p>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 760 }}>
+              <thead>
+                <tr style={{ textAlign: "left", color: theme.accent, fontSize: 12, fontWeight: 700 }}>
+                  <th style={{ padding: "4px 6px" }}>Empleado</th>
+                  <th style={{ padding: "4px 6px", width: 100 }}>Horas Extra Diurnas</th>
+                  <th style={{ padding: "4px 6px", width: 100 }}>Horas Extra Nocturnas</th>
+                  <th style={{ padding: "4px 6px", width: 110 }}>Dias Feriados/Descanso Trabajados</th>
+                  <th style={{ padding: "4px 6px", width: 90 }}>Dias de Falta</th>
+                  <th style={{ padding: "4px 6px", width: 100 }}>ISLR (monto)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {employees.map((emp) => {
+                  const a = getAdj(emp.id);
+                  const smallNumInput = { ...theme.inputStyle, fontSize: 13, padding: "4px 8px", width: "100%" };
+                  return (
+                    <tr key={emp.id} style={{ borderBottom: "1px solid #1F2937" }}>
+                      <td style={{ padding: "4px 6px", fontSize: 13 }}>{emp.full_name}</td>
+                      <td style={{ padding: "4px 6px" }}><input type="number" min="0" step="0.5" value={a.hed} onChange={(e) => setAdjField(emp.id, "hed", e.target.value)} style={smallNumInput} placeholder="0" /></td>
+                      <td style={{ padding: "4px 6px" }}><input type="number" min="0" step="0.5" value={a.hen} onChange={(e) => setAdjField(emp.id, "hen", e.target.value)} style={smallNumInput} placeholder="0" /></td>
+                      <td style={{ padding: "4px 6px" }}><input type="number" min="0" step="1" value={a.fd} onChange={(e) => setAdjField(emp.id, "fd", e.target.value)} style={smallNumInput} placeholder="0" /></td>
+                      <td style={{ padding: "4px 6px" }}><input type="number" min="0" step="1" value={a.falta} onChange={(e) => setAdjField(emp.id, "falta", e.target.value)} style={smallNumInput} placeholder="0" /></td>
+                      <td style={{ padding: "4px 6px" }}><input type="number" min="0" step="0.01" value={a.islr} onChange={(e) => setAdjField(emp.id, "islr", e.target.value)} style={smallNumInput} placeholder="0" /></td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
         <div style={theme.cardStyle}>
