@@ -305,16 +305,16 @@ export const VE_DEFAULT_PAYROLL_CHARGES: PayrollChargesConfig = {
 // Javiel (como CPA) debe verificar contra fuente legal vigente antes de
 // activarlas para una empresa real, exactamente igual que el supuesto
 // documentado arriba para VE (riesgo IVSS Minimo/Medio/Maximo). Cubren,
-// a modo de muestra por region, un pais con informacion fiscal/laboral
-// razonablemente estable y publica: Norteamerica (EEUU), Centroamerica
-// (Costa Rica), Suramerica (Colombia), el Caribe (Rep. Dominicana),
-// Europa (Espana), Africa (Sudafrica), Asia mayor (India), Asia menor /
-// Medio Oriente (Turquia), Oceania (Australia). No es una lista
-// exhaustiva de los ~190 paises del mundo -- cada tasa cambia con
-// frecuencia y con la ley local vigente, asi que inventar cifras para
-// todos los paises sin fuente verificada seria irresponsable. El patron
-// para agregar cualquier otro pais es el mismo: una fila en
-// jurisdiction_modules con esta forma, cargada desde
+// a modo de muestra por region, uno o mas paises con informacion
+// fiscal/laboral razonablemente estable y publica: Norteamerica (EEUU,
+// Canada, Mexico), Centroamerica (Costa Rica), Suramerica (Colombia), el
+// Caribe (Rep. Dominicana), Europa (Espana), Africa (Sudafrica), Asia
+// mayor (India), Asia menor / Medio Oriente (Turquia), Oceania
+// (Australia). No es una lista exhaustiva de los ~190 paises del mundo
+// -- cada tasa cambia con frecuencia y con la ley local vigente, asi que
+// inventar cifras para todos los paises sin fuente verificada seria
+// irresponsable. El patron para agregar cualquier otro pais es el
+// mismo: una fila en jurisdiction_modules con esta forma, cargada desde
 // /admin/jurisdiction-modules.
 export const PAYROLL_CHARGES_REFERENCE_EXAMPLES: Record<string, PayrollChargesConfig> = {
   US: {
@@ -334,6 +334,61 @@ export const PAYROLL_CHARGES_REFERENCE_EXAMPLES: Record<string, PayrollChargesCo
       deduction_codes: {
         social_security_empleado: { code: "SS", label: "Social Security (FICA)" },
         medicare_empleado: { code: "MED", label: "Medicare (FICA)" },
+      },
+    },
+  },
+  CA: {
+    // CPP/EI son tasas federales base (primer tramo de CPP, sin CPP2
+    // para ingresos altos). El impuesto a la renta combina retencion
+    // federal + provincial, que varia por provincia -- aqui se deja como
+    // un solo concepto generico "income_tax", no desglosado por
+    // provincia. Horas extra: la regla general federal es 1.5x despues
+    // de 44h/semana, pero cada provincia tiene su propio umbral.
+    name: "Payroll Deductions Canada (CPP/EI federal -- verificar provincia, que agrega impuesto propio)",
+    employee_pct: { cpp_empleado: 5.95, ei_empleado: 1.66 },
+    employer_pct: { cpp_patronal: 5.95, ei_patronal: 2.32 },
+    overtime_rules: { extra_diurna_multiplier: 1.5, extra_nocturna_multiplier: 1.5, feriado_descanso_multiplier: 1.5 },
+    labels: {
+      id_document: "SIN",
+      concepts: {
+        base_salary: { code: "REG", label: "Regular Earnings" },
+        overtime_day: { code: "OT", label: "Overtime (1.5x)" },
+        holiday_worked: { code: "STAT", label: "Statutory Holiday Pay" },
+        absence: { code: "UNP", label: "Unpaid Leave" },
+        income_tax: { code: "TAX", label: "Federal/Provincial Income Tax Withholding" },
+      },
+      deduction_codes: {
+        cpp_empleado: { code: "CPP", label: "Canada Pension Plan (CPP)" },
+        ei_empleado: { code: "EI", label: "Employment Insurance (EI)" },
+      },
+    },
+  },
+  MX: {
+    // El IMSS se compone de varias ramas (enfermedad y maternidad,
+    // invalidez y vida, retiro-cesantia-vejez, guarderias, riesgo de
+    // trabajo) cuyo porcentaje combinado varia segun el salario base de
+    // cotizacion y la clase de riesgo de la empresa -- las cifras aqui
+    // son un aproximado comun citado para riesgo bajo, NO una tabla
+    // completa por rama. INFONAVIT (vivienda) es 5% patronal aparte.
+    // Horas extra (LFT): las primeras 9 horas extra por semana se pagan
+    // al doble, el exceso al triple -- este modelo solo soporta UN
+    // multiplicador por tipo, asi que overtime_rules usa 2x (el tramo
+    // mas comun); el tramo triple no esta modelado todavia.
+    name: "Cuotas IMSS/INFONAVIT Mexico (aproximado, riesgo bajo -- verificar clase de riesgo y salario base de cotizacion)",
+    employee_pct: { imss_empleado: 2.375 },
+    employer_pct: { imss_patronal: 20.4, infonavit: 5 },
+    overtime_rules: { extra_diurna_multiplier: 2, extra_nocturna_multiplier: 2, feriado_descanso_multiplier: 2 },
+    labels: {
+      id_document: "CURP",
+      concepts: {
+        base_salary: { code: "001", label: "Sueldo Base" },
+        overtime_day: { code: "019", label: "Horas Extra Dobles" },
+        holiday_worked: { code: "020", label: "Dias de Descanso Trabajados" },
+        absence: { code: "-", label: "Faltas" },
+        income_tax: { code: "002", label: "ISR (Impuesto Sobre la Renta)" },
+      },
+      deduction_codes: {
+        imss_empleado: { code: "-", label: "Instituto Mexicano del Seguro Social (IMSS)" },
       },
     },
   },
