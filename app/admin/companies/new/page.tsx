@@ -1,5 +1,5 @@
 ﻿"use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/app/lib/supabase";
 
@@ -82,6 +82,39 @@ export default function NewCompanyPage() {
   const [sector, setSector] = useState("GENERIC");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+
+  // Antes de crear, avisa si YA existe una plantilla de plan de cuentas
+  // especifica de este pais para este sector, o si va a caer en la
+  // plantilla universal (estilo Venezuela) -- asi el contador lo sabe
+  // ANTES de crear la empresa, en vez de descubrirlo despues viendo
+  // cuentas que no le corresponden (como paso con Tempano/Mexico).
+  const [templateStatus, setTemplateStatus] = useState<"checking" | "specific" | "universal">("checking");
+  const [payrollStatus, setPayrollStatus] = useState<"checking" | "configured" | "fallback">("checking");
+  useEffect(() => {
+    let cancelled = false;
+    setTemplateStatus("checking");
+    setPayrollStatus("checking");
+    (async () => {
+      const [{ count: coaCount }, { count: payrollCount }] = await Promise.all([
+        supabase
+          .from("chart_of_accounts")
+          .select("id", { count: "exact", head: true })
+          .is("company_id", null)
+          .eq("industry_sector", sector)
+          .eq("template_jurisdiction_code", country),
+        supabase
+          .from("jurisdiction_modules")
+          .select("jurisdiction_code", { count: "exact", head: true })
+          .eq("jurisdiction_code", country)
+          .eq("module_key", "PAYROLL_CHARGES")
+          .eq("enabled", true),
+      ]);
+      if (cancelled) return;
+      setTemplateStatus(coaCount && coaCount > 0 ? "specific" : "universal");
+      setPayrollStatus(payrollCount && payrollCount > 0 ? "configured" : "fallback");
+    })();
+    return () => { cancelled = true; };
+  }, [country, sector]);
 
   async function createCompany() {
     setLoading(true);
@@ -246,6 +279,16 @@ export default function NewCompanyPage() {
           <select value={country} onChange={(e) => setCountry(e.target.value)} style={{ ...inputStyle, marginTop: 6 }}>
             {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
           </select>
+          {payrollStatus === "configured" && (
+            <p style={{ fontSize: 12, color: "#4ade80", marginTop: 6, fontWeight: 600 }}>
+              ✓ Nomina configurada para {country}.
+            </p>
+          )}
+          {payrollStatus === "fallback" && (
+            <p style={{ fontSize: 12, color: "#fbbf24", marginTop: 6, fontWeight: 600 }}>
+              ⚠ No hay configuracion de Nomina cargada para {country} todavia. La Nomina de esta empresa usara las tasas de Venezuela como respaldo hasta que se cargue una en Admin → Modulos por Jurisdiccion.
+            </p>
+          )}
         </div>
 
         <div>
@@ -256,6 +299,16 @@ export default function NewCompanyPage() {
           <p style={{ fontSize: 11, color: "#9ca3af", marginTop: 4 }}>
             El sistema instalara automaticamente el plan de cuentas correspondiente a este sector.
           </p>
+          {templateStatus === "specific" && (
+            <p style={{ fontSize: 12, color: "#4ade80", marginTop: 6, fontWeight: 600 }}>
+              ✓ Hay una plantilla de plan de cuentas especifica para {sector} + {country}.
+            </p>
+          )}
+          {templateStatus === "universal" && (
+            <p style={{ fontSize: 12, color: "#fbbf24", marginTop: 6, fontWeight: 600 }}>
+              ⚠ No hay plantilla especifica para {sector} + {country} todavia. Se instalara el plan de cuentas universal (nombres genericos/estilo Venezuela) -- puedes crear la empresa igual y pedir despues una plantilla propia de este pais si hace falta.
+            </p>
+          )}
         </div>
 
         <button
