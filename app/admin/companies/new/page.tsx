@@ -102,25 +102,23 @@ export default function NewCompanyPage() {
       return;
     }
 
-    const { data: templateAccounts } = await supabase
-      .from("chart_of_accounts")
-      .select("account_code, account_name, account_type, monetary_type, parent_account_id")
-      .is("company_id", null)
-      .eq("industry_sector", sector);
-
-    if (templateAccounts && templateAccounts.length > 0) {
-      const accountsToInsert = templateAccounts.map((a: any) => ({
-        account_code: a.account_code,
-        account_name: a.account_name,
-        account_type: a.account_type,
-        monetary_type: a.monetary_type,
-        company_id: company.id,
-        parent_account_id: a.parent_account_id,
-      }));
-      await supabase.from("chart_of_accounts").insert(accountsToInsert);
+    // CRITICO: hay que registrar al usuario como miembro (user_companies) y
+    // asignarle el rol ADMIN de esta empresa ANTES de insertar el plan de
+    // cuentas -- la politica RLS de insercion en chart_of_accounts exige
+    // is_company_member(company_id) AND rol ADMIN/CONTADOR. Si se insertan
+    // las cuentas primero (como estaba antes), la RLS las bloquea en
+    // silencio (0 filas insertadas, sin lanzar error visible aqui) y el
+    // mensaje de "exito" terminaba mostrando la cantidad de PLANTILLAS
+    // encontradas, no la cantidad realmente copiada -- la empresa quedaba
+    // sin ninguna cuenta aunque el mensaje dijera lo contrario.
+    const { error: membershipError } = await supabase
+      .from("user_companies")
+      .insert([{ user_id: userData.user.id, company_id: company.id, last_active_at: new Date().toISOString() }]);
+    if (membershipError) {
+      setMessage("Empresa creada pero no se pudo asociar tu usuario: " + membershipError.message + ". No instales el plan de cuentas todavia, contacta soporte.");
+      setLoading(false);
+      return;
     }
-
-    await supabase.from("user_companies").insert([{ user_id: userData.user.id, company_id: company.id, last_active_at: new Date().toISOString() }]);
 
     const { data: adminRole } = await supabase.from("user_roles").select("id").eq("name", "ADMIN").single();
     if (adminRole) {
@@ -131,7 +129,55 @@ export default function NewCompanyPage() {
       }]);
     }
 
-    const installedCount = templateAccounts?.length ?? 0;
+    const { data: templateAccounts } = await supabase
+      .from("chart_of_accounts")
+      .select("id, account_code, account_name, account_type, monetary_type, parent_account_id")
+      .is("company_id", null)
+      .eq("industry_sector", sector);
+
+    let installedCount = 0;
+    if (templateAccounts && templateAccounts.length > 0) {
+      // parent_account_id de la plantilla apunta a OTRA fila plantilla
+      // (company_id null) -- no se puede copiar tal cual, hay que
+      // insertar primero sin jerarquia, mapear codigo -> nuevo id, y
+      // luego reconstruir la jerarquia dentro de la empresa nueva.
+      const accountsToInsert = templateAccounts.map((a: any) => ({
+        account_code: a.account_code,
+        account_name: a.account_name,
+        account_type: a.account_type,
+        monetary_type: a.monetary_type,
+        company_id: company.id,
+      }));
+      const { data: insertedAccounts, error: insertError } = await supabase
+        .from("chart_of_accounts")
+        .insert(accountsToInsert)
+        .select("id, account_code");
+
+      if (insertError) {
+        setMessage("ADVERTENCIA: La empresa se creo pero el plan de cuentas NO se pudo instalar (" + insertError.message + "). No debes registrar transacciones sin un plan de cuentas -- contacta soporte.");
+        setLoading(false);
+        return;
+      }
+
+      installedCount = insertedAccounts?.length ?? 0;
+
+      if (insertedAccounts && insertedAccounts.length > 0) {
+        const templateIdToCode = new Map(templateAccounts.map((a: any) => [a.id, a.account_code]));
+        const codeToNewId = new Map(insertedAccounts.map((a: any) => [a.account_code, a.id]));
+        const parentUpdates = templateAccounts
+          .filter((a: any) => a.parent_account_id && templateIdToCode.has(a.parent_account_id))
+          .map((a: any) => ({
+            id: codeToNewId.get(a.account_code),
+            parent_account_id: codeToNewId.get(templateIdToCode.get(a.parent_account_id) as string),
+          }))
+          .filter((u) => u.id && u.parent_account_id);
+
+        for (const u of parentUpdates) {
+          await supabase.from("chart_of_accounts").update({ parent_account_id: u.parent_account_id }).eq("id", u.id);
+        }
+      }
+    }
+
     if (installedCount === 0) {
       setMessage("ADVERTENCIA: La empresa se creo pero NO se instalo ninguna cuenta contable. Contacta soporte antes de usarla - no debes registrar transacciones sin un plan de cuentas.");
       setLoading(false);
