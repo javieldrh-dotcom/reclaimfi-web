@@ -162,8 +162,13 @@ export function generatePayslipPdf(data: PayslipData): jsPDF {
   label(leftX, ly, "DIAS TRABAJADOS");
   value(leftX, ly, String(data.daysWorked));
   if (data.dailySalary) {
-    label(rightX, ly, "SALARIO DIARIO");
-    value(rightX, ly, data.dailySalary.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " " + currency);
+    // employees.daily_salary siempre esta denominado en USD (es la tasa
+    // de referencia del empleado); la corrida se paga en la moneda que
+    // se haya elegido (USD o VES con tasa del dia), pero este renglon
+    // especifico SIEMPRE se expresa en USD sin importar esa moneda --
+    // por eso no usa la variable "currency" del resto del recibo.
+    label(rightX, ly, "SALARIO DIARIO (REFERENCIA)");
+    value(rightX, ly, data.dailySalary.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " USD");
   }
   y = boxTop + boxHeight + 10;
 

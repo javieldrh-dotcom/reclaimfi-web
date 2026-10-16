@@ -242,12 +242,12 @@ export default function PayrollPage() {
       otherDeductions: detail.other_deductions || 0,
       netAmount: detail.net_amount,
       patronalAmount: detail.patronal_amount || 0,
-      // payroll_runs no persiste la moneda/tasa usada en esa corrida
-      // (gap conocido, fuera de alcance de este cambio) -- se muestra
-      // USD como moneda funcional de la plataforma en vez del selector
-      // actual de la pantalla, que puede haber cambiado desde que esa
-      // corrida especifica se proceso.
-      currency: "USD",
+      // Moneda real con la que se proceso ESA corrida especifica (no la
+      // seleccionada ahora mismo en la pantalla, que pudo cambiar desde
+      // entonces). Corridas procesadas antes de que payroll_runs
+      // guardara esto caen de vuelta a USD, que era el comportamiento
+      // anterior.
+      currency: run.currency || "USD",
     });
     const fileName = "Recibo_" + (detail.employees?.full_name ?? "empleado").replace(/\s+/g, "_") + "_" + run.period_end + ".pdf";
     doc.save(fileName);
@@ -398,6 +398,12 @@ export default function PayrollPage() {
       total_net: totalNet,
       journal_entry_id: entry.id,
       status: "PAID",
+      // Antes no se guardaba -- el recibo de pago mostraba siempre "USD"
+      // sin importar en que moneda se proceso realmente la corrida
+      // (Javiel lo detecto: una corrida en VES con tasa BCV mostraba el
+      // sufijo "USD" en montos que en realidad eran Bolivares).
+      currency: payrollCurrency,
+      exchange_rate: parseFloat(payrollExchangeRate) || 1,
     }]).select("id").single();
     if (runError || !run) { setMessage("Error al guardar nomina: " + runError?.message); setProcessing(false); return; }
 
