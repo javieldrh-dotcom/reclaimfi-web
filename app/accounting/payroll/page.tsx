@@ -205,6 +205,11 @@ export default function PayrollPage() {
       daysWorked: detail.days_worked,
       grossAmount: detail.gross_amount,
       socialSecurity: detail.social_security || 0,
+      // Solo existe en corridas procesadas despues de este cambio --
+      // payroll_details lo persiste tal cual se calculo al momento de
+      // pagar. Recibos de corridas anteriores no lo tienen (columna
+      // null) y el PDF cae de vuelta al monto agregado unico.
+      employeeDeductionsBreakdown: detail.employee_deductions_breakdown || undefined,
       otherDeductions: detail.other_deductions || 0,
       netAmount: detail.net_amount,
       patronalAmount: detail.patronal_amount || 0,
@@ -259,13 +264,19 @@ export default function PayrollPage() {
     const details = employees.map((emp) => {
       const fxRate = parseFloat(payrollExchangeRate) || 1;
       const gross = emp.daily_salary * daysInPeriod * fxRate;
-      const { subTotalTerceros: socialSecurity } = applyThirdPartyCharges(gross, charges.employee_pct);
+      // employeeCharges guarda el desglose por clave (ivss_empleado,
+      // lph_empleado, paro_forzoso_empleado...) tal como se calculo en
+      // este momento con las tasas vigentes de employee_pct -- se
+      // persiste en payroll_details para que el recibo de pago pueda
+      // mostrar cada retencion por separado (uso cotidiano en Venezuela)
+      // sin tener que recalcular despues con tasas que pudieron cambiar.
+      const { charges: employeeCharges, subTotalTerceros: socialSecurity } = applyThirdPartyCharges(gross, charges.employee_pct);
       const net = gross - socialSecurity;
       const { charges: patronalCharges, subTotalTerceros: patronal } = applyThirdPartyCharges(gross, employerPctApplicable);
       for (const [key, amount] of Object.entries(patronalCharges)) {
         patronalByKey[key] = (patronalByKey[key] || 0) + amount;
       }
-      return { employee_id: emp.id, apu_project_id: emp.apu_project_id ?? null, days_worked: daysInPeriod, gross_amount: gross, social_security: socialSecurity, other_deductions: 0, net_amount: net, patronal_amount: patronal };
+      return { employee_id: emp.id, apu_project_id: emp.apu_project_id ?? null, days_worked: daysInPeriod, gross_amount: gross, social_security: socialSecurity, employee_deductions_breakdown: employeeCharges, other_deductions: 0, net_amount: net, patronal_amount: patronal };
     });
 
     const totalGross = details.reduce((s, d) => s + d.gross_amount, 0);
@@ -313,7 +324,7 @@ export default function PayrollPage() {
     }]).select("id").single();
     if (runError || !run) { setMessage("Error al guardar nomina: " + runError?.message); setProcessing(false); return; }
 
-    await supabase.from("payroll_details").insert(details.map((d) => ({ employee_id: d.employee_id, apu_project_id: d.apu_project_id, days_worked: d.days_worked, gross_amount: d.gross_amount, social_security: d.social_security, other_deductions: d.other_deductions, net_amount: d.net_amount, patronal_amount: d.patronal_amount, payroll_run_id: run.id })));
+    await supabase.from("payroll_details").insert(details.map((d) => ({ employee_id: d.employee_id, apu_project_id: d.apu_project_id, days_worked: d.days_worked, gross_amount: d.gross_amount, social_security: d.social_security, employee_deductions_breakdown: d.employee_deductions_breakdown, other_deductions: d.other_deductions, net_amount: d.net_amount, patronal_amount: d.patronal_amount, payroll_run_id: run.id })));
 
     setMessage("Nomina procesada (Nº" + nextEntryNumber + "). Total Neto: " + totalNet.toLocaleString(undefined, { maximumFractionDigits: 2 }) + ". Obligaciones Patronales: " + totalPatronal.toLocaleString(undefined, { maximumFractionDigits: 2 }) + ". Asiento balanceado generado correctamente.");
     setProcessing(false);
