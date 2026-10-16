@@ -11,10 +11,17 @@ import jsPDF from "jspdf";
 //
 // Formato ajustado a partir de los modelos de recibo de pago venezolano
 // que Javiel compartio como referencia: encabezado empresa/RIF, datos
-// del trabajador (cedula, cargo, fecha de ingreso), tabla de conceptos
-// con codigo (001 Salario Basico, 002/004 Horas Extra, 009 Feriados y
-// Descanso Trabajados, 101 Faltas, 151 ISLR, 152/153/154 Seguridad
-// Social/RPE/FAOV), totales y neto a pagar.
+// del trabajador (documento de identidad, cargo, fecha de ingreso),
+// tabla de conceptos con codigo, totales y neto a pagar.
+//
+// Generico por jurisdiccion: idDocumentLabel, conceptLabels y
+// deductionCodeMap vienen de jurisdiction_modules (PAYROLL_CHARGES,
+// campo "labels") para que cada pais use su propio nombre de documento
+// de identidad, su propia numeracion de conceptos (VE usa 001/002/009/
+// 101/151/152/153/154; otro pais puede usar otra) y el nombre de su
+// retencion de impuesto a la renta (I.S.L.R. en VE, Retencion en la
+// Fuente en CO, etc). Si no vienen, se asume el valor por defecto de
+// Venezuela en cada uno -- ningun recibo existente cambia.
 //
 // extraConcepts e islrAmount solo existen para corridas procesadas
 // DESPUES de que payroll_details empezo a persistirlos (igual que
@@ -23,10 +30,16 @@ import jsPDF from "jspdf";
 // Si no vienen (recibos de corridas anteriores), esos renglones
 // simplemente no aparecen en vez de inventar un monto que nunca se pago.
 
+interface ConceptLabel {
+  code: string;
+  label: string;
+}
+
 interface PayslipData {
   companyName: string;
   companyRif?: string;
   employeeName: string;
+  idDocumentLabel?: string;
   employeeCedula?: string;
   employeePosition?: string;
   employeeHireDate?: string;
@@ -37,6 +50,7 @@ interface PayslipData {
   grossAmount: number;
   socialSecurity: number;
   employeeDeductionsBreakdown?: Record<string, number>;
+  deductionCodeMap?: Record<string, ConceptLabel>;
   extraConcepts?: {
     base_salary_amount?: number;
     horas_extra_diurnas_horas?: number;
@@ -48,6 +62,14 @@ interface PayslipData {
     faltas_dias?: number;
     faltas_monto?: number;
   };
+  conceptLabels?: {
+    baseSalary?: ConceptLabel;
+    overtimeDay?: ConceptLabel;
+    overtimeNight?: ConceptLabel;
+    holidayWorked?: ConceptLabel;
+    absence?: ConceptLabel;
+    incomeTax?: ConceptLabel;
+  };
   islrAmount?: number;
   otherDeductions: number;
   netAmount: number;
@@ -55,19 +77,26 @@ interface PayslipData {
   currency?: string;
 }
 
-// Codigo + nombre tal como se usan en un recibo de pago venezolano
-// estandar (los codigos 001/152/153/154 son los que Javiel uso como
-// referencia). Si aparece una clave de employee_pct sin entrada aqui
-// (otra jurisdiccion, u otra carga agregada mas adelante), se cae a un
-// codigo generico "-" y una version legible de la clave en vez de
-// omitirla del recibo.
-const DEDUCTION_META: Record<string, { code: string; label: string }> = {
+// Respaldo VE para cuando conceptLabels/deductionCodeMap no vienen
+// (recibos de corridas de antes de este cambio, o jurisdicciones que
+// aun no configuraron sus propias etiquetas). Son los mismos
+// codigos/nombres que ya se usaban antes de generalizar esto.
+const VE_CONCEPT_FALLBACK = {
+  baseSalary: { code: "001", label: "Salario Basico por dias trabajados" },
+  overtimeDay: { code: "002", label: "Horas Extras Diurnas Autorizadas" },
+  overtimeNight: { code: "004", label: "Horas Extras Nocturnas Autorizadas" },
+  holidayWorked: { code: "009", label: "Dias de Descanso y Feriados Trabajados" },
+  absence: { code: "101", label: "Dias de Faltas al Trabajo" },
+  incomeTax: { code: "151", label: "Impuesto Sobre la Renta (I.S.L.R.)" },
+};
+const VE_DEDUCTION_FALLBACK: Record<string, ConceptLabel> = {
   ivss_empleado: { code: "152", label: "Seguro Social Obligatorio" },
   paro_forzoso_empleado: { code: "153", label: "Regimen Prestacional del Empleo" },
   lph_empleado: { code: "154", label: "Fondo de Ahorro Obligatorio para la Vivienda" },
 };
-function deductionMeta(key: string): { code: string; label: string } {
-  if (DEDUCTION_META[key]) return DEDUCTION_META[key];
+function deductionMeta(key: string, map?: Record<string, ConceptLabel>): ConceptLabel {
+  if (map?.[key]) return map[key];
+  if (VE_DEDUCTION_FALLBACK[key]) return VE_DEDUCTION_FALLBACK[key];
   const spaced = key.replace(/_/g, " ");
   return { code: "-", label: spaced.charAt(0).toUpperCase() + spaced.slice(1) };
 }
@@ -91,6 +120,15 @@ export function generatePayslipPdf(data: PayslipData): jsPDF {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const currency = data.currency || "USD";
+  const idLabel = data.idDocumentLabel || "CEDULA";
+  const cl = {
+    baseSalary: data.conceptLabels?.baseSalary ?? VE_CONCEPT_FALLBACK.baseSalary,
+    overtimeDay: data.conceptLabels?.overtimeDay ?? VE_CONCEPT_FALLBACK.overtimeDay,
+    overtimeNight: data.conceptLabels?.overtimeNight ?? VE_CONCEPT_FALLBACK.overtimeNight,
+    holidayWorked: data.conceptLabels?.holidayWorked ?? VE_CONCEPT_FALLBACK.holidayWorked,
+    absence: data.conceptLabels?.absence ?? VE_CONCEPT_FALLBACK.absence,
+    incomeTax: data.conceptLabels?.incomeTax ?? VE_CONCEPT_FALLBACK.incomeTax,
+  };
   let y = 18;
 
   doc.setFillColor(...NAVY);
@@ -149,7 +187,7 @@ export function generatePayslipPdf(data: PayslipData): jsPDF {
 
   label(leftX, ly, "TRABAJADOR(A)");
   value(leftX, ly, data.employeeName);
-  label(rightX, ly, "CEDULA");
+  label(rightX, ly, idLabel);
   value(rightX, ly, data.employeeCedula || "-");
   ly += 10;
 
@@ -216,20 +254,20 @@ export function generatePayslipPdf(data: PayslipData): jsPDF {
     y += 7;
   }
 
-  conceptRow("001", "Salario Basico por dias trabajados", data.grossAmount, 0);
+  conceptRow(cl.baseSalary.code, cl.baseSalary.label, data.grossAmount, 0);
 
   const ec = data.extraConcepts;
   let extraAsignaciones = 0;
   if (ec?.horas_extra_diurnas_monto && ec.horas_extra_diurnas_monto > 0) {
-    conceptRow("002", "Horas Extras Diurnas Autorizadas (" + ec.horas_extra_diurnas_horas + "h)", ec.horas_extra_diurnas_monto, 0);
+    conceptRow(cl.overtimeDay.code, cl.overtimeDay.label + " (" + ec.horas_extra_diurnas_horas + "h)", ec.horas_extra_diurnas_monto, 0);
     extraAsignaciones += ec.horas_extra_diurnas_monto;
   }
   if (ec?.horas_extra_nocturnas_monto && ec.horas_extra_nocturnas_monto > 0) {
-    conceptRow("004", "Horas Extras Nocturnas Autorizadas (" + ec.horas_extra_nocturnas_horas + "h)", ec.horas_extra_nocturnas_monto, 0);
+    conceptRow(cl.overtimeNight.code, cl.overtimeNight.label + " (" + ec.horas_extra_nocturnas_horas + "h)", ec.horas_extra_nocturnas_monto, 0);
     extraAsignaciones += ec.horas_extra_nocturnas_monto;
   }
   if (ec?.feriados_descanso_monto && ec.feriados_descanso_monto > 0) {
-    conceptRow("009", "Dias de Descanso y Feriados Trabajados (" + ec.feriados_descanso_dias + "d)", ec.feriados_descanso_monto, 0);
+    conceptRow(cl.holidayWorked.code, cl.holidayWorked.label + " (" + ec.feriados_descanso_dias + "d)", ec.feriados_descanso_monto, 0);
     extraAsignaciones += ec.feriados_descanso_monto;
   }
 
@@ -237,17 +275,17 @@ export function generatePayslipPdf(data: PayslipData): jsPDF {
   const breakdownEntries = breakdown ? Object.entries(breakdown).filter(([, amount]) => amount > 0) : [];
   if (breakdownEntries.length > 0) {
     for (const [key, amount] of breakdownEntries) {
-      const meta = deductionMeta(key);
+      const meta = deductionMeta(key, data.deductionCodeMap);
       conceptRow(meta.code, meta.label, 0, amount);
     }
   } else if (data.socialSecurity > 0) {
     conceptRow("-", "Seguridad Social y Aportes de Ley", 0, data.socialSecurity);
   }
   if (ec?.faltas_monto && ec.faltas_monto > 0) {
-    conceptRow("101", "Dias de Faltas al Trabajo (" + ec.faltas_dias + "d)", 0, ec.faltas_monto);
+    conceptRow(cl.absence.code, cl.absence.label + " (" + ec.faltas_dias + "d)", 0, ec.faltas_monto);
   }
   if (data.islrAmount && data.islrAmount > 0) {
-    conceptRow("151", "Impuesto Sobre la Renta (I.S.L.R.)", 0, data.islrAmount);
+    conceptRow(cl.incomeTax.code, cl.incomeTax.label, 0, data.islrAmount);
   }
   if (data.otherDeductions > 0) {
     conceptRow("900", "Otras Deducciones", 0, data.otherDeductions);
@@ -308,7 +346,7 @@ export function generatePayslipPdf(data: PayslipData): jsPDF {
   y += 5;
   doc.setFontSize(8);
   doc.setTextColor(...SOFT_GRAY);
-  doc.text("Firma del Trabajador" + (data.employeeCedula ? "  (C.I. " + data.employeeCedula + ")" : ""), 18, y);
+  doc.text("Firma del Trabajador" + (data.employeeCedula ? "  (" + idLabel + " " + data.employeeCedula + ")" : ""), 18, y);
   doc.text("Sello y Firma de la Empresa", pageWidth - 95, y);
 
   return doc;

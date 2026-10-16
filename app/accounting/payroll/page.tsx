@@ -5,6 +5,10 @@ import { getVerticalTheme } from "@/app/core/design/tokens";
 import VerticalPageLayout from "@/app/components/VerticalPageLayout";
 import AccountSearchSelect from "@/app/components/AccountSearchSelect";
 import { applyThirdPartyCharges, fetchPayrollChargesConfig, filterEmployerChargesByHeadcount, VE_DEFAULT_PAYROLL_CHARGES, type PayrollChargesConfig } from "@/app/lib/jurisdictionTax";
+// Nota: PAYROLL_CHARGES_REFERENCE_EXAMPLES (otras jurisdicciones) no se
+// importa aqui -- vive en jurisdictionTax.ts como plantillas de
+// referencia que se cargan manualmente desde Admin -> Jurisdiction
+// Modules, nunca de forma automatica.
 import { generatePayslipPdf } from "@/app/core/reports/generatePayslipPdf";
 
 // Diferenciador "APU <-> Contabilidad en tiempo real", parte nomina: las
@@ -214,10 +218,23 @@ export default function PayrollPage() {
   }
 
   function downloadPayslip(run: any, detail: any) {
+    // Las etiquetas (nombre del documento de identidad, nombre del
+    // impuesto a la renta, codigos de cada concepto) se toman de la
+    // configuracion ACTUAL de la jurisdiccion, no de una copia guardada
+    // por corrida -- a diferencia de las tasas/montos, son solo texto
+    // de presentacion, asi que usar la version vigente es razonable
+    // (no cambia ningun monto ya pagado). Si la fila guardada no trae
+    // "labels" (config de antes de que existiera este campo), cae de
+    // vuelta a las etiquetas VE, igual que el resto de la pantalla.
+    const veLabels = VE_DEFAULT_PAYROLL_CHARGES.labels!;
+    const labels = activeCharges.labels ?? {};
+    const concepts = labels.concepts ?? {};
+    const veConcepts = veLabels.concepts!;
     const doc = generatePayslipPdf({
       companyName,
       companyRif,
       employeeName: detail.employees?.full_name ?? "Empleado",
+      idDocumentLabel: labels.id_document ?? veLabels.id_document,
       employeeCedula: detail.employees?.cedula ?? "",
       employeePosition: detail.employees?.position ?? "",
       employeeHireDate: detail.employees?.hire_date ?? "",
@@ -237,7 +254,16 @@ export default function PayrollPage() {
       // pagar. Recibos de corridas anteriores no lo tienen (columna
       // null) y el PDF cae de vuelta al monto agregado unico.
       employeeDeductionsBreakdown: detail.employee_deductions_breakdown || undefined,
+      deductionCodeMap: labels.deduction_codes,
       extraConcepts: detail.extra_concepts || undefined,
+      conceptLabels: {
+        baseSalary: concepts.base_salary ?? veConcepts.base_salary,
+        overtimeDay: concepts.overtime_day ?? veConcepts.overtime_day,
+        overtimeNight: concepts.overtime_night ?? veConcepts.overtime_night,
+        holidayWorked: concepts.holiday_worked ?? veConcepts.holiday_worked,
+        absence: concepts.absence ?? veConcepts.absence,
+        incomeTax: concepts.income_tax ?? veConcepts.income_tax,
+      },
       islrAmount: detail.islr_amount || 0,
       otherDeductions: detail.other_deductions || 0,
       netAmount: detail.net_amount,
@@ -293,16 +319,24 @@ export default function PayrollPage() {
     const details = employees.map((emp) => {
       const fxRate = parseFloat(payrollExchangeRate) || 1;
 
-      // Ajustes opcionales de esta corrida para este empleado. Formulas
-      // segun LOTTT Venezuela (revisar con criterio profesional si tu
-      // actividad/convencion colectiva usa otro recargo):
-      // - Hora extra diurna: recargo 50% sobre la hora normal (Art. 118).
-      // - Hora extra nocturna: recargo 50% + bono nocturno 30% (x1.95).
-      // - Dia feriado/descanso trabajado: paga doble el dia (el que ya
-      //   se remunera + el dia trabajado), Art. 119 -> x2 salario diario.
-      // - Dia de falta: se descuenta el salario completo de ese dia.
-      // - ISLR: monto de retencion se ingresa manualmente (la tabla de
-      //   ISLR por tramos/desgravamenes no se calcula automaticamente).
+      // Ajustes opcionales de esta corrida para este empleado. Los
+      // multiplicadores de horas extra y feriado/descanso trabajado se
+      // leen de charges.overtime_rules (configurable por jurisdiccion
+      // en Admin -> Jurisdiction Modules) -- si la fila guardada es de
+      // antes de que este campo existiera, cada multiplicador cae de
+      // vuelta AL VALOR VE campo por campo (no el objeto completo), para
+      // no perder el comportamiento ya configurado. Los valores VE por
+      // defecto (LOTTT): hora extra diurna recargo 50% (Art. 118), hora
+      // extra nocturna 50%+30% (x1.95), feriado/descanso trabajado paga
+      // doble (Art. 119). ISLR: monto de retencion se ingresa
+      // manualmente (la tabla de ISLR por tramos/desgravamenes no se
+      // calcula automaticamente).
+      const overtimeRules = charges.overtime_rules ?? {};
+      const veOvertime = VE_DEFAULT_PAYROLL_CHARGES.overtime_rules!;
+      const extraDiurnaMultiplier = overtimeRules.extra_diurna_multiplier ?? veOvertime.extra_diurna_multiplier!;
+      const extraNocturnaMultiplier = overtimeRules.extra_nocturna_multiplier ?? veOvertime.extra_nocturna_multiplier!;
+      const feriadoDescansoMultiplier = overtimeRules.feriado_descanso_multiplier ?? veOvertime.feriado_descanso_multiplier!;
+
       const a = getAdj(emp.id);
       const horasExtraDiurnas = parseFloat(a.hed) || 0;
       const horasExtraNocturnas = parseFloat(a.hen) || 0;
@@ -312,9 +346,9 @@ export default function PayrollPage() {
 
       const baseSalaryAmount = emp.daily_salary * daysInPeriod * fxRate;
       const horaNormal = (emp.daily_salary * fxRate) / 8;
-      const extraDiurnaMonto = horasExtraDiurnas * horaNormal * 1.5;
-      const extraNocturnaMonto = horasExtraNocturnas * horaNormal * 1.5 * 1.3;
-      const feriadoDescansoMonto = diasFeriadosDescanso * emp.daily_salary * fxRate * 2;
+      const extraDiurnaMonto = horasExtraDiurnas * horaNormal * extraDiurnaMultiplier;
+      const extraNocturnaMonto = horasExtraNocturnas * horaNormal * extraNocturnaMultiplier;
+      const feriadoDescansoMonto = diasFeriadosDescanso * emp.daily_salary * fxRate * feriadoDescansoMultiplier;
       const faltasMonto = diasFalta * emp.daily_salary * fxRate;
 
       const gross = baseSalaryAmount + extraDiurnaMonto + extraNocturnaMonto + feriadoDescansoMonto - faltasMonto;

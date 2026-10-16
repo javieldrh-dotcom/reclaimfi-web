@@ -33,10 +33,31 @@ const EXAMPLE_CONFIG: Record<string, string> = {
     calendar_days_default: 30,
     third_party_charges_pct_of_subtotal_a: { seguro_social: 11, otro_cargo: 2 },
   }, null, 2),
+  // overtime_rules y labels son opcionales -- si se omiten, el recibo de
+  // pago y las formulas de horas extra usan los valores de Venezuela por
+  // defecto. Ver PAYROLL_CHARGES_REFERENCE_EXAMPLES en jurisdictionTax.ts
+  // para plantillas de referencia de otros paises (EEUU, Costa Rica,
+  // Colombia, Rep. Dominicana, Espana, Sudafrica, India, Turquia,
+  // Australia) -- verificar tasas contra fuente legal vigente antes de
+  // usarlas con una empresa real.
   PAYROLL_CHARGES: JSON.stringify({
     name: "Ejemplo: Cargas de Nomina",
     employee_pct: { seguro_social_empleado: 4 },
     employer_pct: { seguro_social_patronal: 9, otro_cargo_patronal: 2 },
+    overtime_rules: { extra_diurna_multiplier: 1.5, extra_nocturna_multiplier: 1.5, feriado_descanso_multiplier: 2 },
+    labels: {
+      id_document: "DOCUMENTO DE IDENTIDAD",
+      concepts: {
+        base_salary: { code: "001", label: "Salario Basico" },
+        overtime_day: { code: "002", label: "Horas Extras" },
+        holiday_worked: { code: "009", label: "Dias Feriados Trabajados" },
+        absence: { code: "101", label: "Faltas" },
+        income_tax: { code: "151", label: "Retencion de Impuesto a la Renta" },
+      },
+      deduction_codes: {
+        seguro_social_empleado: { code: "152", label: "Seguro Social" },
+      },
+    },
   }, null, 2),
   // model: "VAT_CREDIT" (IVA con credito/debito fiscal, como VE y la
   // mayoria de LatAm) o "FLAT_SALES_TAX" (impuesto de venta de una sola
