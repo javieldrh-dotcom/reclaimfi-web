@@ -334,10 +334,11 @@ export default function PayrollPage() {
     }]).select("id").single();
     if (entryError || !entry) { setMessage("Error al crear el asiento del desembolso: " + entryError?.message); setCreatingLoan(false); return; }
 
-    await supabase.from("journal_lines").insert([
+    const { error: loanLinesError } = await supabase.from("journal_lines").insert([
       { journal_entry_id: entry.id, account_id: loanAssetAccount, debit: principal, credit: 0 },
       { journal_entry_id: entry.id, account_id: cashAccount, debit: 0, credit: principal },
     ]);
+    if (loanLinesError) { setMessage("Error al guardar las lineas del asiento del desembolso: " + loanLinesError.message); setCreatingLoan(false); return; }
 
     const { error: loanError } = await supabase.from("payroll_loans").insert([{
       company_id: companyId,
@@ -742,7 +743,7 @@ export default function PayrollPage() {
       .filter(([, amount]) => amount > 0)
       .map(([key, amount]) => ({ journal_entry_id: entry.id, account_id: provisionPayableAccounts[key], debit: amount, credit: 0 }));
 
-    await supabase.from("journal_lines").insert([
+    const { error: payrollLinesError } = await supabase.from("journal_lines").insert([
       { journal_entry_id: entry.id, account_id: salaryExpenseAccount, debit: totalGross - totalProvisionPayout, credit: 0 },
       { journal_entry_id: entry.id, account_id: cashAccount, debit: 0, credit: totalNet },
       { journal_entry_id: entry.id, account_id: employeeWithholdingAccount, debit: 0, credit: totalDeductions },
@@ -751,6 +752,7 @@ export default function PayrollPage() {
       ...provisionPayoutLines,
       ...loanLines,
     ]);
+    if (payrollLinesError) { setMessage("Error al guardar las lineas del asiento: " + payrollLinesError.message); setProcessing(false); return; }
 
     const { data: run, error: runError } = await supabase.from("payroll_runs").insert([{
       company_id: companyId,
@@ -789,15 +791,19 @@ export default function PayrollPage() {
     // corrida completa (asiento + payroll_runs + payroll_details) se
     // guardo bien -- si algo de lo anterior fallo, el saldo de los
     // prestamos se queda intacto para la proxima corrida.
+    let loanBalanceWarning = "";
     for (const [loanId, deducted] of Object.entries(loanBalanceUpdates)) {
       const loan = loans.find((l) => l.id === loanId);
       if (!loan) continue;
       const newBalance = Math.max(0, loan.balance_remaining - deducted);
-      await supabase.from("payroll_loans").update({
+      const { error: loanUpdateError } = await supabase.from("payroll_loans").update({
         balance_remaining: newBalance,
         status: newBalance <= 0 ? "PAID" : "ACTIVE",
         paid_off_at: newBalance <= 0 ? new Date().toISOString() : null,
       }).eq("id", loanId);
+      if (loanUpdateError) {
+        loanBalanceWarning += " ADVERTENCIA: la nomina se guardo, pero no se pudo actualizar el saldo del prestamo " + loanId + ": " + loanUpdateError.message;
+      }
     }
 
     setMessage(
@@ -805,7 +811,8 @@ export default function PayrollPage() {
       ". Obligaciones Patronales: " + totalPatronal.toLocaleString(undefined, { maximumFractionDigits: 2 }) +
       (totalProvision > 0 ? ". Provisiones de Prestaciones: " + totalProvision.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "") +
       (totalLoanDeductions > 0 ? ". Prestamos/Anticipos descontados: " + totalLoanDeductions.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "") +
-      ". Asiento balanceado generado correctamente."
+      ". Asiento balanceado generado correctamente." +
+      loanBalanceWarning
     );
     setProcessing(false);
     setEmployeeAdjustments({});

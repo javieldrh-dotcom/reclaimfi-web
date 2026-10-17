@@ -201,6 +201,7 @@ export default function ReconstructAccountingPage() {
     }
 
     let entryNumber = 1;
+    let skippedCount = 0;
     for (const tx of transactions) {
       const debitId = accountIdMap.get(tx.debitAccountName + "|" + tx.debitAccountType);
       const creditId = accountIdMap.get(tx.creditAccountName + "|" + tx.creditAccountType);
@@ -215,12 +216,13 @@ export default function ReconstructAccountingPage() {
         entry_number: entryNumber,
       }]).select("id").single();
 
-      if (entryError || !entry) continue;
+      if (entryError || !entry) { skippedCount++; continue; }
 
-      await supabase.from("journal_lines").insert([
+      const { error: linesError } = await supabase.from("journal_lines").insert([
         { journal_entry_id: entry.id, account_id: debitId, debit: tx.amount, credit: 0 },
         { journal_entry_id: entry.id, account_id: creditId, debit: 0, credit: tx.amount },
       ]);
+      if (linesError) { skippedCount++; continue; }
 
       entryNumber++;
     }
@@ -233,7 +235,7 @@ export default function ReconstructAccountingPage() {
       transactions_count: transactions.length,
     });
 
-    setMessage("Reconstruccion contable completada: " + transactions.length + " transacciones registradas.");
+    setMessage("Reconstruccion contable completada: " + (transactions.length - skippedCount) + " transacciones registradas." + (skippedCount > 0 ? " " + skippedCount + " transaccion(es) no se pudieron registrar por un error al guardar el asiento." : ""));
     await loadRequests();
     setSaving(false);
   }

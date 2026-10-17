@@ -138,10 +138,16 @@ export default function TrackingPage() {
       return;
     }
 
-    await supabase.from("journal_lines").insert([
+    const { error: linesError } = await supabase.from("journal_lines").insert([
       { journal_entry_id: entry.id, account_id: expenseAccount.id, debit: amount, credit: 0 },
       { journal_entry_id: entry.id, account_id: liabilityAccount.id, debit: 0, credit: amount },
     ]);
+
+    if (linesError) {
+      setProvisionMessage("Error al guardar las lineas del asiento: " + linesError.message);
+      setGeneratingProvision(false);
+      return;
+    }
 
     setProvisionMessage("Provision contable generada correctamente por $" + amount.toLocaleString(undefined, { minimumFractionDigits: 2 }) + ". Revisa el Libro Diario de la empresa seleccionada.");
     setGeneratingProvision(false);

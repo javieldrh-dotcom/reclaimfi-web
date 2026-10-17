@@ -376,7 +376,8 @@ export default function ApuProjectsPage() {
       debit: l.credit || 0,
       credit: l.debit || 0,
     }));
-    await supabase.from("journal_lines").insert(reversedLines);
+    const { error: revLinesError } = await supabase.from("journal_lines").insert(reversedLines);
+    if (revLinesError) { alert("Error al guardar las lineas del asiento: " + revLinesError.message); return; }
     await supabase.from("journal_entries").update({ reversed_by_entry_id: newEntry.id }).eq("id", originalEntry.id);
 
     await supabase.from("apu_projects").update({ status: "DRAFT" }).eq("id", project.id);

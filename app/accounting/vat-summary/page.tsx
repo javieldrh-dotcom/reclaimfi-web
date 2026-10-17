@@ -112,7 +112,11 @@ export default function VatSummaryPage() {
 
   async function saveDeclaration() {
     if (!companyId || !summary) return;
-    await supabase.from("vat_declarations").insert([isFlatModel ? {
+    // Antes no se revisaba si este insert fallaba -- el boton "Guardar"
+    // no daba ningun aviso ni de exito ni de error, asi que una
+    // declaracion que fallara (RLS, red, etc.) se veia exactamente
+    // igual que una que si se guardo. Ahora se avisa si falla.
+    const { error } = await supabase.from("vat_declarations").insert([isFlatModel ? {
       company_id: companyId,
       period_start: summary.periodStart,
       period_end: summary.periodEnd,
@@ -133,6 +137,7 @@ export default function VatSummaryPage() {
       vat_payable: summary.casilla90,
       status: "FILED",
     }]);
+    if (error) { alert("Error al guardar la declaracion de IVA: " + error.message); return; }
     const { data: decl } = await supabase.from("vat_declarations").select("*").eq("company_id", companyId).order("period_end", { ascending: false });
     setDeclarations(decl ?? []);
   }

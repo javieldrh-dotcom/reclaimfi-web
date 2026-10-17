@@ -227,7 +227,7 @@ export default function ArInvoicesPage() {
     script.id = "paypal-sdk-script-orders";
     // Mismo client-id publico ya usado en app/subscribe/page.tsx, pero con
     // intent=capture (orden de pago unico) en vez de intent=subscription.
-    script.src = "https://www.paypal.com/sdk/js?client-id=BAArju91dqDZ3Vza2oWaiZYT0mCwgTB6n-TFh1jXTNh3mN66SvE_K8zi27NoLbIAUVye2cadyPFYpql_GE&currency=USD&intent=capture";
+    script.src = "https://www.paypal.com/sdk/js?client-id=BAA14BzB_9VhviO_C0gWpUwrrpSkF4AMRkzz-wI1E0_VGAEawrXQ-09k-jOguRdCZZzifZFfD41n2B97V4&currency=USD&intent=capture";
     script.onload = renderButtons;
     document.body.appendChild(script);
   }, [collectingInvoiceId, paymentAccountId, functionalCurrency, invoices, companyId]);
@@ -272,7 +272,8 @@ export default function ArInvoicesPage() {
       debit: l.credit || 0,
       credit: l.debit || 0,
     }));
-    await supabase.from("journal_lines").insert(reversedLines);
+    const { error: revLinesError } = await supabase.from("journal_lines").insert(reversedLines);
+    if (revLinesError) { alert("Error al guardar las lineas del asiento: " + revLinesError.message); return; }
     await supabase.from("journal_entries").update({ reversed_by_entry_id: newEntry.id }).eq("id", journalEntryId);
     // Sin esto la factura se queda en "PENDING" para siempre: se puede
     // marcar "Pagada" despues de haber sido reversada, aunque el asiento

@@ -139,10 +139,11 @@ export default function FixedAssetsPage() {
 
     if (entryError || !entry) { setMessage("Error al crear asiento: " + entryError?.message); return; }
 
-    await supabase.from("journal_lines").insert([
+    const { error: linesError } = await supabase.from("journal_lines").insert([
       { journal_entry_id: entry.id, account_id: assetAccountId, debit: cost, credit: 0 },
       { journal_entry_id: entry.id, account_id: offsetAccountId, debit: 0, credit: cost },
     ]);
+    if (linesError) { setMessage("Error al guardar las lineas del asiento: " + linesError.message); return; }
 
     const { error } = await supabase.from("fixed_assets").insert([{
       company_id: companyId,
@@ -182,10 +183,11 @@ export default function FixedAssetsPage() {
     }]).select("id").single();
     if (entryError || !entry) { alert("Error al crear asiento: " + entryError?.message); return; }
 
-    await supabase.from("journal_lines").insert([
+    const { error: linesError } = await supabase.from("journal_lines").insert([
       { journal_entry_id: entry.id, account_id: depExpenseAccountId, debit: d.monthlyDep, credit: 0 },
       { journal_entry_id: entry.id, account_id: accumulatedDepAccountId, debit: 0, credit: d.monthlyDep },
     ]);
+    if (linesError) { alert("Error al guardar las lineas del asiento: " + linesError.message); return; }
 
     alert("Depreciacion del mes contabilizada correctamente: " + d.monthlyDep.toLocaleString(undefined, { maximumFractionDigits: 2 }));
     if (companyId) await loadAssets(companyId);

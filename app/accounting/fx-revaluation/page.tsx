@@ -82,7 +82,8 @@ export default function FxRevaluationPage() {
           ? [{ journal_entry_id: entry.id, account_id: contraAccountId, debit: diffAbs, credit: 0 }, { journal_entry_id: entry.id, account_id: selectedAccountId, debit: 0, credit: diffAbs }]
           : [{ journal_entry_id: entry.id, account_id: selectedAccountId, debit: 0, credit: diffAbs }, { journal_entry_id: entry.id, account_id: contraAccountId, debit: diffAbs, credit: 0 }]);
 
-    await supabase.from("journal_lines").insert(lines);
+    const { error: linesError } = await supabase.from("journal_lines").insert(lines);
+    if (linesError) { setMessage("Error al guardar las lineas del asiento: " + linesError.message); return; }
 
     const { error } = await supabase.from("fx_revaluations").insert([{
       company_id: companyId,

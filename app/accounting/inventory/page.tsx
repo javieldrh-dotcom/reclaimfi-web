@@ -163,7 +163,8 @@ export default function InventoryPage() {
           { journal_entry_id: entry.id, account_id: inventoryAccountId, debit: 0, credit: movementValue },
         ];
 
-    await supabase.from("journal_lines").insert(lines);
+    const { error: linesError } = await supabase.from("journal_lines").insert(lines);
+    if (linesError) { setMessage("Error al guardar las lineas del asiento: " + linesError.message); return; }
 
     const { error: movError } = await supabase.from("inventory_movements").insert([{
       inventory_item_id: selectedItemId,

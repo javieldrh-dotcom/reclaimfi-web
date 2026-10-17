@@ -3,27 +3,49 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
 import VerticalPageLayout from "@/app/components/VerticalPageLayout";
-import { fetchIncomeTaxConfig, calculateBracketTax, type IncomeTaxConfig } from "@/app/lib/jurisdictionTax";
+import { calculateFscl as calculateFsclShared } from "@/app/lib/apu/fsclMath";
+import { fetchLaborCostFormulaConfig, VE_DEFAULT_THIRD_PARTY_CHARGES_PCT } from "@/app/lib/jurisdictionTax";
 
 // Globalizado (ver app/lib/jurisdictionTax.ts y el Claude Doc "Globalizar
-// ReclaimFi"): esta pantalla ya no tiene la tarifa de ISLR venezolana fija
-// en el codigo -- lee la formula (VE: Tarifa 2 progresiva; otro pais: la
-// tasa plana que corresponda) desde jurisdiction_modules segun el
-// jurisdiction_code de la empresa. Si la empresa es VE, el resultado es
-// identico a antes (misma fuente de datos, Art. 52 Ley de ISLR).
-export default function IslrPage() {
-  const theme = getVerticalTheme("accounting");
+// ReclaimFi"): esta pantalla tenia su propia copia duplicada de la
+// formula FSCL (el 11%/2%/2%/2% venezolano escrito a mano, idéntico al de
+// app/lib/apu/fsclMath.ts pero sin compartir codigo). Ahora llama a la
+// funcion compartida y probada (calculateFsclShared), pasandole los
+// porcentajes de "pagos a terceros" del jurisdiction_code del proyecto
+// APU en vez de los fijos de Venezuela -- un proyecto venezolano sigue
+// dando exactamente el mismo resultado de siempre.
+export default function FsclCalculatorPage() {
+  const theme = getVerticalTheme("apu");
   const [companyId, setCompanyId] = useState<string | null>(null);
-  const [jurisdictionCode, setJurisdictionCode] = useState<string>("VE");
-  const [taxConfig, setTaxConfig] = useState<IncomeTaxConfig | null>(null);
-  const [fiscalYear, setFiscalYear] = useState(new Date().getFullYear().toString());
-  const [accountingNetIncome, setAccountingNetIncome] = useState("");
-  const [nonDeductibleAdjustments, setNonDeductibleAdjustments] = useState("0");
-  const [exemptIncome, setExemptIncome] = useState("0");
-  const [taxUnitValue, setTaxUnitValue] = useState("");
-  const [advancePayments, setAdvancePayments] = useState("0");
+  const [projects, setProjects] = useState<any[]>([]);
+  const [thirdPartyChargesPct, setThirdPartyChargesPct] = useState<Record<string, number>>(VE_DEFAULT_THIRD_PARTY_CHARGES_PCT);
+  const [selectedProject, setSelectedProject] = useState("");
+  const [workSystem, setWorkSystem] = useState("5X2-36-DIA");
+  const [dailyBasicSalary, setDailyBasicSalary] = useState("");
+  const [calendarDays, setCalendarDays] = useState("365");
+  const [nonWorkedDays, setNonWorkedDays] = useState("104");
+  const [isaPercentage, setIsaPercentage] = useState("0");
+  const [travelTimeAmount, setTravelTimeAmount] = useState("0");
+  const [preavisoDays, setPreavisoDays] = useState("60");
+  const [antiguedadLegalDays, setAntiguedadLegalDays] = useState("30");
+  const [antiguedadContractualDays, setAntiguedadContractualDays] = useState("0");
+  const [vacacionesDays, setVacacionesDays] = useState("27");
+  const [bonoVacacionalDays, setBonoVacacionalDays] = useState("60");
+  const [utilidadesDays, setUtilidadesDays] = useState("120");
+  const [eppAmount, setEppAmount] = useState("0");
+  const [aguaHieloAmount, setAguaHieloAmount] = useState("0");
+  const [clinicaAmount, setClinicaAmount] = useState("0");
   const [message, setMessage] = useState("");
-  const [history, setHistory] = useState<any[]>([]);
+  const [savedCalculations, setSavedCalculations] = useState<any[]>([]);
+  // Antes "Guardar" siempre insertaba una fila nueva. Si el usuario corregia un
+  // dato de un calculo ya guardado, no estaba editando: quedaba un duplicado y
+  // el calculo original (incorrecto) seguia disponible para usarse en partidas.
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  async function loadCalculations(projectId: string) {
+    const { data } = await supabase.from("apu_fscl_calculations").select("*").eq("apu_project_id", projectId).order("created_at", { ascending: false });
+    setSavedCalculations(data ?? []);
+  }
 
   useEffect(() => {
     async function load() {
@@ -33,159 +55,219 @@ export default function IslrPage() {
       const cid = uc?.company_id ?? null;
       setCompanyId(cid);
       if (cid) {
-        const { data: hist } = await supabase.from("islr_declarations").select("*").eq("company_id", cid).order("fiscal_year", { ascending: false });
-        setHistory(hist ?? []);
-
-        const { data: company } = await supabase.from("companies").select("jurisdiction_code").eq("id", cid).maybeSingle();
-        const jCode = company?.jurisdiction_code || "VE";
-        setJurisdictionCode(jCode);
-        const config = await fetchIncomeTaxConfig(supabase, jCode);
-        setTaxConfig(config);
+        const { data: proj } = await supabase.from("apu_projects").select("id, procedure_number, project_description").eq("company_id", cid).order("created_at", { ascending: false });
+        setProjects(proj ?? []);
       }
     }
     load();
   }, []);
 
-  function calculate() {
-    const netIncome = parseFloat(accountingNetIncome) || 0;
-    const adjustments = parseFloat(nonDeductibleAdjustments) || 0;
-    const exempt = parseFloat(exemptIncome) || 0;
-    const utValue = parseFloat(taxUnitValue) || 1;
-    const advances = parseFloat(advancePayments) || 0;
+  useEffect(() => {
+    if (selectedProject) loadCalculations(selectedProject);
+    else setSavedCalculations([]);
+  }, [selectedProject]);
 
-    const taxableIncome = netIncome + adjustments - exempt;
-
-    // Si jurisdiction_modules todavia no trajo config (o la empresa no
-    // tiene fila cargada para su jurisdiction_code), se usa la Tarifa 2
-    // venezolana de siempre como respaldo -- ninguna empresa VE existente
-    // ve un resultado distinto al de antes.
-    const config: IncomeTaxConfig =
-      taxConfig ?? {
-        name: "ISLR - Tarifa 2 (respaldo)",
-        unit: "UT",
-        unit_value_required: true,
-        brackets: [
-          { upTo_UT: 2000, rate_pct: 15, sustraendo_UT: 0 },
-          { upTo_UT: 3000, rate_pct: 22, sustraendo_UT: 140 },
-          { upTo_UT: null, rate_pct: 34, sustraendo_UT: 500 },
-        ],
-      };
-
-    const { baseInUnits: taxableIncomeUT, rate, sustraendo, tax: islrTax } = calculateBracketTax(taxableIncome, config, utValue);
-    const netPayable = islrTax - advances;
-
-    return { taxableIncome, taxableIncomeUT, rate, sustraendo, islrTax, netPayable };
-  }
-  async function saveDeclaration() {
-    if (!companyId) return;
-    const r = calculate();
-
-    const { data: accounts } = await supabase.from("chart_of_accounts").select("id, account_name").eq("company_id", companyId);
-    const expenseAccount = (accounts ?? []).find((a: any) => a.account_name.toLowerCase().includes("gasto de islr"));
-    const advanceAccount = (accounts ?? []).find((a: any) => a.account_name.toLowerCase().includes("anticipo de islr"));
-    const payableAccount = (accounts ?? []).find((a: any) => a.account_name.toLowerCase() === "islr por pagar");
-    // Cuando los anticipos superan el impuesto del ejercicio, el saldo a
-    // favor es un activo (credito fiscal a recuperar/compensar), no una
-    // reduccion del gasto. Sin esta cuenta el asiento queda descuadrado por
-    // el monto del credito cada vez que netPayable < 0.
-    const receivableAccount = (accounts ?? []).find((a: any) => a.account_name.toLowerCase().includes("islr por cobrar"));
-
-    let journalEntryId = null;
-    let journalWarning = "";
-    const needsReceivable = r.netPayable < 0;
-    if (expenseAccount && advanceAccount && payableAccount && (!needsReceivable || receivableAccount)) {
-      const advances = parseFloat(advancePayments) || 0;
-      const { data: entry } = await supabase.from("journal_entries").insert([{
-        company_id: companyId,
-        description: "ISLR Ejercicio Fiscal " + fiscalYear,
-        entry_date: new Date().toISOString().slice(0, 10),
-      }]).select("id").single();
-
-      if (entry) {
-        journalEntryId = entry.id;
-        const lines = [{ journal_entry_id: entry.id, account_id: expenseAccount.id, debit: r.islrTax, credit: 0 }];
-        if (advances > 0) lines.push({ journal_entry_id: entry.id, account_id: advanceAccount.id, debit: 0, credit: advances });
-        if (r.netPayable > 0) lines.push({ journal_entry_id: entry.id, account_id: payableAccount.id, debit: 0, credit: r.netPayable });
-        if (r.netPayable < 0 && receivableAccount) lines.push({ journal_entry_id: entry.id, account_id: receivableAccount.id, debit: Math.abs(r.netPayable), credit: 0 });
-        await supabase.from("journal_lines").insert(lines);
+  useEffect(() => {
+    async function loadJurisdiction() {
+      if (!selectedProject) {
+        setThirdPartyChargesPct(VE_DEFAULT_THIRD_PARTY_CHARGES_PCT);
+        return;
       }
-    } else if (needsReceivable && !receivableAccount) {
-      journalWarning = " (No se encontro la cuenta 'ISLR por Cobrar': el asiento contable no se genero para no dejarlo descuadrado por el credito a favor. Crea esa cuenta y guarda de nuevo si necesitas el asiento.)";
+      const { data: proj } = await supabase.from("apu_projects").select("jurisdiction_code").eq("id", selectedProject).maybeSingle();
+      const jCode = proj?.jurisdiction_code || "VE";
+      const config = await fetchLaborCostFormulaConfig(supabase, jCode);
+      setThirdPartyChargesPct(config?.third_party_charges_pct_of_subtotal_a || VE_DEFAULT_THIRD_PARTY_CHARGES_PCT);
     }
+    loadJurisdiction();
+  }, [selectedProject]);
 
-    const { error } = await supabase.from("islr_declarations").insert([{
-      company_id: companyId,
-      fiscal_year: parseInt(fiscalYear),
-      accounting_net_income: parseFloat(accountingNetIncome) || 0,
-      non_deductible_adjustments: parseFloat(nonDeductibleAdjustments) || 0,
-      exempt_income: parseFloat(exemptIncome) || 0,
-      taxable_net_income: r.taxableIncome,
-      tax_unit_value: parseFloat(taxUnitValue) || 0,
-      taxable_income_ut: r.taxableIncomeUT,
-      islr_tax: r.islrTax,
-      advance_payments: parseFloat(advancePayments) || 0,
-      net_payable: r.netPayable,
-      status: "FILED",
-    }]);
-    setMessage(error ? "Error: " + error.message : "Declaracion ISLR guardada correctamente." + journalWarning);
-    if (!error && companyId) {
-      const { data: hist } = await supabase.from("islr_declarations").select("*").eq("company_id", companyId).order("fiscal_year", { ascending: false });
-      setHistory(hist ?? []);
-    }
+  function editCalculation(calc: any) {
+    setEditingId(calc.id);
+    setWorkSystem(calc.work_system ?? "5X2-36-DIA");
+    setDailyBasicSalary(String(calc.daily_basic_salary ?? ""));
+    setCalendarDays(String(calc.calendar_days ?? "365"));
+    setNonWorkedDays(String(calc.non_worked_days ?? "104"));
+    setIsaPercentage(String(calc.isa_percentage ?? "0"));
+    setTravelTimeAmount(String(calc.travel_time_amount ?? "0"));
+    setPreavisoDays(String(calc.preaviso_days ?? "60"));
+    setAntiguedadLegalDays(String(calc.antiguedad_legal_days ?? "30"));
+    setAntiguedadContractualDays(String(calc.antiguedad_contractual_days ?? "0"));
+    setVacacionesDays(String(calc.vacaciones_days ?? "27"));
+    setBonoVacacionalDays(String(calc.bono_vacacional_days ?? "60"));
+    setUtilidadesDays(String(calc.utilidades_days ?? "120"));
+    setEppAmount(String(calc.epp_amount ?? "0"));
+    setAguaHieloAmount(String(calc.agua_hielo_amount ?? "0"));
+    setClinicaAmount(String(calc.clinica_amount ?? "0"));
+    setMessage("");
   }
 
-  const inputStyle = { ...theme.inputStyle, fontSize: 22 };
-  const r = calculate();
-  const requiresUnitValue = (taxConfig?.unit_value_required ?? true) !== false;
-  const taxName = taxConfig?.name || "ISLR - Tarifa 2 (Personas Juridicas)";
+  function cancelEdit() {
+    setEditingId(null);
+  }
+
+  async function deleteCalculation(id: string) {
+    if (!window.confirm("Eliminar este calculo FSCL guardado? Si alguna partida lo tiene asignado, quedara sin factor (x1).")) return;
+    await supabase.from("apu_fscl_calculations").delete().eq("id", id);
+    if (editingId === id) setEditingId(null);
+    if (selectedProject) await loadCalculations(selectedProject);
+  }
+  function calculateFscl() {
+    return calculateFsclShared(
+      {
+        dailyBasicSalary: parseFloat(dailyBasicSalary) || 0,
+        calendarDays: parseFloat(calendarDays) || 365,
+        nonWorkedDays: parseFloat(nonWorkedDays) || 0,
+        isaPercentage: parseFloat(isaPercentage) || 0,
+        travelTimeAmount: parseFloat(travelTimeAmount) || 0,
+        preavisoDays: parseFloat(preavisoDays) || 0,
+        antiguedadLegalDays: parseFloat(antiguedadLegalDays) || 0,
+        antiguedadContractualDays: parseFloat(antiguedadContractualDays) || 0,
+        vacacionesDays: parseFloat(vacacionesDays) || 0,
+        bonoVacacionalDays: parseFloat(bonoVacacionalDays) || 0,
+        utilidadesDays: parseFloat(utilidadesDays) || 0,
+        eppAmount: parseFloat(eppAmount) || 0,
+        aguaHieloAmount: parseFloat(aguaHieloAmount) || 0,
+        clinicaAmount: parseFloat(clinicaAmount) || 0,
+      },
+      thirdPartyChargesPct
+    );
+  }
+
+  async function saveCalculation() {
+    setMessage("");
+    if (!selectedProject || !dailyBasicSalary) { setMessage("Selecciona un proyecto y el salario basico."); return; }
+
+    const r = calculateFscl();
+    const payload = {
+      apu_project_id: selectedProject,
+      work_system: workSystem,
+      daily_basic_salary: parseFloat(dailyBasicSalary),
+      calendar_days: parseInt(calendarDays),
+      non_worked_days: parseInt(nonWorkedDays),
+      worked_days: r.worked,
+      isa_percentage: parseFloat(isaPercentage),
+      travel_time_amount: parseFloat(travelTimeAmount),
+      sub_total_a: r.subTotalA,
+      preaviso_days: parseFloat(preavisoDays),
+      antiguedad_legal_days: parseFloat(antiguedadLegalDays),
+      antiguedad_contractual_days: parseFloat(antiguedadContractualDays),
+      vacaciones_days: parseFloat(vacacionesDays),
+      bono_vacacional_days: parseFloat(bonoVacacionalDays),
+      utilidades_days: parseFloat(utilidadesDays),
+      sub_total_b: r.subTotalB,
+      examenes_pre_empleo: 0,
+      epp_amount: parseFloat(eppAmount),
+      agua_hielo_amount: parseFloat(aguaHieloAmount),
+      clinica_amount: parseFloat(clinicaAmount),
+      sub_total_c: r.subTotalC,
+      sub_total_terceros: r.subTotalTerceros,
+      total_daily_cost: r.totalDailyCost,
+      fscl_factor: r.factor,
+    };
+
+    const { error } = editingId
+      ? await supabase.from("apu_fscl_calculations").update(payload).eq("id", editingId)
+      : await supabase.from("apu_fscl_calculations").insert([payload]);
+
+    if (error) { setMessage("Error: " + error.message); return; }
+    setMessage((editingId ? "Calculo FSCL actualizado. " : "Calculo FSCL guardado. ") + "Factor: " + r.factor.toFixed(4));
+    setEditingId(null);
+    await loadCalculations(selectedProject);
+  }
+
+  const inputStyle = { ...theme.inputStyle, fontSize: 20 };
+
+  const r = calculateFscl();
 
   return (
-    <VerticalPageLayout vertical="accounting" title={jurisdictionCode === "VE" ? "ISLR - Declaracion Definitiva Anual" : "Impuesto Sobre la Renta - Declaracion Definitiva Anual"} subtitle={`${taxName}${jurisdictionCode !== "VE" ? ` (${jurisdictionCode})` : " - Art. 52 Ley de ISLR"} - Nucleo simplificado, no incluye fuente extraterritorial ni regimenes especiales`} fullWidth>
+    <VerticalPageLayout vertical="apu" title="Calculadora FSCL (Factor Sobre Costo de Labor)" subtitle="Contrato Colectivo Petrolero (CCTP) - Calcula el factor multiplicador sobre el salario basico diario" fullWidth>
       <div style={{ maxWidth: 700, margin: "0 auto" }}>
-        <input value={fiscalYear} onChange={(e) => setFiscalYear(e.target.value)} style={inputStyle} placeholder="Ejercicio Fiscal (Año)" />
-        <label style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginTop: 14, display: "block" }}>[137] Enriquecimiento Neto o Perdida Fiscal (Utilidad Contable)</label>
-        <input type="number" value={accountingNetIncome} onChange={(e) => setAccountingNetIncome(e.target.value)} style={{ ...inputStyle, marginTop: 6 }} />
-        <label style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginTop: 14, display: "block" }}>Ajustes por Partidas No Deducibles</label>
-        <input type="number" value={nonDeductibleAdjustments} onChange={(e) => setNonDeductibleAdjustments(e.target.value)} style={{ ...inputStyle, marginTop: 6 }} />
-        <label style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginTop: 14, display: "block" }}>Rentas Exentas/Exoneradas</label>
-        <input type="number" value={exemptIncome} onChange={(e) => setExemptIncome(e.target.value)} style={{ ...inputStyle, marginTop: 6 }} />
-        {requiresUnitValue && (
-          <>
-            <label style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginTop: 14, display: "block" }}>Valor de la Unidad Tributaria (Bs)</label>
-            <input type="number" value={taxUnitValue} onChange={(e) => setTaxUnitValue(e.target.value)} style={{ ...inputStyle, marginTop: 6 }} />
-          </>
-        )}
-        <label style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginTop: 14, display: "block" }}>[221+231] Anticipos (Retenciones + Declaracion Estimada)</label>
-        <input type="number" value={advancePayments} onChange={(e) => setAdvancePayments(e.target.value)} style={{ ...inputStyle, marginTop: 6 }} />
+        <select value={selectedProject} onChange={(e) => setSelectedProject(e.target.value)} style={inputStyle}>
+          <option value="">Selecciona un proyecto/licitacion</option>
+          {projects.map((p) => <option key={p.id} value={p.id}>{p.procedure_number} - {p.project_description}</option>)}
+        </select>
 
-        <div style={{ ...theme.cardStyle, marginTop: 20 }}>
-          <p style={{ fontSize: 18, color: "#8B93A7" }}>[178] Enriquecimiento Gravable: <span style={theme.numberStyle}>{r.taxableIncome.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>{requiresUnitValue && <> ({r.taxableIncomeUT.toLocaleString(undefined, { maximumFractionDigits: 2 })} U.T.)</>}</p>
-          <p style={{ fontSize: 18, color: "#8B93A7", marginTop: 8 }}>Tarifa aplicable: {r.rate}%{requiresUnitValue && <> (Sustraendo: {r.sustraendo} U.T.)</>}</p>
-          <div style={{ marginTop: 16, padding: 16, background: "#0B0E14", borderRadius: 12, display: "flex", justifyContent: "space-between", fontSize: 24, fontWeight: 900 }}>
-            <span>{jurisdictionCode === "VE" ? "[185] Impuesto segun Tarifa 2" : "Impuesto Sobre la Renta"}</span>
-            <span style={theme.numberStyle}>{r.islrTax.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-          </div>
-          <div style={{ marginTop: 12, padding: 16, background: "#0B0E14", borderRadius: 12, display: "flex", justifyContent: "space-between", fontSize: 26, fontWeight: 900, color: r.netPayable >= 0 ? "#f87171" : "#4ade80" }}>
-            <span>{r.netPayable >= 0 ? "[90] Total a Pagar" : "[87] Credito del Ejercicio"}</span>
-            <span style={theme.numberStyle}>{Math.abs(r.netPayable).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-          </div>
-          <button onClick={saveDeclaration} style={{ ...theme.buttonStyle, marginTop: 16, fontSize: 18, width: "100%" }}>
-            GUARDAR DECLARACION
+        <input value={workSystem} onChange={(e) => setWorkSystem(e.target.value)} style={{ ...inputStyle, marginTop: 10 }} placeholder="Sistema de trabajo (ej. 5X2-36-DIA)" />
+
+        <div style={{ marginTop: 10 }}>
+          <label style={{ fontSize: 16, color: theme.accent, fontWeight: 700 }}>SALARIO BASICO DIARIO</label>
+          <input type="number" value={dailyBasicSalary} onChange={(e) => setDailyBasicSalary(e.target.value)} style={{ ...inputStyle, marginTop: 6 }} />
+        </div>
+
+        <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
+          <input type="number" value={calendarDays} onChange={(e) => setCalendarDays(e.target.value)} style={inputStyle} placeholder="Dias calendario" />
+          <input type="number" value={nonWorkedDays} onChange={(e) => setNonWorkedDays(e.target.value)} style={inputStyle} placeholder="Dias no laborados" />
+        </div>
+
+        <h3 style={{ marginTop: 20, color: "#4ade80", fontSize: 20, fontWeight: 700 }}>Sub Total A - Pagos Directos</h3>
+        <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
+          <input type="number" value={isaPercentage} onChange={(e) => setIsaPercentage(e.target.value)} style={inputStyle} placeholder="% ISA" />
+          <input type="number" value={travelTimeAmount} onChange={(e) => setTravelTimeAmount(e.target.value)} style={inputStyle} placeholder="Tiempo de viaje" />
+        </div>
+
+        <h3 style={{ marginTop: 20, color: "#facc15", fontSize: 20, fontWeight: 700 }}>Sub Total B - Indemnizacion Laboral (en dias de salario)</h3>
+        <div style={{ display: "flex", gap: 10, marginTop: 8, flexWrap: "wrap" }}>
+          <input type="number" value={preavisoDays} onChange={(e) => setPreavisoDays(e.target.value)} style={inputStyle} placeholder="Preaviso" />
+          <input type="number" value={antiguedadLegalDays} onChange={(e) => setAntiguedadLegalDays(e.target.value)} style={inputStyle} placeholder="Antiguedad Legal" />
+          <input type="number" value={antiguedadContractualDays} onChange={(e) => setAntiguedadContractualDays(e.target.value)} style={inputStyle} placeholder="Antiguedad Contractual" />
+        </div>
+        <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
+          <input type="number" value={vacacionesDays} onChange={(e) => setVacacionesDays(e.target.value)} style={inputStyle} placeholder="Vacaciones" />
+          <input type="number" value={bonoVacacionalDays} onChange={(e) => setBonoVacacionalDays(e.target.value)} style={inputStyle} placeholder="Bono Vacacional" />
+          <input type="number" value={utilidadesDays} onChange={(e) => setUtilidadesDays(e.target.value)} style={inputStyle} placeholder="Utilidades" />
+        </div>
+
+        <h3 style={{ marginTop: 20, color: "#f87171", fontSize: 20, fontWeight: 700 }}>Sub Total C - Puntos Contractuales</h3>
+        <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
+          <input type="number" value={eppAmount} onChange={(e) => setEppAmount(e.target.value)} style={inputStyle} placeholder="EPP" />
+          <input type="number" value={aguaHieloAmount} onChange={(e) => setAguaHieloAmount(e.target.value)} style={inputStyle} placeholder="Agua/Hielo" />
+          <input type="number" value={clinicaAmount} onChange={(e) => setClinicaAmount(e.target.value)} style={inputStyle} placeholder="Clinica" />
+        </div>
+
+        <div style={{ ...theme.cardStyle, marginTop: 24 }}>
+          <p style={{ fontSize: 18 }}>Sub Total A: <span style={theme.numberStyle}>{r.subTotalA.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span></p>
+          <p style={{ fontSize: 18, marginTop: 6 }}>Sub Total B: <span style={theme.numberStyle}>{r.subTotalB.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span></p>
+          <p style={{ fontSize: 18, marginTop: 6 }}>Sub Total C: <span style={theme.numberStyle}>{r.subTotalC.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span></p>
+          <p style={{ fontSize: 18, marginTop: 6 }}>Pagos a Terceros ({Object.keys(thirdPartyChargesPct).join("+") || "SSO+INCES+LPH+PF"}): <span style={theme.numberStyle}>{r.subTotalTerceros.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span></p>
+          <p style={{ fontSize: 18, marginTop: 12 }}>Costo Diario Total: <span style={theme.numberStyle}>{r.totalDailyCost.toLocaleString(undefined, { maximumFractionDigits: 4 })}</span></p>
+          <p style={{ fontSize: 26, fontWeight: 900, color: "#4ade80", marginTop: 12 }}>Factor FSCL: {r.factor.toFixed(4)}</p>
+        </div>
+
+        <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+          <button onClick={saveCalculation} style={{ ...theme.buttonStyle, fontSize: 18 }}>
+            {editingId ? "ACTUALIZAR CALCULO FSCL" : "GUARDAR CALCULO FSCL"}
           </button>
-          {message && <p style={{ marginTop: 8, fontSize: 18, color: message.includes("Error") ? "#f87171" : theme.accent }}>{message}</p>}
+          {editingId && (
+            <button onClick={cancelEdit} style={{ padding: "0 20px", background: "none", border: "1px solid " + theme.border, color: "#B0B8C8", borderRadius: 8, fontSize: 16, cursor: "pointer" }}>
+              Cancelar Edicion
+            </button>
+          )}
         </div>
-      </div>
+        {message && <p style={{ marginTop: 8, fontSize: 18, color: message.includes("Error") ? "#f87171" : theme.accent }}>{message}</p>}
 
-      {history.length > 0 && (
-        <div style={{ marginTop: 40 }}>
-          <h2 style={{ fontSize: 26, color: theme.accent, fontWeight: 700 }}>Declaraciones Anteriores</h2>
-          {history.map((h) => (
-            <div key={h.id} style={{ ...theme.cardStyle, marginTop: 12, fontSize: 20 }}>
-              Ejercicio {h.fiscal_year}: <span style={theme.numberStyle}>{h.net_payable?.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-            </div>
-          ))}
-        </div>
-      )}
+        {selectedProject && savedCalculations.length > 0 && (
+          <div style={{ marginTop: 30 }}>
+            <h3 style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginBottom: 10 }}>Calculos Guardados en este Proyecto</h3>
+            {savedCalculations.map((c) => (
+              <div key={c.id} style={{ ...theme.cardStyle, marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div>
+                  <p style={{ fontSize: 15, fontWeight: 600 }}>{c.work_system} — Salario base: {c.daily_basic_salary}</p>
+                  <p style={{ fontSize: 13, color: "#8B93A7", marginTop: 2 }}>Factor FSCL: {Number(c.fscl_factor).toFixed(4)}</p>
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button onClick={() => editCalculation(c)} style={{ padding: "6px 14px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 6, fontSize: 13, cursor: "pointer" }}>
+                    Editar
+                  </button>
+                  <button onClick={() => deleteCalculation(c.id)} style={{ padding: "6px 14px", background: "none", border: "1px solid #f87171", color: "#f87171", borderRadius: 6, fontSize: 13, cursor: "pointer" }}>
+                    Eliminar
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </VerticalPageLayout>
   );
 }
+

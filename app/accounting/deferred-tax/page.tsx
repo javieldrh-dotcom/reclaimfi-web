@@ -66,9 +66,10 @@ export default function DeferredTaxPage() {
           { journal_entry_id: entry.id, account_id: deferredLiabilityAccount.id, debit: 0, credit: amt },
         ];
 
-    await supabase.from("journal_lines").insert(lines);
+    const { error: linesError } = await supabase.from("journal_lines").insert(lines);
+    if (linesError) { setMessage("Error al guardar las lineas del asiento: " + linesError.message); return; }
 
-    await supabase.from("deferred_tax_entries").insert([{
+    const { error: deferredError } = await supabase.from("deferred_tax_entries").insert([{
       company_id: companyId,
       entry_date: entryDate,
       description,
@@ -77,6 +78,11 @@ export default function DeferredTaxPage() {
       entry_type: entryType,
       journal_entry_id: entry.id,
     }]);
+    // El asiento contable (journal_entries/journal_lines) YA se guardo
+    // en este punto -- si este segundo insert falla, no se puede
+    // simplemente "return" como si nada se hubiera guardado: se avisa
+    // que el asiento quedo pero el detalle fiscal no.
+    if (deferredError) { setMessage("El asiento contable se registro, pero no se pudo guardar el detalle de Impuesto Diferido: " + deferredError.message); return; }
 
     setMessage("Movimiento de Impuesto Diferido registrado y asiento contable generado.");
     setDescription(""); setDifferenceType(""); setAmount("");

@@ -149,7 +149,9 @@ export default function WithholdingSummaryPage() {
 
   async function saveSummary() {
     if (!companyId || !summary) return;
-    await supabase.from("withholding_summary").insert([{
+    // Antes no se revisaba si este insert fallaba -- el boton "Guardar"
+    // no daba ningun aviso ni de exito ni de error.
+    const { error } = await supabase.from("withholding_summary").insert([{
       company_id: companyId,
       period_start: periodStart,
       period_end: periodEnd,
@@ -157,6 +159,7 @@ export default function WithholdingSummaryPage() {
       total_withheld_by_us: summary.totalWithheldByUs,
       net_withholding_position: summary.netPosition,
     }]);
+    if (error) { alert("Error al guardar el resumen de retenciones: " + error.message); return; }
     const { data: hist } = await supabase.from("withholding_summary").select("*").eq("company_id", companyId).order("period_end", { ascending: false });
     setHistory(hist ?? []);
   }
