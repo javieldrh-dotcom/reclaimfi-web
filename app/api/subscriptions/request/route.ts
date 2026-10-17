@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/app/lib/supabase/server";
+import { grantCompanyAdmin } from "@/app/lib/grantCompanyAdmin";
 
 const VALID_SECTORS = [
   "GENERIC",
@@ -78,7 +79,15 @@ export async function POST(request: Request) {
       }
       const newCompany = newCompanyRows[0];
 
-      await supabase.from("user_companies").insert([{ user_id: user.id, company_id: newCompany.id }]);
+      // Sin esto, el usuario queda "miembro" (user_companies) pero sin el
+      // rol real que las politicas de RLS verifican -- el insert de
+      // chart_of_accounts de abajo fallaria en silencio (su error no se
+      // revisa) y el usuario terminaria con una empresa nueva y 0 cuentas,
+      // sin poder crear ninguna manualmente tampoco. Ver grantCompanyAdmin.ts.
+      const membership = await grantCompanyAdmin(supabase, user.id, newCompany.id);
+      if (!membership.success) {
+        return NextResponse.json({ success: false, error: "Empresa creada pero no se pudo configurar tu acceso: " + membership.error }, { status: 500 });
+      }
 
       const { data: baseAccounts } = await supabase
         .from("chart_of_accounts")
