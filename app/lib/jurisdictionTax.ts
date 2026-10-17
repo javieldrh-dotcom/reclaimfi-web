@@ -47,6 +47,21 @@ export interface PayrollChargesConfig {
   // trabajadores, Ley INCES art. 49). Se indexa por la misma clave que
   // employer_pct. Un cargo sin entrada aqui siempre aplica.
   employer_pct_min_employees?: Record<string, number>;
+  // Provisiones/acumulaciones de prestaciones futuras del MISMO empleado
+  // (vacaciones, aguinaldo/bono de fin de ano, utilidades, etc.), no
+  // cargas de terceros. Se calculan igual que employer_pct (porcentaje
+  // sobre el bruto, par de cuentas Gasto/Por Pagar generado automatico
+  // por buildPayrollAccountPlan), pero contablemente son otra cosa: no
+  // es un tercero (IVSS, INCES) el que cobra, es la MISMA empresa
+  // reconociendo hoy el gasto de un beneficio que pagara despues al
+  // mismo trabajador (principio de devengado). No se incluye un
+  // porcentaje VE por defecto a proposito -- el calculo legal real de
+  // vacaciones/aguinaldo en Venezuela depende de antigueedad y otras
+  // variables que este sistema no fabrica (mismo criterio que
+  // "Otra Percepcion" en Nomina); el contador define aqui el % que
+  // quiera provisionar cada corrida, o deja esto vacio y sigue
+  // calculando/pagando el beneficio por fuera como hasta ahora.
+  provision_pct?: Record<string, number>;
   // Multiplicadores para horas extra y dias feriados/descanso
   // trabajados -- varian por legislacion laboral de cada pais. VE usa
   // LOTTT (recargo 50% diurno, 50%+30% nocturno, pago doble feriado).
@@ -177,19 +192,34 @@ export interface PayrollAccountPlanEntry {
 // Plan de cuentas contables de nomina especifico de una jurisdiccion:
 // una pareja gasto/pasivo por cada carga PATRONAL (ej. IMSS PATRONAL +
 // INFONAVIT en Mexico, CPP Patronal + EI Patronal en Canada, FICA +
-// FUTA en EEUU). Usado por app/admin/companies/new/page.tsx para
-// instalar estas cuentas automaticamente al crear una empresa -- antes
-// de esto, cada contador tenia que crear estas cuentas a mano con
-// "+ Nueva" por cada empresa nueva en cada pais, lo cual no escala a
-// centenares de contadores. No incluye las cargas al EMPLEADO: esas se
-// llevan en una sola cuenta "Retenciones al Empleado por Pagar"
-// consolidada (decision de Javiel), generica y ya presente en la
-// plantilla universal, no requiere generarse por jurisdiccion.
+// FUTA en EEUU) y por cada PROVISION de prestaciones futuras
+// (vacaciones, aguinaldo, etc. -- ver provision_pct). Usado por
+// app/admin/companies/new/page.tsx para instalar estas cuentas
+// automaticamente al crear una empresa -- antes de esto, cada contador
+// tenia que crear estas cuentas a mano con "+ Nueva" por cada empresa
+// nueva en cada pais, lo cual no escala a centenares de contadores. No
+// incluye las cargas al EMPLEADO: esas se llevan en una sola cuenta
+// "Retenciones al Empleado por Pagar" consolidada (decision de
+// Javiel), generica y ya presente en la plantilla universal, no
+// requiere generarse por jurisdiccion.
+//
+// employer_pct y provision_pct usan nombres de cuenta distintos aunque
+// ambos generan un par Gasto/Por Pagar -- "Gasto IVSS PATRONAL" no es
+// lo mismo que "Gasto Provision de Vacaciones" (un tercero cobrando vs.
+// la empresa reconociendo hoy un beneficio futuro del mismo empleado),
+// y la clave interna tambien se prefija ("employer:"/"provision:") para
+// que una misma palabra usada en ambos lados (poco probable, pero
+// posible) nunca choque en el plan generado.
 export function buildPayrollAccountPlan(charges: PayrollChargesConfig): PayrollAccountPlanEntry[] {
-  return Object.keys(charges.employer_pct || {}).map((key) => {
+  const employerEntries = Object.keys(charges.employer_pct || {}).map((key) => {
     const label = humanizeChargeKey(key);
-    return { key, expenseName: "Gasto " + label, payableName: label + " por Pagar" };
+    return { key: "employer:" + key, expenseName: "Gasto " + label, payableName: label + " por Pagar" };
   });
+  const provisionEntries = Object.keys(charges.provision_pct || {}).map((key) => {
+    const label = humanizeChargeKey(key);
+    return { key: "provision:" + key, expenseName: "Gasto Provision de " + label, payableName: "Provision de " + label + " por Pagar" };
+  });
+  return [...employerEntries, ...provisionEntries];
 }
 
 export async function fetchSalesTaxConfig(

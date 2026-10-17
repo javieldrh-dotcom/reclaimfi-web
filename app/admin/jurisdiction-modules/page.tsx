@@ -42,6 +42,7 @@ const EXAMPLE_CONFIG: Record<string, string> = {
     name: "Ejemplo: Cargas de Nomina",
     employee_pct: { seguro_social_empleado: 4 },
     employer_pct: { seguro_social_patronal: 9, otro_cargo_patronal: 2 },
+    provision_pct: { vacaciones: 4.17, aguinaldo: 8.33 },
     overtime_rules: { extra_diurna_multiplier: 1.5, extra_nocturna_multiplier: 1.5, feriado_descanso_multiplier: 2 },
     labels: {
       id_document: "DOCUMENTO DE IDENTIDAD",
@@ -124,6 +125,11 @@ export default function JurisdictionModulesAdminPage() {
   const [pcOvertime, setPcOvertime] = useState({ diurna: "1.5", nocturna: "1.5", feriado: "2" });
   const [pcEmployeeCharges, setPcEmployeeCharges] = useState<SimpleChargeRow[]>([{ ...EMPTY_CHARGE_ROW }]);
   const [pcEmployerCharges, setPcEmployerCharges] = useState<SimpleChargeRow[]>([{ ...EMPTY_CHARGE_ROW }]);
+  // Provisiones de prestaciones futuras del mismo empleado (vacaciones,
+  // aguinaldo, etc.) -- clave/porcentaje simple, sin codigo de recibo ni
+  // minimo de empleados (eso es especifico de employee_pct/employer_pct).
+  // Vacio por defecto: el contador decide si quiere activar esto.
+  const [pcProvisions, setPcProvisions] = useState<SimpleKeyPctRow[]>([]);
   const [pcExtraIds, setPcExtraIds] = useState<SimpleExtraId[]>([]);
   const [pcConcepts, setPcConcepts] = useState<Record<string, SimpleConceptRow>>(DEFAULT_CONCEPTS);
 
@@ -163,6 +169,7 @@ export default function JurisdictionModulesAdminPage() {
     setPcOvertime({ diurna: "1.5", nocturna: "1.5", feriado: "2" });
     setPcEmployeeCharges([{ ...EMPTY_CHARGE_ROW }]);
     setPcEmployerCharges([{ ...EMPTY_CHARGE_ROW }]);
+    setPcProvisions([]);
     setPcExtraIds([]);
     setPcConcepts(DEFAULT_CONCEPTS);
 
@@ -222,6 +229,8 @@ export default function JurisdictionModulesAdminPage() {
           }))
         : [{ ...EMPTY_CHARGE_ROW }]
     );
+    const provisionEntries = Object.entries(config?.provision_pct ?? {});
+    setPcProvisions(provisionEntries.map(([key, pct]) => ({ key, pct: String(pct) })));
     setPcExtraIds(Array.isArray(config?.labels?.extra_employee_ids) ? config.labels.extra_employee_ids : []);
     setPcConcepts({
       base_salary: config?.labels?.concepts?.base_salary ?? DEFAULT_CONCEPTS.base_salary,
@@ -293,6 +302,13 @@ export default function JurisdictionModulesAdminPage() {
       if (min > 0) employer_pct_min_employees[key] = min;
     });
 
+    const provision_pct: Record<string, number> = {};
+    pcProvisions.forEach((row) => {
+      const key = slugifyKey(row.key);
+      if (!key) return;
+      provision_pct[key] = parseFloat(row.pct) || 0;
+    });
+
     const extra_employee_ids = pcExtraIds
       .map((e) => ({ code: slugifyKey(e.code), label: e.label.trim() }))
       .filter((e) => e.code && e.label);
@@ -312,6 +328,7 @@ export default function JurisdictionModulesAdminPage() {
       },
     };
     if (Object.keys(employer_pct_min_employees).length > 0) config.employer_pct_min_employees = employer_pct_min_employees;
+    if (Object.keys(provision_pct).length > 0) config.provision_pct = provision_pct;
     if (pcTaxIdLabel.trim()) config.labels.tax_id_label = pcTaxIdLabel.trim();
     if (extra_employee_ids.length > 0) config.labels.extra_employee_ids = extra_employee_ids;
     if (Object.keys(deduction_codes).length > 0) config.labels.deduction_codes = deduction_codes;
@@ -643,6 +660,11 @@ export default function JurisdictionModulesAdminPage() {
 
                 {chargeRowsEditor("CARGAS AL EMPLEADO (se descuentan del sueldo)", pcEmployeeCharges, setPcEmployeeCharges, "employee")}
                 {chargeRowsEditor("CARGAS PATRONALES (las paga la empresa, no se descuentan)", pcEmployerCharges, setPcEmployerCharges, "employer")}
+                {keyPctRowsEditor(
+                  "PROVISIONES DE PRESTACIONES FUTURAS (opcional: vacaciones, aguinaldo, etc.)",
+                  "Reconocen el gasto HOY por un beneficio que se le pagara despues al MISMO trabajador (no un tercero) -- no afecta el sueldo ni el neto del recibo. Deja esto vacio si prefieres seguir calculando/pagando estos beneficios por fuera del sistema, como hasta ahora.",
+                  pcProvisions, setPcProvisions, "clave_interna (ej. vacaciones, aguinaldo)"
+                )}
 
                 <label style={sectionLabel}>IDENTIFICADORES ADICIONALES DEL EMPLEADO (opcional)</label>
                 <p style={helpText}>Si este pais exige mas de un documento por trabajador (ej. Mexico: RFC + NSS ademas de la CURP).</p>

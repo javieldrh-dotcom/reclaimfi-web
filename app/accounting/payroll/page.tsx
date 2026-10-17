@@ -66,6 +66,14 @@ export default function PayrollPage() {
   // si las lleva consolidadas.
   const [patronalExpenseAccounts, setPatronalExpenseAccounts] = useState<Record<string, string>>({});
   const [patronalPayableAccounts, setPatronalPayableAccounts] = useState<Record<string, string>>({});
+  // Provisiones de prestaciones futuras (vacaciones, aguinaldo, etc.) --
+  // mismo patron de un par gasto/pasivo POR CADA clave de provision_pct
+  // que las obligaciones patronales de arriba, pero semanticamente es
+  // otra cosa (ver nota en jurisdictionTax.ts). Vacio si la jurisdiccion
+  // activa no tiene ninguna provision configurada (caso VE y la mayoria
+  // por defecto).
+  const [provisionExpenseAccounts, setProvisionExpenseAccounts] = useState<Record<string, string>>({});
+  const [provisionPayableAccounts, setProvisionPayableAccounts] = useState<Record<string, string>>({});
   const [processing, setProcessing] = useState(false);
 
   // Prestamos y Anticipos a Empleados: antes, un prestamo solo podia
@@ -121,6 +129,14 @@ export default function PayrollPage() {
 
   const activeCharges = payrollChargesConfig ?? VE_DEFAULT_PAYROLL_CHARGES;
   const employerChargeKeys = Object.keys(activeCharges.employer_pct || {});
+  // Provisiones de prestaciones futuras del MISMO empleado (vacaciones,
+  // aguinaldo, etc.) -- a diferencia de employer_pct, no es un tercero
+  // cobrando, es la empresa reconociendo hoy un gasto que pagara despues.
+  // Vacio para VE por defecto a proposito (ver nota en jurisdictionTax.ts
+  // PayrollChargesConfig.provision_pct): cada empresa decide aqui si
+  // quiere provisionar y a que %, sin que el sistema fabrique la formula
+  // legal de antiguedad/vacaciones/aguinaldo.
+  const provisionKeys = Object.keys(activeCharges.provision_pct || {});
   function chargeLabel(key: string) {
     return key.replace(/_/g, " ").toUpperCase();
   }
@@ -161,6 +177,13 @@ export default function PayrollPage() {
   // se hardcodea un diccionario de sinonimos en espanol para no romper
   // si otra jurisdiccion usa otras claves.
   function patronalOptions(list: any[], key: string) {
+    return filterAccountsByKeywords(list, key.split("_"));
+  }
+  // Mismo filtrado que patronalOptions, reusado para las cuentas de
+  // provision (vacaciones, aguinaldo, etc.) -- funcion separada solo
+  // para que el nombre no confunda "carga patronal" con "provision de
+  // beneficio propio" en el codigo, aunque el filtro es identico.
+  function provisionOptions(list: any[], key: string) {
     return filterAccountsByKeywords(list, key.split("_"));
   }
 
@@ -228,6 +251,16 @@ export default function PayrollPage() {
     if (target.startsWith("patronalpay:")) {
       const key = target.slice("patronalpay:".length);
       setPatronalPayableAccounts((prev) => ({ ...prev, [key]: newAcc.id }));
+    }
+    // "provisionexp:<key>" / "provisionpay:<key>" -- un par gasto/pasivo
+    // por cada provision de prestaciones futuras configurada.
+    if (target.startsWith("provisionexp:")) {
+      const key = target.slice("provisionexp:".length);
+      setProvisionExpenseAccounts((prev) => ({ ...prev, [key]: newAcc.id }));
+    }
+    if (target.startsWith("provisionpay:")) {
+      const key = target.slice("provisionpay:".length);
+      setProvisionPayableAccounts((prev) => ({ ...prev, [key]: newAcc.id }));
     }
   }
 
@@ -454,6 +487,12 @@ export default function PayrollPage() {
       setProcessing(false);
       return;
     }
+    const missingProvisionAccounts = provisionKeys.filter((k) => !provisionExpenseAccounts[k] || !provisionPayableAccounts[k]);
+    if (missingProvisionAccounts.length > 0) {
+      setMessage("Falta seleccionar la cuenta de gasto y/o por pagar de la provision de: " + missingProvisionAccounts.map(chargeLabel).join(", ") + ".");
+      setProcessing(false);
+      return;
+    }
 
     // Si hay prestamos/anticipos activos a descontar esta corrida, se
     // exige la cuenta de activo ("Prestamos a Empleados") igual que se
@@ -471,6 +510,11 @@ export default function PayrollPage() {
     // generar una linea de asiento por cada una -- a diferencia de antes,
     // que sumaba todo en un solo monto "patronal".
     const patronalByKey: Record<string, number> = {};
+    // provisionByKey: igual que patronalByKey, pero para las provisiones
+    // de prestaciones futuras (vacaciones, aguinaldo, etc.) -- se calcula
+    // y se postea aparte porque su contrapartida contable es distinta
+    // (ver nota mas abajo, donde se generan provisionLines).
+    const provisionByKey: Record<string, number> = {};
     // loanBalanceUpdates: cuanto se descuenta de CADA prestamo individual
     // esta corrida -- se aplica a payroll_loans DESPUES de guardar la
     // corrida exitosamente (ver mas abajo), nunca antes, para no dejar
@@ -549,6 +593,15 @@ export default function PayrollPage() {
       // prestamo tampoco afecta esa base: solo resta del neto a pagar.
       const net = gross - socialSecurity - islrAmount - otraDeduccionMonto + otraPercepcionMonto - loanDeductionTotal;
       const { charges: patronalCharges, subTotalTerceros: patronal } = applyThirdPartyCharges(gross, employerPctApplicable);
+      // Provision de prestaciones futuras (vacaciones, aguinaldo, etc.):
+      // mismo calculo matematico que las cargas patronales (% sobre el
+      // bruto), pero NUNCA toca el neto del empleado ni employeeCharges --
+      // es un reconocimiento contable interno, el trabajador no recibe
+      // ni le descuentan nada por esto hoy.
+      const { charges: provisionCharges } = applyThirdPartyCharges(gross, charges.provision_pct || {});
+      for (const [key, amount] of Object.entries(provisionCharges)) {
+        provisionByKey[key] = (provisionByKey[key] || 0) + amount;
+      }
       for (const [key, amount] of Object.entries(patronalCharges)) {
         patronalByKey[key] = (patronalByKey[key] || 0) + amount;
       }
@@ -593,6 +646,7 @@ export default function PayrollPage() {
     const totalNet = details.reduce((s, d) => s + d.net_amount, 0);
     const totalPatronal = details.reduce((s, d) => s + d.patronal_amount, 0);
     const totalLoanDeductions = details.reduce((s, d) => s + d.loan_deduction, 0);
+    const totalProvision = Object.values(provisionByKey).reduce((s, amount) => s + amount, 0);
 
     const { data: lastEntry } = await supabase.from("journal_entries").select("entry_number").eq("company_id", companyId).order("entry_number", { ascending: false }).limit(1).single();
     const nextEntryNumber = (lastEntry?.entry_number || 0) + 1;
@@ -615,6 +669,16 @@ export default function PayrollPage() {
         { journal_entry_id: entry.id, account_id: patronalPayableAccounts[key], debit: 0, credit: amount },
       ]);
 
+    // Igual que patronalLines, pero para las provisiones de prestaciones
+    // futuras -- NO toca cashAccount ni totalNet (el empleado no recibe
+    // nada hoy), es puro reconocimiento de gasto devengado.
+    const provisionLines = Object.entries(provisionByKey)
+      .filter(([, amount]) => amount > 0)
+      .flatMap(([key, amount]) => [
+        { journal_entry_id: entry.id, account_id: provisionExpenseAccounts[key], debit: amount, credit: 0 },
+        { journal_entry_id: entry.id, account_id: provisionPayableAccounts[key], debit: 0, credit: amount },
+      ]);
+
     // Linea adicional: recuperacion de Prestamos a Empleados. No va a
     // employeeWithholdingAccount (esa es para retenciones de ley) ni a
     // gasto -- es la contrapartida que balancea el gasto de nomina
@@ -629,6 +693,7 @@ export default function PayrollPage() {
       { journal_entry_id: entry.id, account_id: cashAccount, debit: 0, credit: totalNet },
       { journal_entry_id: entry.id, account_id: employeeWithholdingAccount, debit: 0, credit: totalDeductions },
       ...patronalLines,
+      ...provisionLines,
       ...loanLines,
     ]);
 
@@ -683,6 +748,7 @@ export default function PayrollPage() {
     setMessage(
       "Nomina procesada (Nº" + nextEntryNumber + "). Total Neto: " + totalNet.toLocaleString(undefined, { maximumFractionDigits: 2 }) +
       ". Obligaciones Patronales: " + totalPatronal.toLocaleString(undefined, { maximumFractionDigits: 2 }) +
+      (totalProvision > 0 ? ". Provisiones de Prestaciones: " + totalProvision.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "") +
       (totalLoanDeductions > 0 ? ". Prestamos/Anticipos descontados: " + totalLoanDeductions.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "") +
       ". Asiento balanceado generado correctamente."
     );
@@ -747,6 +813,40 @@ export default function PayrollPage() {
         <p style={{ fontSize: 11, color: "#8B93A7", marginTop: 10 }}>
           Cada selector solo muestra cuentas cuyo nombre coincide con el rubro. Si no ves la cuenta que buscas, puede que este nombrada distinto en tu plan de cuentas -- en ese caso se muestran todas las cuentas de ese tipo para que la encuentres igual.
         </p>
+
+        {provisionKeys.length > 0 && (
+          <>
+            <p style={{ fontSize: 15, color: theme.accent, fontWeight: 700, marginTop: 20, marginBottom: 6 }}>Provisiones de Prestaciones Futuras (vacaciones, aguinaldo, etc.)</p>
+            <p style={{ fontSize: 12, color: "#8B93A7", marginBottom: 10 }}>
+              Se reconoce el gasto HOY por un beneficio que se pagara despues al mismo trabajador -- no afecta el neto de esta corrida, ni la cuenta de Banco/Caja. Configura el % a provisionar en Admin -&gt; Modulos de Jurisdiccion (PAYROLL_CHARGES).
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {provisionKeys.map((key) => (
+                <div key={key} style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", padding: "8px 10px", background: "#0B0E14", borderRadius: 8 }}>
+                  <span style={{ fontSize: 13, color: theme.accent, fontWeight: 700, minWidth: 140 }}>{chargeLabel(key)}</span>
+                  <div style={{ display: "flex", gap: 6, flex: 1, minWidth: 220 }}>
+                    <AccountSearchSelect
+                      accounts={provisionOptions(expenseAccounts, key)}
+                      value={provisionExpenseAccounts[key] || ""}
+                      onChange={(v) => setProvisionExpenseAccounts((prev) => ({ ...prev, [key]: v }))}
+                      placeholder={"Gasto Provision de " + chargeLabel(key) + "..."}
+                    />
+                    <button onClick={() => createNewAccount("EXPENSE", "provisionexp:" + key)} style={{ padding: "0 12px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap" }}>+ Nueva</button>
+                  </div>
+                  <div style={{ display: "flex", gap: 6, flex: 1, minWidth: 220 }}>
+                    <AccountSearchSelect
+                      accounts={provisionOptions(liabilityAccounts, key)}
+                      value={provisionPayableAccounts[key] || ""}
+                      onChange={(v) => setProvisionPayableAccounts((prev) => ({ ...prev, [key]: v }))}
+                      placeholder={"Provision de " + chargeLabel(key) + " por Pagar..."}
+                    />
+                    <button onClick={() => createNewAccount("LIABILITY", "provisionpay:" + key)} style={{ padding: "0 12px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap" }}>+ Nueva</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       {employees.length > 0 && (
