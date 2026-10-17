@@ -4,6 +4,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/app/lib/supabase";
 import { logLedgerEvent } from "@/app/lib/logLedgerEvent";
+import { grantCompanyAdmin } from "@/app/lib/grantCompanyAdmin";
 
 export default function ReconstructAccountingPage() {
   const params = useParams();
@@ -153,16 +154,27 @@ export default function ReconstructAccountingPage() {
     }
 
     // Nota: esta membresia es solo para que las politicas de RLS permitan
-    // leer la empresa de reconstruccion (plan de cuentas, asientos,
-    // lineas). NO debe convertirse en la "empresa activa" del usuario -
-    // antes, al no fijar last_active_at, tomaba el valor por defecto de
-    // la tabla (now()), y como el dashboard elige la empresa activa
-    // ordenando por last_active_at descendente, cada reconstruccion
-    // "secuestraba" silenciosamente ese puesto y hacia que los casos
-    // reales del usuario dejaran de aparecer en /dashboard y en
+    // leer/escribir la empresa de reconstruccion (plan de cuentas,
+    // asientos, lineas). NO debe convertirse en la "empresa activa" del
+    // usuario - antes, al no fijar last_active_at, tomaba el valor por
+    // defecto de la tabla (now()), y como el dashboard elige la empresa
+    // activa ordenando por last_active_at descendente, cada
+    // reconstruccion "secuestraba" silenciosamente ese puesto y hacia que
+    // los casos reales del usuario dejaran de aparecer en /dashboard y en
     // /dashboard/audit/financiero. Se fija explicitamente en el pasado
     // para que nunca gane esa carrera.
-    await supabase.from("user_companies").insert([{ user_id: userData.user.id, company_id: newCompany.id, role: "ADMIN", last_active_at: "1970-01-01T00:00:00Z" }]);
+    //
+    // grantCompanyAdmin tambien otorga el rol REAL (user_role_assignments)
+    // que las politicas de RLS verifican -- el "role: ADMIN" que se
+    // guardaba antes en user_companies era un campo legado que ninguna
+    // politica lee; sin el rol real, los inserts de chart_of_accounts de
+    // abajo fallaban con "new row violates row-level security policy".
+    const membership = await grantCompanyAdmin(supabase, userData.user.id, newCompany.id, { lastActiveAt: "1970-01-01T00:00:00Z" });
+    if (!membership.success) {
+      setMessage("Error al configurar el acceso a la empresa de reconstruccion: " + membership.error);
+      setSaving(false);
+      return;
+    }
 
     const uniqueAccounts = new Map<string, { name: string; type: string }>();
     for (const tx of transactions) {
