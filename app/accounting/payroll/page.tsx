@@ -288,7 +288,11 @@ export default function PayrollPage() {
       position: empPosition,
       daily_salary: parseFloat(empSalary),
       apu_project_id: empApuProjectId || null,
-      extra_ids: extraIdsEntries.length > 0 ? Object.fromEntries(extraIdsEntries) : null,
+      // employees.extra_ids es jsonb NOT NULL DEFAULT '{}' -- enviar
+      // null explicito (en vez de omitir el campo) IGNORA ese default
+      // y viola la restriccion NOT NULL. Cuando no hay identificadores
+      // extra que guardar, se envia un objeto vacio, nunca null.
+      extra_ids: extraIdsEntries.length > 0 ? Object.fromEntries(extraIdsEntries) : {},
     }]);
     if (error) { setMessage("Error: " + error.message); return; }
     setMessage("Empleado registrado correctamente.");
