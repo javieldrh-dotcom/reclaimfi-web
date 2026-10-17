@@ -85,6 +85,12 @@ interface PayslipData {
     // Deducciones" sin poder decir, por ejemplo, "Pension Alimenticia").
     otras_percepciones_monto?: number;
     otras_percepciones_concepto?: string;
+    // Si esta "Otra Percepcion" se marco en Nomina como PAGO de una
+    // provision ya acumulada (vacaciones, aguinaldo), aqui llega la
+    // clave de esa provision -- se usa solo para anotar el renglon del
+    // recibo ("... (pago de provision)"), el monto y el calculo del
+    // neto no cambian por esto.
+    otras_percepciones_fuente?: string;
     otras_deducciones_concepto?: string;
     // Nombre(s) del/los prestamo(s) o anticipo(s) descontados esta
     // corrida (ver payroll_loans) -- separados por coma si el empleado
@@ -327,7 +333,8 @@ export function generatePayslipPdf(data: PayslipData): jsPDF {
     extraAsignaciones += ec.feriados_descanso_monto;
   }
   if (ec?.otras_percepciones_monto && ec.otras_percepciones_monto > 0) {
-    conceptRow("800", ec.otras_percepciones_concepto || "Otras Percepciones", ec.otras_percepciones_monto, 0);
+    const otrasPercepcionesLabel = (ec.otras_percepciones_concepto || "Otras Percepciones") + (ec.otras_percepciones_fuente ? " (pago de provision)" : "");
+    conceptRow("800", otrasPercepcionesLabel, ec.otras_percepciones_monto, 0);
     extraAsignaciones += ec.otras_percepciones_monto;
   }
 

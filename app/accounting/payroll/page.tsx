@@ -109,15 +109,28 @@ export default function PayrollPage() {
   // con su propio criterio/software de nomina y lo ingresa aqui tal
   // cual; el sistema solo lo suma/resta del neto y lo refleja en el
   // recibo con el concepto que el contador escriba.
+  // otraPercepcionFuente: a que se carga contablemente "Otra Percepcion"
+  // -- vacio (por defecto) = gasto directo de nomina, como siempre. Si
+  // el contador elige una clave de provision (vacaciones, aguinaldo...),
+  // este monto deja de sumarse al gasto de nomina y en cambio DEBITA la
+  // cuenta "Provision de X por Pagar" de esa clave -- es decir, se
+  // interpreta como el PAGO de un beneficio que ya se habia provisionado
+  // en corridas anteriores (reduce el pasivo en vez de duplicar el
+  // gasto). El sistema NO lleva un saldo de provision acumulada por
+  // empleado (a diferencia de los prestamos, que si tienen
+  // balance_remaining) -- es responsabilidad del contador verificar que
+  // haya provision suficiente acumulada para ese empleado antes de
+  // elegir esta opcion; aqui solo se ofrece el mecanismo contable
+  // correcto, no se fabrica esa validacion.
   type EmployeeAdjustment = {
     hed: string; hen: string; fd: string; falta: string; islr: string;
-    otraPercepcionConcepto: string; otraPercepcionMonto: string;
+    otraPercepcionConcepto: string; otraPercepcionMonto: string; otraPercepcionFuente: string;
     otraDeduccionConcepto: string; otraDeduccionMonto: string;
   };
   const [employeeAdjustments, setEmployeeAdjustments] = useState<Record<string, EmployeeAdjustment>>({});
   const EMPTY_ADJ: EmployeeAdjustment = {
     hed: "", hen: "", fd: "", falta: "", islr: "",
-    otraPercepcionConcepto: "", otraPercepcionMonto: "",
+    otraPercepcionConcepto: "", otraPercepcionMonto: "", otraPercepcionFuente: "",
     otraDeduccionConcepto: "", otraDeduccionMonto: "",
   };
   function getAdj(empId: string): EmployeeAdjustment {
@@ -515,6 +528,14 @@ export default function PayrollPage() {
     // y se postea aparte porque su contrapartida contable es distinta
     // (ver nota mas abajo, donde se generan provisionLines).
     const provisionByKey: Record<string, number> = {};
+    // provisionPayoutByKey: cuanto de "Otra Percepcion" se marco como
+    // PAGO de una provision ya acumulada (otraPercepcionFuente), por
+    // clave -- se debita contra la cuenta "Provision de X por Pagar"
+    // en vez de sumarse al gasto de nomina (ver provisionPayoutLines
+    // mas abajo). No se confunde con provisionByKey: ese es el
+    // DEVENGADO nuevo de esta corrida (gasto), este es la REVERSION de
+    // devengados de corridas anteriores (pago).
+    const provisionPayoutByKey: Record<string, number> = {};
     // loanBalanceUpdates: cuanto se descuenta de CADA prestamo individual
     // esta corrida -- se aplica a payroll_loans DESPUES de guardar la
     // corrida exitosamente (ver mas abajo), nunca antes, para no dejar
@@ -550,6 +571,15 @@ export default function PayrollPage() {
       const islrAmount = parseFloat(a.islr) || 0;
       const otraPercepcionMonto = parseFloat(a.otraPercepcionMonto) || 0;
       const otraDeduccionMonto = parseFloat(a.otraDeduccionMonto) || 0;
+      // Si se eligio una fuente de provision valida (hay cuenta "por
+      // pagar" configurada para esa clave), este monto se acumula en
+      // provisionPayoutByKey (reduce el pasivo) en vez de sumarse al
+      // gasto de nomina via salaryExpenseAccount -- ver nota en la
+      // definicion de otraPercepcionFuente arriba.
+      const otraPercepcionEsPagoDeProvision = !!a.otraPercepcionFuente && !!provisionPayableAccounts[a.otraPercepcionFuente];
+      if (otraPercepcionEsPagoDeProvision && otraPercepcionMonto > 0) {
+        provisionPayoutByKey[a.otraPercepcionFuente] = (provisionPayoutByKey[a.otraPercepcionFuente] || 0) + otraPercepcionMonto;
+      }
 
       const baseSalaryAmount = emp.daily_salary * daysInPeriod * fxRate;
       const horaNormal = (emp.daily_salary * fxRate) / 8;
@@ -630,6 +660,7 @@ export default function PayrollPage() {
           faltas_monto: faltasMonto,
           otras_percepciones_monto: otraPercepcionMonto,
           otras_percepciones_concepto: a.otraPercepcionConcepto || undefined,
+          otras_percepciones_fuente: otraPercepcionEsPagoDeProvision ? a.otraPercepcionFuente : undefined,
           otras_deducciones_concepto: a.otraDeduccionConcepto || undefined,
           prestamos_monto: loanDeductionTotal,
           prestamos_concepto: loanConceptsForEmployee.length > 0 ? loanConceptsForEmployee.join(", ") : undefined,
@@ -647,6 +678,13 @@ export default function PayrollPage() {
     const totalPatronal = details.reduce((s, d) => s + d.patronal_amount, 0);
     const totalLoanDeductions = details.reduce((s, d) => s + d.loan_deduction, 0);
     const totalProvision = Object.values(provisionByKey).reduce((s, amount) => s + amount, 0);
+    // totalProvisionPayout: parte de totalGross que NO se debita a
+    // salaryExpenseAccount porque se marco como pago de una provision
+    // ya acumulada -- ver provisionPayoutLines mas abajo. gross_amount
+    // de cada detalle y totalGross NO cambian (siguen reflejando el
+    // total devengado real del periodo para el recibo); lo que cambia
+    // es solo contra que cuenta se debita esa porcion en el asiento.
+    const totalProvisionPayout = Object.values(provisionPayoutByKey).reduce((s, amount) => s + amount, 0);
 
     const { data: lastEntry } = await supabase.from("journal_entries").select("entry_number").eq("company_id", companyId).order("entry_number", { ascending: false }).limit(1).single();
     const nextEntryNumber = (lastEntry?.entry_number || 0) + 1;
@@ -688,12 +726,25 @@ export default function PayrollPage() {
       ? [{ journal_entry_id: entry.id, account_id: loanAssetAccount, debit: 0, credit: totalLoanDeductions }]
       : [];
 
+    // provisionPayoutLines: la porcion de "Otra Percepcion" marcada como
+    // pago de una provision ya acumulada DEBITA la cuenta "Provision de
+    // X por Pagar" (reduce el pasivo) en vez de sumarse al gasto de
+    // nomina -- por eso la linea de salaryExpenseAccount de abajo resta
+    // totalProvisionPayout de totalGross, para que el asiento siga
+    // cuadrando (el debito total no cambia, solo se reparte entre dos
+    // cuentas distintas). No se postea nada si no se eligio ninguna
+    // fuente de provision esta corrida.
+    const provisionPayoutLines = Object.entries(provisionPayoutByKey)
+      .filter(([, amount]) => amount > 0)
+      .map(([key, amount]) => ({ journal_entry_id: entry.id, account_id: provisionPayableAccounts[key], debit: amount, credit: 0 }));
+
     await supabase.from("journal_lines").insert([
-      { journal_entry_id: entry.id, account_id: salaryExpenseAccount, debit: totalGross, credit: 0 },
+      { journal_entry_id: entry.id, account_id: salaryExpenseAccount, debit: totalGross - totalProvisionPayout, credit: 0 },
       { journal_entry_id: entry.id, account_id: cashAccount, debit: 0, credit: totalNet },
       { journal_entry_id: entry.id, account_id: employeeWithholdingAccount, debit: 0, credit: totalDeductions },
       ...patronalLines,
       ...provisionLines,
+      ...provisionPayoutLines,
       ...loanLines,
     ]);
 
@@ -893,7 +944,7 @@ export default function PayrollPage() {
         <div style={{ ...theme.cardStyle, marginBottom: 20 }}>
           <h3 style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginBottom: 6 }}>Ajustes por Empleado (opcional, para esta corrida)</h3>
           <p style={{ fontSize: 12, color: "#8B93A7", marginBottom: 10 }}>
-            Deja en blanco lo que no aplique. Horas extra y feriados/descanso trabajados se SUMAN al sueldo basico; faltas e ISLR se RESTAN del neto. Formulas segun LOTTT Venezuela (recargo 50% hora extra diurna, 50%+30% nocturna, dia feriado/descanso trabajado paga doble) -- revisalas con tu criterio profesional si tu convencion colectiva usa otro recargo. "Otra Percepcion" y "Otra Deduccion" son de MONTO LIBRE -- calcula tu el monto (aguinaldo, prima vacacional, vales, bonos, pension alimenticia, anticipos, etc. no se calculan automaticamente aqui) y escribelo junto con el nombre del concepto; asi aparecera en el recibo.
+            Deja en blanco lo que no aplique. Horas extra y feriados/descanso trabajados se SUMAN al sueldo basico; faltas e ISLR se RESTAN del neto. Formulas segun LOTTT Venezuela (recargo 50% hora extra diurna, 50%+30% nocturna, dia feriado/descanso trabajado paga doble) -- revisalas con tu criterio profesional si tu convencion colectiva usa otro recargo. "Otra Percepcion" y "Otra Deduccion" son de MONTO LIBRE -- calcula tu el monto (aguinaldo, prima vacacional, vales, bonos, pension alimenticia, anticipos, etc. no se calculan automaticamente aqui) y escribelo junto con el nombre del concepto; asi aparecera en el recibo. Si configuraste Provisiones de Prestaciones (vacaciones, aguinaldo), "Otra Percepcion" tiene un tercer selector: elige "Gasto Directo" para montos que nunca se provisionaron (bonos, vales), o "Pago de Provision: X" cuando este monto es el PAGO de un beneficio ya provisionado en corridas anteriores -- en ese caso se carga contra el pasivo de esa provision en vez de duplicar el gasto. El sistema no verifica si hay provision acumulada suficiente para ese empleado; esa validacion queda en tu criterio.
           </p>
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1040 }}>
@@ -926,6 +977,19 @@ export default function PayrollPage() {
                       <td style={{ padding: "4px 6px" }}>
                         <input value={a.otraPercepcionConcepto} onChange={(e) => setAdjField(emp.id, "otraPercepcionConcepto", e.target.value)} style={smallTextInput} placeholder="Ej. Aguinaldo" />
                         <input type="number" min="0" step="0.01" value={a.otraPercepcionMonto} onChange={(e) => setAdjField(emp.id, "otraPercepcionMonto", e.target.value)} style={smallNumInput} placeholder="0.00" />
+                        {provisionKeys.length > 0 && (
+                          <select
+                            value={a.otraPercepcionFuente}
+                            onChange={(e) => setAdjField(emp.id, "otraPercepcionFuente", e.target.value)}
+                            style={{ ...smallNumInput, marginTop: 4 }}
+                            title="Si este monto es el PAGO de una provision ya acumulada (vacaciones, aguinaldo), elige aqui su clave para que se cargue contra el pasivo en vez de duplicar el gasto. Deja 'Gasto Directo' para bonos, vales u otros montos que nunca se provisionaron."
+                          >
+                            <option value="">Gasto Directo</option>
+                            {provisionKeys.map((key) => (
+                              <option key={key} value={key}>Pago de Provision: {chargeLabel(key)}</option>
+                            ))}
+                          </select>
+                        )}
                       </td>
                       <td style={{ padding: "4px 6px" }}>
                         <input value={a.otraDeduccionConcepto} onChange={(e) => setAdjField(emp.id, "otraDeduccionConcepto", e.target.value)} style={smallTextInput} placeholder="Ej. Pension Alimenticia" />
