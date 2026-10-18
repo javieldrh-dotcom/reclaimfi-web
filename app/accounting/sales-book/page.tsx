@@ -50,7 +50,7 @@ export default function SalesBookPage() {
         const { data: companyData } = await supabase.from("companies").select("name, tax_id").eq("id", cid).single();
         setCompanyName(companyData?.name ?? "");
         setCompanyRif(companyData?.tax_id ?? "");
-        const { data: acc } = await supabase.from("chart_of_accounts").select("id, account_code, account_name, account_type").eq("company_id", cid).in("account_type", ["ASSET", "REVENUE", "LIABILITY"]);
+        const { data: acc } = await supabase.from("chart_of_accounts").select("id, account_code, account_name, account_type").eq("company_id", cid).eq("is_active", true).in("account_type", ["ASSET", "REVENUE", "LIABILITY"]);
         setAccounts(acc ?? []);
         const vatPayableDefault = (acc ?? []).find((a: any) => a.account_name.toLowerCase().includes("iva por pagar"));
         if (vatPayableDefault) setVatPayableAccountId(vatPayableDefault.id);

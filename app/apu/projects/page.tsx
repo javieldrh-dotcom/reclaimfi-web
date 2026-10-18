@@ -49,12 +49,12 @@ export default function ApuProjectsPage() {
       const cid = uc?.company_id ?? null;
       setCompanyId(cid);
       if (cid) {
-        const { data: ar } = await supabase.from("chart_of_accounts").select("id, account_code, account_name").eq("company_id", cid).eq("account_type", "ASSET");
-        const { data: rev } = await supabase.from("chart_of_accounts").select("id, account_code, account_name").eq("company_id", cid).eq("account_type", "REVENUE");
+        const { data: ar } = await supabase.from("chart_of_accounts").select("id, account_code, account_name").eq("company_id", cid).eq("is_active", true).eq("account_type", "ASSET");
+        const { data: rev } = await supabase.from("chart_of_accounts").select("id, account_code, account_name").eq("company_id", cid).eq("is_active", true).eq("account_type", "REVENUE");
         setArAccounts(ar ?? []);
         setRevenueAccounts(rev ?? []);
-        const { data: orderD } = await supabase.from("chart_of_accounts").select("id").eq("company_id", cid).eq("account_type", "ORDER_DEBTOR").ilike("account_name", "%Contratos por Ejecutar%").single();
-        const { data: orderC } = await supabase.from("chart_of_accounts").select("id").eq("company_id", cid).eq("account_type", "ORDER_CREDITOR").ilike("account_name", "%Responsabilidad por Contratos%").single();
+        const { data: orderD } = await supabase.from("chart_of_accounts").select("id").eq("company_id", cid).eq("is_active", true).eq("account_type", "ORDER_DEBTOR").ilike("account_name", "%Contratos por Ejecutar%").single();
+        const { data: orderC } = await supabase.from("chart_of_accounts").select("id").eq("company_id", cid).eq("is_active", true).eq("account_type", "ORDER_CREDITOR").ilike("account_name", "%Responsabilidad por Contratos%").single();
         setOrderDebtorAccount(orderD);
         setOrderCreditorAccount(orderC);
         const { data: compRep } = await supabase.from("companies").select("legal_representative_name, legal_representative_id, legal_representative_position").eq("id", cid).single();

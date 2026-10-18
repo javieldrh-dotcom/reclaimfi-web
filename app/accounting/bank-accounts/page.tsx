@@ -63,7 +63,7 @@ export default function BankAccountsPage() {
       const cid = uc?.company_id ?? null;
       setCompanyId(cid);
       if (cid) {
-        const { data: acc } = await supabase.from("chart_of_accounts").select("id, account_code, account_name, account_type").eq("company_id", cid).eq("account_type", "ASSET");
+        const { data: acc } = await supabase.from("chart_of_accounts").select("id, account_code, account_name, account_type").eq("company_id", cid).eq("is_active", true).eq("account_type", "ASSET");
         setGlAccounts(acc ?? []);
         await loadBankAccounts(cid);
       }

@@ -41,7 +41,7 @@ export default function ApBillsPage() {
       const cid = uc?.company_id ?? null;
       setCompanyId(cid);
       if (cid) {
-        const { data: acc } = await supabase.from("chart_of_accounts").select("id, account_code, account_name, account_type").eq("company_id", cid).in("account_type", ["LIABILITY", "EXPENSE", "ASSET"]);
+        const { data: acc } = await supabase.from("chart_of_accounts").select("id, account_code, account_name, account_type").eq("company_id", cid).eq("is_active", true).in("account_type", ["LIABILITY", "EXPENSE", "ASSET"]);
         setAccounts(acc ?? []);
         await loadBills(cid);
       }

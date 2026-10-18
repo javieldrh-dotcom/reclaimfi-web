@@ -3,124 +3,214 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/app/lib/supabase";
 import { getVerticalTheme } from "@/app/core/design/tokens";
 import VerticalPageLayout from "@/app/components/VerticalPageLayout";
-import { generateFinancialStatementPdf } from "@/app/core/reports/generateFinancialStatementPdf";
 import AccountSearchSelect from "@/app/components/AccountSearchSelect";
-import { generateProfessionalDiarioPdf } from "@/app/core/reports/generateProfessionalDiarioPdf";
-import { logCompanyLedgerEvent } from "@/app/lib/logLedgerEvent";
-import { findLockingPeriod } from "@/app/lib/accounting/periodLock";
-interface Account { id: string; account_code: string; account_name: string; }
-interface Line { account_id: string; debit: string; credit: string; }
+import { applyThirdPartyCharges, fetchPayrollChargesConfig, filterEmployerChargesByHeadcount, VE_DEFAULT_PAYROLL_CHARGES, type PayrollChargesConfig } from "@/app/lib/jurisdictionTax";
+// Nota: PAYROLL_CHARGES_REFERENCE_EXAMPLES (otras jurisdicciones) no se
+// importa aqui -- vive en jurisdictionTax.ts como plantillas de
+// referencia que se cargan manualmente desde Admin -> Jurisdiction
+// Modules, nunca de forma automatica.
+import { generatePayslipPdf } from "@/app/core/reports/generatePayslipPdf";
 
-const DIARIO_DATE_FORMATTER = new Intl.DateTimeFormat("es-VE", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
-
-function formatDiarioDate(dateStr: string): string {
-  const d = new Date(dateStr + "T00:00:00Z");
-  if (isNaN(d.getTime())) return dateStr;
-  const formatted = DIARIO_DATE_FORMATTER.format(d);
-  return formatted.charAt(0).toUpperCase() + formatted.slice(1);
-}
-
-function groupEntriesByDay(entriesList: any[]): { date: string; items: any[] }[] {
-  const groups: { date: string; items: any[] }[] = [];
-  entriesList.forEach((e) => {
-    const last = groups[groups.length - 1];
-    if (last && last.date === e.entry_date) {
-      last.items.push(e);
-    } else {
-      groups.push({ date: e.entry_date, items: [e] });
-    }
-  });
-  return groups;
-}
-
-function summarizeByAccount(entriesList: any[]): { code: string; name: string; folio: number | string; debit: number; credit: number }[] {
-  const map: Record<string, { code: string; name: string; folio: number | string; debit: number; credit: number }> = {};
-  entriesList.forEach((e) => {
-    (e.journal_lines ?? []).forEach((l: any) => {
-      const acc = l.chart_of_accounts;
-      if (!acc) return;
-      const key = acc.id ?? acc.account_code;
-      if (!map[key]) {
-        map[key] = { code: acc.account_code, name: acc.account_name, folio: acc.mayor_folio ?? "-", debit: 0, credit: 0 };
-      }
-      map[key].debit += l.debit || 0;
-      map[key].credit += l.credit || 0;
-    });
-  });
-  return Object.values(map).sort((a, b) => {
-    const fa = typeof a.folio === "number" ? a.folio : Infinity;
-    const fb = typeof b.folio === "number" ? b.folio : Infinity;
-    return fa - fb;
-  });
-}
-
-export default function JournalPage() {
+// Diferenciador "APU <-> Contabilidad en tiempo real", parte nomina: las
+// tasas IVSS/INCES/FAOV ya no estan fijas en el codigo -- se leen de
+// jurisdiction_modules (module_key PAYROLL_CHARGES) segun el
+// jurisdiction_code de la empresa, con las mismas tasas VE de siempre como
+// respaldo (ver VE_DEFAULT_PAYROLL_CHARGES). Ademas, cada empleado puede
+// enlazarse opcionalmente a un proyecto APU (employees.apu_project_id) para
+// comparar el costo real de nomina contra el costo licitado del proyecto.
+export default function PayrollPage() {
   const theme = getVerticalTheme("accounting");
-  const [accounts, setAccounts] = useState<Account[]>([]);
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [companyName, setCompanyName] = useState("");
-  const [currencyDoc, setCurrencyDoc] = useState("USD");
-  const [description, setDescription] = useState("");
-  const [workPeriod, setWorkPeriod] = useState(new Date().toISOString().slice(0, 10));
-  const [entryDateInput, setEntryDateInput] = useState(new Date().toISOString().slice(0, 10));
-  const [currency, setCurrency] = useState("USD");
-  const [exchangeRate, setExchangeRate] = useState("1");
-  const [lines, setLines] = useState<Line[]>([{ account_id: "", debit: "", credit: "" }, { account_id: "", debit: "", credit: "" }]);
+  const [companyRif, setCompanyRif] = useState("");
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [runs, setRuns] = useState<any[]>([]);
+  // Recibos de pago: detalle por empleado de cada corrida, cargado solo
+  // cuando el usuario expande esa corrida (no de entrada, para no traer
+  // payroll_details de todas las corridas historicas sin necesidad).
+  const [expandedRunId, setExpandedRunId] = useState<string | null>(null);
+  const [runDetails, setRunDetails] = useState<Record<string, any[]>>({});
+  const [loadingDetailsFor, setLoadingDetailsFor] = useState<string | null>(null);
+  const [accounts, setAccounts] = useState<any[]>([]);
+  const [apuProjects, setApuProjects] = useState<any[]>([]);
+  const [payrollChargesConfig, setPayrollChargesConfig] = useState<PayrollChargesConfig | null>(null);
+  const [empName, setEmpName] = useState("");
+  const [empCedula, setEmpCedula] = useState("");
+  // Identificadores adicionales del empleado mas alla de la cedula
+  // principal (ej. RFC/NSS en Mexico) -- keyed por "code" tal como lo
+  // declara activeCharges.labels.extra_employee_ids. Se guardan en
+  // employees.extra_ids (jsonb). Si la jurisdiccion activa no declara
+  // ninguno (caso VE y la mayoria), este objeto queda vacio y no se
+  // muestra ningun campo extra en el formulario.
+  const [empExtraIds, setEmpExtraIds] = useState<Record<string, string>>({});
+  const [empPosition, setEmpPosition] = useState("");
+  const [empSalary, setEmpSalary] = useState("");
+  const [empApuProjectId, setEmpApuProjectId] = useState("");
   const [message, setMessage] = useState("");
-  const [entries, setEntries] = useState<any[]>([]);
-  const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
-  const [lastEntryNumber, setLastEntryNumber] = useState(0);
-  const [availableYears, setAvailableYears] = useState<string[]>([]);
-  const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
-  const [presentationMode, setPresentationMode] = useState(false);
-  const [displayLimit, setDisplayLimit] = useState(50);
-  const [accountingConvention, setAccountingConvention] = useState("REGIONAL_VE");
+  const [periodStart, setPeriodStart] = useState("");
+  const [payrollCurrency, setPayrollCurrency] = useState("USD");
+  const [payrollExchangeRate, setPayrollExchangeRate] = useState("1");
+  const [periodEnd, setPeriodEnd] = useState("");
+  const [salaryExpenseAccount, setSalaryExpenseAccount] = useState("");
+  const [cashAccount, setCashAccount] = useState("");
+  const [employeeWithholdingAccount, setEmployeeWithholdingAccount] = useState("");
+  // Obligaciones patronales: antes era una sola cuenta de gasto y una
+  // sola cuenta de pasivo para TODA la carga patronal sumada (IVSS +
+  // INCES + FAOV + Paro Forzoso, etc). Javiel lleva esas cargas en
+  // cuentas separadas en su plan de cuentas (como hace la mayoria de
+  // empresas VE reales), asi que ahora hay un par gasto/pasivo POR CADA
+  // clave de employer_pct de jurisdiction_modules (ver
+  // app/lib/jurisdictionTax.ts) en vez de uno consolidado. Las
+  // retenciones al EMPLEADO (employeeWithholdingAccount, arriba) se
+  // dejan como una sola cuenta a proposito -- Javiel confirmo que esas
+  // si las lleva consolidadas.
+  const [patronalExpenseAccounts, setPatronalExpenseAccounts] = useState<Record<string, string>>({});
+  const [patronalPayableAccounts, setPatronalPayableAccounts] = useState<Record<string, string>>({});
+  // Provisiones de prestaciones futuras (vacaciones, aguinaldo, etc.) --
+  // mismo patron de un par gasto/pasivo POR CADA clave de provision_pct
+  // que las obligaciones patronales de arriba, pero semanticamente es
+  // otra cosa (ver nota en jurisdictionTax.ts). Vacio si la jurisdiccion
+  // activa no tiene ninguna provision configurada (caso VE y la mayoria
+  // por defecto).
+  const [provisionExpenseAccounts, setProvisionExpenseAccounts] = useState<Record<string, string>>({});
+  const [provisionPayableAccounts, setProvisionPayableAccounts] = useState<Record<string, string>>({});
+  const [processing, setProcessing] = useState(false);
 
-  async function loadAvailableYears(cid: string) {
-    const { data } = await supabase.from("journal_entries").select("entry_date").eq("company_id", cid).order("entry_date", { ascending: true });
-    const years = Array.from(new Set((data ?? []).map((e: any) => e.entry_date.slice(0, 4)))).sort((a, b) => b.localeCompare(a));
-    setAvailableYears(years);
-    if (years.length > 0 && !years.includes(selectedYear)) {
-      setSelectedYear(years[0]);
-    }
-    return years;
+  // Prestamos y Anticipos a Empleados: antes, un prestamo solo podia
+  // registrarse escribiendo el monto a mano en "Otra Deduccion" cada
+  // corrida (sin memoria de cuanto faltaba por cobrar). Ahora
+  // payroll_loans guarda el saldo real y Nomina lo descuenta solo (el
+  // minimo entre la cuota y el saldo restante) hasta llegar a 0 -- ver
+  // migracion 2026-10-16-payroll-loans.sql. loanAssetAccount es la
+  // cuenta de ACTIVO ("Prestamos a Empleados") que se debita al otorgar
+  // el prestamo (contra cashAccount) y se acredita cada corrida al
+  // descontarlo (en vez de ir a employeeWithholdingAccount, porque
+  // recuperar un activo no es una retencion de ley ni un gasto).
+  const [loans, setLoans] = useState<any[]>([]);
+  const [loanAssetAccount, setLoanAssetAccount] = useState("");
+  const [loanEmployeeId, setLoanEmployeeId] = useState("");
+  const [loanConcept, setLoanConcept] = useState("");
+  const [loanPrincipal, setLoanPrincipal] = useState("");
+  const [loanInstallment, setLoanInstallment] = useState("");
+  const [creatingLoan, setCreatingLoan] = useState(false);
+
+  // Ajustes opcionales por empleado para esta corrida especifica (horas
+  // extra, dias feriados/descanso trabajados, dias de falta, ISLR). Antes
+  // la nomina solo calculaba dias_trabajados x salario_diario para todos
+  // los empleados por igual -- Javiel pidio que el recibo pueda reflejar
+  // estos conceptos como es uso cotidiano en Venezuela. Se guardan por
+  // employee_id, vacios por defecto (0), y se reinician despues de cada
+  // corrida procesada.
+  // otraPercepcionConcepto/Monto y otraDeduccionConcepto/Monto: campos
+  // de monto LIBRE (sin formula) para percepciones/deducciones que
+  // exigen un calculo legal que este sistema no fabrica (aguinaldo,
+  // prima vacacional, vales de despensa, bonos -- percepcion; pension
+  // alimenticia, anticipos -- deduccion). El contador calcula el monto
+  // con su propio criterio/software de nomina y lo ingresa aqui tal
+  // cual; el sistema solo lo suma/resta del neto y lo refleja en el
+  // recibo con el concepto que el contador escriba.
+  // otraPercepcionFuente: a que se carga contablemente "Otra Percepcion"
+  // -- vacio (por defecto) = gasto directo de nomina, como siempre. Si
+  // el contador elige una clave de provision (vacaciones, aguinaldo...),
+  // este monto deja de sumarse al gasto de nomina y en cambio DEBITA la
+  // cuenta "Provision de X por Pagar" de esa clave -- es decir, se
+  // interpreta como el PAGO de un beneficio que ya se habia provisionado
+  // en corridas anteriores (reduce el pasivo en vez de duplicar el
+  // gasto). El sistema NO lleva un saldo de provision acumulada por
+  // empleado (a diferencia de los prestamos, que si tienen
+  // balance_remaining) -- es responsabilidad del contador verificar que
+  // haya provision suficiente acumulada para ese empleado antes de
+  // elegir esta opcion; aqui solo se ofrece el mecanismo contable
+  // correcto, no se fabrica esa validacion.
+  type EmployeeAdjustment = {
+    hed: string; hen: string; fd: string; falta: string; islr: string;
+    otraPercepcionConcepto: string; otraPercepcionMonto: string; otraPercepcionFuente: string;
+    otraDeduccionConcepto: string; otraDeduccionMonto: string;
+  };
+  const [employeeAdjustments, setEmployeeAdjustments] = useState<Record<string, EmployeeAdjustment>>({});
+  const EMPTY_ADJ: EmployeeAdjustment = {
+    hed: "", hen: "", fd: "", falta: "", islr: "",
+    otraPercepcionConcepto: "", otraPercepcionMonto: "", otraPercepcionFuente: "",
+    otraDeduccionConcepto: "", otraDeduccionMonto: "",
+  };
+  function getAdj(empId: string): EmployeeAdjustment {
+    return employeeAdjustments[empId] || EMPTY_ADJ;
+  }
+  function setAdjField(empId: string, field: keyof EmployeeAdjustment, value: string) {
+    setEmployeeAdjustments((prev) => ({ ...prev, [empId]: { ...getAdj(empId), [field]: value } }));
   }
 
-  async function loadEntries(cid: string, year: string) {
-    let query = supabase
-      .from("journal_entries")
-      .select("id, description, entry_date, status, entry_number, reversed_by_entry_id, reversal_of_entry_id, exchange_rate")
-      .eq("company_id", cid)
-      .eq("status", "ACTIVE")
-      .order("entry_date", { ascending: true })
-      .order("entry_number", { ascending: true });
-    if (year !== "TODOS") {
-      query = query.gte("entry_date", year + "-01-01").lte("entry_date", year + "-12-31");
-    }
-    const { data: entriesData } = await query;
-    if (!entriesData || entriesData.length === 0) { setEntries([]); return; }
-    const maxNum = Math.max(...entriesData.map((e: any) => e.entry_number || 0));
-    setLastEntryNumber(maxNum);
-    const entryIds = entriesData.map((e: any) => e.id);
-    const { data: linesData } = await supabase
-      .from("journal_lines")
-      .select("id, journal_entry_id, account_id, debit, credit")
-      .in("journal_entry_id", entryIds);
-    const accountIds = Array.from(new Set((linesData ?? []).map((l: any) => l.account_id)));
-    const { data: accountsData } = await supabase
-      .from("chart_of_accounts")
-      .select("id, account_code, account_name, mayor_folio")
-      .in("id", accountIds);
-    const accountsById: Record<string, any> = {};
-    (accountsData ?? []).forEach((a: any) => { accountsById[a.id] = a; });
-    const enrichedEntries = entriesData.map((e: any) => ({
-      ...e,
-      journal_lines: (linesData ?? [])
-        .filter((l: any) => l.journal_entry_id === e.id)
-        .map((l: any) => ({ ...l, chart_of_accounts: accountsById[l.account_id] }))
-        .sort((a: any, b: any) => (b.debit > 0 ? 1 : 0) - (a.debit > 0 ? 1 : 0)),
-    }));
-    setEntries(enrichedEntries);
+  const activeCharges = payrollChargesConfig ?? VE_DEFAULT_PAYROLL_CHARGES;
+  const employerChargeKeys = Object.keys(activeCharges.employer_pct || {});
+  // Provisiones de prestaciones futuras del MISMO empleado (vacaciones,
+  // aguinaldo, etc.) -- a diferencia de employer_pct, no es un tercero
+  // cobrando, es la empresa reconociendo hoy un gasto que pagara despues.
+  // Vacio para VE por defecto a proposito (ver nota en jurisdictionTax.ts
+  // PayrollChargesConfig.provision_pct): cada empresa decide aqui si
+  // quiere provisionar y a que %, sin que el sistema fabrique la formula
+  // legal de antiguedad/vacaciones/aguinaldo.
+  const provisionKeys = Object.keys(activeCharges.provision_pct || {});
+  function chargeLabel(key: string) {
+    return key.replace(/_/g, " ").toUpperCase();
+  }
+
+  // Filtra la lista de cuentas que ofrece cada selector a las que
+  // probablemente correspondan, en vez de mostrar TODO el plan de
+  // cuentas de ese tipo (gasto o pasivo) -- Javiel reporto que el
+  // selector de obligaciones patronales mostraba cuentas que no tenian
+  // nada que ver (alquiler, inventario, etc.). Si el filtro no encuentra
+  // ninguna coincidencia (porque la cuenta se llama distinto a lo
+  // esperado), se muestra la lista completa de respaldo -- nunca deja a
+  // Javiel sin poder elegir una cuenta que si existe.
+  function filterAccountsByKeywords(list: any[], keywords: string[]) {
+    const matches = list.filter((a) =>
+      keywords.some((k) => (a.account_name || "").toLowerCase().includes(k))
+    );
+    return matches.length > 0 ? matches : list;
+  }
+  const expenseAccounts = accounts.filter((a) => a.account_type === "EXPENSE");
+  const liabilityAccounts = accounts.filter((a) => a.account_type === "LIABILITY");
+  const assetAccounts = accounts.filter((a) => a.account_type === "ASSET");
+  const salaryExpenseOptions = filterAccountsByKeywords(expenseAccounts, ["sueldo", "salario", "nomina"]);
+  const cashOptions = filterAccountsByKeywords(assetAccounts, ["banco", "caja", "efectivo"]);
+  const employeeWithholdingOptions = filterAccountsByKeywords(liabilityAccounts, ["retenc", "nomina", "empleado"]);
+  const loanAssetOptions = filterAccountsByKeywords(assetAccounts, ["prestamo", "anticipo"]);
+
+  // Cuanto se descontaria a este empleado ESTA corrida por sus
+  // prestamos/anticipos activos (minimo entre cuota y saldo restante,
+  // sumado si tiene mas de uno) -- solo de lectura aqui, el calculo
+  // real que se persiste ocurre en processPayroll().
+  function employeeLoanDeductionThisRun(empId: string): number {
+    return loans
+      .filter((l) => l.employee_id === empId)
+      .reduce((s, l) => s + Math.min(l.installment_amount, l.balance_remaining), 0);
+  }
+  // Para cada carga patronal, las palabras clave son las mismas palabras
+  // de su module_key (ej. "ivss_patronal" -> ["ivss","patronal"]) -- no
+  // se hardcodea un diccionario de sinonimos en espanol para no romper
+  // si otra jurisdiccion usa otras claves.
+  function patronalOptions(list: any[], key: string) {
+    return filterAccountsByKeywords(list, key.split("_"));
+  }
+  // Mismo filtrado que patronalOptions, reusado para las cuentas de
+  // provision (vacaciones, aguinaldo, etc.) -- funcion separada solo
+  // para que el nombre no confunda "carga patronal" con "provision de
+  // beneficio propio" en el codigo, aunque el filtro es identico.
+  function provisionOptions(list: any[], key: string) {
+    return filterAccountsByKeywords(list, key.split("_"));
+  }
+
+  async function loadEmployees(cid: string) {
+    const { data } = await supabase.from("employees").select("*").eq("company_id", cid).eq("status", "ACTIVE").order("full_name");
+    setEmployees(data ?? []);
+  }
+  async function loadRuns(cid: string) {
+    const { data } = await supabase.from("payroll_runs").select("*").eq("company_id", cid).order("period_end", { ascending: false });
+    setRuns(data ?? []);
+  }
+  async function loadLoans(cid: string) {
+    const { data } = await supabase.from("payroll_loans").select("*, employees(full_name)").eq("company_id", cid).eq("status", "ACTIVE").order("created_at", { ascending: false });
+    setLoans(data ?? []);
   }
 
   useEffect(() => {
@@ -131,378 +221,894 @@ export default function JournalPage() {
       const cid = uc?.company_id ?? null;
       setCompanyId(cid);
       if (cid) {
-        const { data: companyData } = await supabase.from("companies").select("name, functional_currency, accounting_convention").eq("id", cid).single();
-        setAccountingConvention(companyData?.accounting_convention ?? "REGIONAL_VE");
-        setCompanyName(companyData?.name ?? "");
-        setCurrencyDoc(companyData?.functional_currency ?? "USD");
-        const { data: acc } = await supabase.from("chart_of_accounts").select("id, account_code, account_name").eq("company_id", cid).order("account_code");
+        const { data: acc } = await supabase.from("chart_of_accounts").select("id, account_code, account_name, account_type").eq("company_id", cid).eq("is_active", true).in("account_type", ["ASSET", "LIABILITY", "EXPENSE"]);
         setAccounts(acc ?? []);
-        const years = await loadAvailableYears(cid);
-        const initialYear = years.length > 0 ? years[0] : new Date().getFullYear().toString();
-        setSelectedYear(initialYear);
-        await loadEntries(cid, initialYear);
+        const { data: projects } = await supabase.from("apu_projects").select("id, project_description").eq("company_id", cid).order("created_at", { ascending: false });
+        setApuProjects(projects ?? []);
+        const { data: company } = await supabase.from("companies").select("name, tax_id, jurisdiction_code").eq("id", cid).maybeSingle();
+        setCompanyName(company?.name ?? "");
+        setCompanyRif(company?.tax_id ?? "");
+        const jCode = company?.jurisdiction_code || "VE";
+        const config = await fetchPayrollChargesConfig(supabase, jCode);
+        setPayrollChargesConfig(config);
+        await loadEmployees(cid);
+        await loadRuns(cid);
+        await loadLoans(cid);
       }
     }
     load();
   }, []);
 
-  async function changeYear(year: string) {
-    setSelectedYear(year);
-    setDisplayLimit(50);
-    if (companyId) await loadEntries(companyId, year);
-  }
-
-  async function changeConvention(convention: string) {
-    setAccountingConvention(convention);
-    if (companyId) {
-      await supabase.from("companies").update({ accounting_convention: convention }).eq("id", companyId);
-    }
-  }
-
-  function updateLine(i: number, f: keyof Line, v: string) { const u = [...lines]; u[i][f] = v; setLines(u); }
-  function addLine() { setLines([...lines, { account_id: "", debit: "", credit: "" }]); }
-  function totalDebit() { return lines.reduce((s, l) => s + (parseFloat(l.debit) || 0), 0); }
-  function totalCredit() { return lines.reduce((s, l) => s + (parseFloat(l.credit) || 0), 0); }
-  function startEdit(entry: any) {
-    // Un asiento ya reversado no debe poder editarse: su reverso quedo fijo
-    // con los montos originales, asi que cambiar el original aqui lo deja
-    // descuadrado frente a su propio reverso.
-    if (entry.reversed_by_entry_id) {
-      alert("Este asiento ya fue reversado y no se puede editar. Si necesitas corregirlo, registra un nuevo asiento.");
-      return;
-    }
-    setEditingEntryId(entry.id);
-    setDescription(entry.description);
-    setEntryDateInput(entry.entry_date);
-    setCurrency(currencyDoc);
-    setExchangeRate("1");
-    setLines((entry.journal_lines ?? []).map((l: any) => ({
-      account_id: l.account_id,
-      debit: l.debit > 0 ? String(l.debit) : "",
-      credit: l.credit > 0 ? String(l.credit) : "",
-    })));
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
-  function cancelEdit() {
-    setEditingEntryId(null);
-    setDescription("");
-    setLines([{ account_id: "", debit: "", credit: "" }, { account_id: "", debit: "", credit: "" }]);
-  }
-  async function saveEntry() {
-    setMessage("");
-    if (!companyId) { setMessage("Sin empresa asociada."); return; }
-    const d = totalDebit(); const c = totalCredit();
-    if (Math.abs(d - c) > 0.01 || d === 0) { setMessage("El asiento no cuadra."); return; }
-    const rate = parseFloat(exchangeRate) || 1;
-    if (editingEntryId) {
-      const { data: periodsForCompany } = await supabase.from("fiscal_periods").select("period_start, period_end").eq("company_id", companyId);
-      const lockingPeriod = findLockingPeriod(entryDateInput, periodsForCompany ?? []);
-      if (lockingPeriod) { setMessage("No se puede editar: la fecha pertenece a un periodo fiscal ya cerrado (" + lockingPeriod.period_start + " a " + lockingPeriod.period_end + ")."); return; }
-      const { error: eUpd } = await supabase.from("journal_entries").update({ description, entry_date: entryDateInput }).eq("id", editingEntryId);
-      if (eUpd) { setMessage("Error: " + eUpd.message); return; }
-      await supabase.from("journal_lines").delete().eq("journal_entry_id", editingEntryId);
-      const rows = lines.filter(l => l.account_id).map(l => ({ journal_entry_id: editingEntryId, account_id: l.account_id, debit: (parseFloat(l.debit) || 0) * rate, credit: (parseFloat(l.credit) || 0) * rate }));
-      const { error: e2 } = await supabase.from("journal_lines").insert(rows);
-      if (e2) { setMessage("Error: " + e2.message); return; }
-      setMessage("Asiento editado correctamente.");
-      cancelEdit();
-      if (companyId) await loadEntries(companyId, selectedYear);
-      return;
-    }
-    const { data: lastEntry } = await supabase.from("journal_entries").select("entry_number").eq("company_id", companyId).eq("status", "ACTIVE").not("entry_number", "is", null).order("entry_number", { ascending: false }).limit(1).maybeSingle();
-    const nextNumber = (lastEntry?.entry_number || 0) + 1;
-    const { data: entry, error: e1 } = await supabase.from("journal_entries").insert([{ company_id: companyId, description, entry_date: entryDateInput, currency, exchange_rate: rate, entry_number: nextNumber }]).select("id").single();
-    if (e1 || !entry) { setMessage("Error: " + e1?.message); return; }
-    const rows = lines.filter(l => l.account_id).map(l => ({ journal_entry_id: entry.id, account_id: l.account_id, debit: (parseFloat(l.debit) || 0) * rate, credit: (parseFloat(l.credit) || 0) * rate }));
-    const { error: e2 } = await supabase.from("journal_lines").insert(rows);
-    if (e2) { setMessage("Error: " + e2.message); return; }
-    setMessage("Asiento Nº " + nextNumber + " guardado correctamente.");
-    setDescription("");
-    setEntryDateInput(workPeriod);
-    setLines([{ account_id: "", debit: "", credit: "" }, { account_id: "", debit: "", credit: "" }]);
-    await loadAvailableYears(companyId);
-    if (companyId) await loadEntries(companyId, selectedYear);
-  }
-
-  async function reverseEntry(entry: any) {
-    if (!companyId) return;
-    if (entry.reversed_by_entry_id) { alert("Este asiento ya fue reversado anteriormente. No se puede reversar dos veces."); return; }
-    const { data: periodsForReversal } = await supabase.from("fiscal_periods").select("period_start, period_end").eq("company_id", companyId);
-    const lockingPeriodForReversal = findLockingPeriod(entry.entry_date, periodsForReversal ?? []);
-    if (lockingPeriodForReversal) { alert("Este asiento pertenece a un periodo fiscal ya cerrado (" + lockingPeriodForReversal.period_start + " a " + lockingPeriodForReversal.period_end + "). No se puede reversar un asiento de un periodo cerrado."); return; }
-    const confirmMsg = "Se creara un asiento nuevo con las cifras invertidas de Nº" + (entry.entry_number ?? "S/N") + ". El asiento original permanecera visible. Confirmar?";
-    if (!window.confirm(confirmMsg)) return;
-
-    const { data: lastEntry } = await supabase.from("journal_entries").select("entry_number").eq("company_id", companyId).eq("status", "ACTIVE").not("entry_number", "is", null).order("entry_number", { ascending: false }).limit(1).maybeSingle();
-    const nextNumber = (lastEntry?.entry_number || 0) + 1;
-    const today = new Date().toISOString().slice(0, 10);
-
-    const { data: newEntry, error: entryError } = await supabase.from("journal_entries").insert([{
+  async function createNewAccount(type: string, target: string) {
+    const name = window.prompt("Nombre de la nueva cuenta:");
+    if (!name || !companyId) return;
+    const prefix = type === "ASSET" ? "1199" : type === "LIABILITY" ? "2199" : "5199";
+    const { data: newAcc, error } = await supabase.from("chart_of_accounts").insert([{
+      account_code: prefix + "-" + Date.now().toString().slice(-4),
+      account_name: name,
+      account_type: type,
       company_id: companyId,
-      description: "Reverso del Asiento Nº" + (entry.entry_number ?? "S/N") + " - " + entry.description,
-      entry_date: today,
-      entry_number: nextNumber,
-      reversal_of_entry_id: entry.id,
+    }]).select("id, account_code, account_name, account_type").single();
+    if (error || !newAcc) { alert("Error al crear cuenta: " + error?.message); return; }
+    setAccounts((prev) => [...prev, newAcc]);
+    if (target === "salary") setSalaryExpenseAccount(newAcc.id);
+    if (target === "cash") setCashAccount(newAcc.id);
+    if (target === "empwith") setEmployeeWithholdingAccount(newAcc.id);
+    if (target === "loanasset") setLoanAssetAccount(newAcc.id);
+    // "patronalexp:<key>" / "patronalpay:<key>" -- un par gasto/pasivo
+    // por cada carga patronal (ivss_patronal, inces, faov, etc.).
+    if (target.startsWith("patronalexp:")) {
+      const key = target.slice("patronalexp:".length);
+      setPatronalExpenseAccounts((prev) => ({ ...prev, [key]: newAcc.id }));
+    }
+    if (target.startsWith("patronalpay:")) {
+      const key = target.slice("patronalpay:".length);
+      setPatronalPayableAccounts((prev) => ({ ...prev, [key]: newAcc.id }));
+    }
+    // "provisionexp:<key>" / "provisionpay:<key>" -- un par gasto/pasivo
+    // por cada provision de prestaciones futuras configurada.
+    if (target.startsWith("provisionexp:")) {
+      const key = target.slice("provisionexp:".length);
+      setProvisionExpenseAccounts((prev) => ({ ...prev, [key]: newAcc.id }));
+    }
+    if (target.startsWith("provisionpay:")) {
+      const key = target.slice("provisionpay:".length);
+      setProvisionPayableAccounts((prev) => ({ ...prev, [key]: newAcc.id }));
+    }
+  }
+
+  async function createEmployee() {
+    setMessage("");
+    if (!companyId || !empName || !empSalary) { setMessage("Completa nombre y salario."); return; }
+    const extraIdsEntries = Object.entries(empExtraIds).filter(([, v]) => v.trim() !== "");
+    const { error } = await supabase.from("employees").insert([{
+      company_id: companyId,
+      full_name: empName,
+      cedula: empCedula || null,
+      position: empPosition,
+      daily_salary: parseFloat(empSalary),
+      apu_project_id: empApuProjectId || null,
+      // employees.extra_ids es jsonb NOT NULL DEFAULT '{}' -- enviar
+      // null explicito (en vez de omitir el campo) IGNORA ese default
+      // y viola la restriccion NOT NULL. Cuando no hay identificadores
+      // extra que guardar, se envia un objeto vacio, nunca null.
+      extra_ids: extraIdsEntries.length > 0 ? Object.fromEntries(extraIdsEntries) : {},
+    }]);
+    if (error) { setMessage("Error: " + error.message); return; }
+    setMessage("Empleado registrado correctamente.");
+    setEmpName(""); setEmpCedula(""); setEmpPosition(""); setEmpSalary(""); setEmpApuProjectId(""); setEmpExtraIds({});
+    if (companyId) await loadEmployees(companyId);
+  }
+
+  // Otorga un prestamo/anticipo nuevo: registra el saldo en
+  // payroll_loans y, por separado, el asiento real del desembolso
+  // (debito Prestamos a Empleados / credito Banco-Caja) -- el descuento
+  // posterior en cada corrida de nomina es un movimiento contable
+  // distinto (ver processPayroll) y no se mezcla con este.
+  async function createLoan() {
+    setMessage("");
+    if (!companyId || !loanEmployeeId || !loanPrincipal || !loanInstallment) {
+      setMessage("Completa empleado, monto del prestamo/anticipo y cuota por nomina.");
+      return;
+    }
+    if (!loanAssetAccount || !cashAccount) {
+      setMessage("Selecciona la cuenta de Prestamos a Empleados (arriba) y la cuenta de Banco/Caja de donde sale el dinero.");
+      return;
+    }
+    const principal = parseFloat(loanPrincipal);
+    const installment = parseFloat(loanInstallment);
+    if (!(principal > 0) || !(installment > 0)) {
+      setMessage("El monto y la cuota deben ser mayores a cero.");
+      return;
+    }
+    setCreatingLoan(true);
+
+    const empName = employees.find((e) => e.id === loanEmployeeId)?.full_name ?? "Empleado";
+    const { data: lastEntry } = await supabase.from("journal_entries").select("entry_number").eq("company_id", companyId).order("entry_number", { ascending: false }).limit(1).single();
+    const nextEntryNumber = (lastEntry?.entry_number || 0) + 1;
+    const { data: entry, error: entryError } = await supabase.from("journal_entries").insert([{
+      company_id: companyId,
+      description: "Prestamo/Anticipo a " + empName + (loanConcept.trim() ? " (" + loanConcept.trim() + ")" : ""),
+      entry_date: new Date().toISOString().slice(0, 10),
+      entry_number: nextEntryNumber,
     }]).select("id").single();
-    if (entryError || !newEntry) { alert("Error al crear reverso: " + entryError?.message); return; }
+    if (entryError || !entry) { setMessage("Error al crear el asiento del desembolso: " + entryError?.message); setCreatingLoan(false); return; }
 
-    const reversedLines = (entry.journal_lines ?? []).map((l: any) => ({
-      journal_entry_id: newEntry.id,
-      account_id: l.account_id,
-      debit: l.credit || 0,
-      credit: l.debit || 0,
+    const { error: loanLinesError } = await supabase.from("journal_lines").insert([
+      { journal_entry_id: entry.id, account_id: loanAssetAccount, debit: principal, credit: 0 },
+      { journal_entry_id: entry.id, account_id: cashAccount, debit: 0, credit: principal },
+    ]);
+    if (loanLinesError) { setMessage("Error al guardar las lineas del asiento del desembolso: " + loanLinesError.message); setCreatingLoan(false); return; }
+
+    const { error: loanError } = await supabase.from("payroll_loans").insert([{
+      company_id: companyId,
+      employee_id: loanEmployeeId,
+      concept: loanConcept.trim() || "Prestamo/Anticipo",
+      principal_amount: principal,
+      installment_amount: installment,
+      balance_remaining: principal,
+      status: "ACTIVE",
+    }]);
+    if (loanError) { setMessage("Error al registrar el prestamo: " + loanError.message); setCreatingLoan(false); return; }
+
+    setMessage("Prestamo/Anticipo registrado (asiento Nº" + nextEntryNumber + "). Se descontara " + installment.toLocaleString(undefined, { maximumFractionDigits: 2 }) + " por nomina hasta cubrir el saldo.");
+    setLoanEmployeeId(""); setLoanConcept(""); setLoanPrincipal(""); setLoanInstallment("");
+    setCreatingLoan(false);
+    await loadLoans(companyId);
+  }
+
+  // Cierre manual sin asiento -- para cuando el saldo se cobro o
+  // condono por un medio distinto al descuento automatico por nomina
+  // (ej. el empleado pago en efectivo aparte, o la empresa decidio
+  // condonarlo). El contador debe registrar ese cobro/condonacion por
+  // su cuenta si aplica; esto solo cierra el seguimiento del saldo.
+  async function markLoanPaid(loanId: string) {
+    if (!window.confirm("Marcar este prestamo/anticipo como cerrado? Esto NO genera ningun asiento contable -- usalo solo si el saldo ya se cobro o condono por otro medio (registra ese movimiento aparte si corresponde).")) return;
+    await supabase.from("payroll_loans").update({ status: "PAID", balance_remaining: 0, paid_off_at: new Date().toISOString() }).eq("id", loanId);
+    if (companyId) await loadLoans(companyId);
+  }
+
+  async function fetchBcvRate() {
+    setMessage("Consultando tasa BCV...");
+    try {
+      const res = await fetch("/api/bcv-rate");
+      const json = await res.json();
+      if (!json.success) { setMessage("No se pudo consultar la tasa BCV: " + json.error); return; }
+      setPayrollCurrency("VES");
+      setPayrollExchangeRate(String(json.rate));
+      setMessage("Tasa BCV de hoy aplicada: " + json.rate + " (" + json.source + ")");
+    } catch (err: any) {
+      setMessage("Error al consultar la tasa: " + err.message);
+    }
+  }
+
+  async function toggleRunDetails(runId: string) {
+    if (expandedRunId === runId) { setExpandedRunId(null); return; }
+    setExpandedRunId(runId);
+    if (runDetails[runId]) return;
+    setLoadingDetailsFor(runId);
+    const { data } = await supabase
+      .from("payroll_details")
+      .select("*, employees(full_name, cedula, position, hire_date, daily_salary, extra_ids)")
+      .eq("payroll_run_id", runId);
+    setRunDetails((prev) => ({ ...prev, [runId]: data ?? [] }));
+    setLoadingDetailsFor(null);
+  }
+
+  function downloadPayslip(run: any, detail: any) {
+    // Las etiquetas (nombre del documento de identidad, nombre del
+    // impuesto a la renta, codigos de cada concepto) se toman de la
+    // configuracion ACTUAL de la jurisdiccion, no de una copia guardada
+    // por corrida -- a diferencia de las tasas/montos, son solo texto
+    // de presentacion, asi que usar la version vigente es razonable
+    // (no cambia ningun monto ya pagado). Si la fila guardada no trae
+    // "labels" (config de antes de que existiera este campo), cae de
+    // vuelta a las etiquetas VE, igual que el resto de la pantalla.
+    const veLabels = VE_DEFAULT_PAYROLL_CHARGES.labels!;
+    const labels = activeCharges.labels ?? {};
+    const concepts = labels.concepts ?? {};
+    const veConcepts = veLabels.concepts!;
+    // extra_employee_ids declara QUE identificadores existen (ej. RFC,
+    // NSS); extra_ids (jsonb en employees) trae los VALORES guardados
+    // para este empleado en particular. Si el empleado no tiene valor
+    // guardado para alguno (lo registraron antes de que existiera ese
+    // campo, o lo dejaron en blanco), el renglon igual aparece con "-"
+    // en vez de desaparecer, para que se note que falta completarlo.
+    const extraIdDefs = labels.extra_employee_ids ?? [];
+    const employeeExtraIds: Record<string, string> = detail.employees?.extra_ids ?? {};
+    const extraEmployeeIds = extraIdDefs.map((def) => ({
+      label: def.label,
+      value: employeeExtraIds[def.code] ?? "",
     }));
-    const { error: revLinesError } = await supabase.from("journal_lines").insert(reversedLines);
-    if (revLinesError) { alert("Error al guardar las lineas del asiento: " + revLinesError.message); return; }
-
-    await supabase.from("journal_entries").update({ reversed_by_entry_id: newEntry.id }).eq("id", entry.id);
-
-    // Fase 5: cadena de custodia unificada - un reverso de asiento no
-    // pertenece a ningun caso forense, se encadena por empresa.
-    await logCompanyLedgerEvent("rf.journal_entry.reversed", companyId, {
-      original_entry_id: entry.id, original_entry_number: entry.entry_number,
-      reversal_entry_id: newEntry.id, reversal_entry_number: nextNumber,
+    const doc = generatePayslipPdf({
+      companyName,
+      companyRif,
+      companyTaxIdLabel: labels.tax_id_label ?? veLabels.tax_id_label,
+      employeeName: detail.employees?.full_name ?? "Empleado",
+      idDocumentLabel: labels.id_document ?? veLabels.id_document,
+      employeeCedula: detail.employees?.cedula ?? "",
+      extraEmployeeIds,
+      employeePosition: detail.employees?.position ?? "",
+      employeeHireDate: detail.employees?.hire_date ?? "",
+      dailySalary: detail.employees?.daily_salary ?? undefined,
+      periodStart: run.period_start,
+      periodEnd: run.period_end,
+      daysWorked: detail.days_worked,
+      // Para el renglon "001 Salario Basico", se usa SOLO el salario base
+      // (dias x salario diario), no el bruto total con horas extra ya
+      // sumadas -- esas se muestran en sus propios renglones. En corridas
+      // anteriores a extra_concepts, no hay forma de separar uno de otro,
+      // asi que cae de vuelta al bruto completo tal cual se guardo.
+      grossAmount: detail.extra_concepts?.base_salary_amount ?? detail.gross_amount,
+      socialSecurity: detail.social_security || 0,
+      // Solo existe en corridas procesadas despues de este cambio --
+      // payroll_details lo persiste tal cual se calculo al momento de
+      // pagar. Recibos de corridas anteriores no lo tienen (columna
+      // null) y el PDF cae de vuelta al monto agregado unico.
+      employeeDeductionsBreakdown: detail.employee_deductions_breakdown || undefined,
+      deductionCodeMap: labels.deduction_codes,
+      extraConcepts: detail.extra_concepts || undefined,
+      conceptLabels: {
+        baseSalary: concepts.base_salary ?? veConcepts.base_salary,
+        overtimeDay: concepts.overtime_day ?? veConcepts.overtime_day,
+        overtimeNight: concepts.overtime_night ?? veConcepts.overtime_night,
+        holidayWorked: concepts.holiday_worked ?? veConcepts.holiday_worked,
+        absence: concepts.absence ?? veConcepts.absence,
+        incomeTax: concepts.income_tax ?? veConcepts.income_tax,
+      },
+      islrAmount: detail.islr_amount || 0,
+      otherDeductions: detail.other_deductions || 0,
+      // Solo existe en corridas procesadas despues de que se agrego
+      // soporte de prestamos/anticipos (ver processPayroll) -- en
+      // corridas anteriores simplemente no aparece el renglon 950.
+      loanDeductionAmount: detail.extra_concepts?.prestamos_monto || 0,
+      netAmount: detail.net_amount,
+      patronalAmount: detail.patronal_amount || 0,
+      // Moneda real con la que se proceso ESA corrida especifica (no la
+      // seleccionada ahora mismo en la pantalla, que pudo cambiar desde
+      // entonces). Corridas procesadas antes de que payroll_runs
+      // guardara esto caen de vuelta a USD, que era el comportamiento
+      // anterior.
+      currency: run.currency || "USD",
     });
-
-    if (companyId) await loadEntries(companyId, selectedYear);
+    const fileName = "Recibo_" + (detail.employees?.full_name ?? "empleado").replace(/\s+/g, "_") + "_" + run.period_end + ".pdf";
+    doc.save(fileName);
   }
-  function downloadPdf() {
-    const activeEntries = entries.filter((e) => e.status === "ACTIVE");
-    const MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-    const entryBlocks = activeEntries.map((e: any) => {
-      const d = new Date(e.entry_date);
-      const yearStr = e.entry_date.slice(0, 4);
-      const monthStr = MESES[d.getUTCMonth()];
-      const rateForEntry = e.exchange_rate && e.exchange_rate > 0 ? e.exchange_rate : 1;
-      const entryLines = (e.journal_lines ?? []).map((l: any) => ({
-        code: presentationMode ? undefined : (l.chart_of_accounts?.account_code ?? ""),
-        name: l.chart_of_accounts?.account_name ?? "",
-        folio: l.chart_of_accounts?.mayor_folio ?? "-",
-        debit: (l.debit || 0) * rateForEntry,
-        credit: (l.credit || 0) * rateForEntry,
-      }));
-      return { year: yearStr, month: monthStr, lines: entryLines, narration: e.description };
+
+  async function processPayroll() {
+    setMessage("");
+    if (!companyId || !periodStart || !periodEnd || !salaryExpenseAccount || !cashAccount || !employeeWithholdingAccount) {
+      setMessage("Completa las fechas y selecciona las cuentas contables.");
+      return;
+    }
+    if (employees.length === 0) { setMessage("No hay empleados activos registrados."); return; }
+    setProcessing(true);
+
+    const start = new Date(periodStart);
+    const end = new Date(periodEnd);
+    const daysInPeriod = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+
+    // Cargas de nomina por jurisdiccion (ver jurisdictionTax.ts). Si la
+    // empresa no tiene fila PAYROLL_CHARGES cargada para su
+    // jurisdiction_code, se usan las mismas tasas VE de siempre -- ninguna
+    // empresa VE existente ve un resultado distinto al de antes.
+    const charges = payrollChargesConfig ?? VE_DEFAULT_PAYROLL_CHARGES;
+    // Cargos patronales condicionados a cantidad de empleados (ej. INCES
+    // en VE solo con 5+ activos, Ley INCES art. 49) -- se evalua una
+    // sola vez por corrida, contra la cantidad de empleados activos de
+    // la empresa, no por empleado individual.
+    const employerPctApplicable = filterEmployerChargesByHeadcount(charges, employees.length);
+    const applicableKeys = Object.keys(employerPctApplicable);
+    const missingAccounts = applicableKeys.filter((k) => !patronalExpenseAccounts[k] || !patronalPayableAccounts[k]);
+    if (missingAccounts.length > 0) {
+      setMessage("Falta seleccionar la cuenta de gasto y/o por pagar de: " + missingAccounts.map(chargeLabel).join(", ") + ".");
+      setProcessing(false);
+      return;
+    }
+    const missingProvisionAccounts = provisionKeys.filter((k) => !provisionExpenseAccounts[k] || !provisionPayableAccounts[k]);
+    if (missingProvisionAccounts.length > 0) {
+      setMessage("Falta seleccionar la cuenta de gasto y/o por pagar de la provision de: " + missingProvisionAccounts.map(chargeLabel).join(", ") + ".");
+      setProcessing(false);
+      return;
+    }
+
+    // Si hay prestamos/anticipos activos a descontar esta corrida, se
+    // exige la cuenta de activo ("Prestamos a Empleados") igual que se
+    // exigen las cuentas patronales -- sin ella no hay donde acreditar
+    // la recuperacion del prestamo y el asiento no balancearia.
+    const hasActiveLoans = loans.some((l) => l.balance_remaining > 0);
+    if (hasActiveLoans && !loanAssetAccount) {
+      setMessage("Hay prestamos/anticipos activos -- selecciona la cuenta \"Prestamos a Empleados\" arriba antes de procesar.");
+      setProcessing(false);
+      return;
+    }
+
+    // patronalByKey acumula cada carga patronal (ivss_patronal, inces,
+    // faov, etc.) por separado entre todos los empleados, para poder
+    // generar una linea de asiento por cada una -- a diferencia de antes,
+    // que sumaba todo en un solo monto "patronal".
+    const patronalByKey: Record<string, number> = {};
+    // provisionByKey: igual que patronalByKey, pero para las provisiones
+    // de prestaciones futuras (vacaciones, aguinaldo, etc.) -- se calcula
+    // y se postea aparte porque su contrapartida contable es distinta
+    // (ver nota mas abajo, donde se generan provisionLines).
+    const provisionByKey: Record<string, number> = {};
+    // provisionPayoutByKey: cuanto de "Otra Percepcion" se marco como
+    // PAGO de una provision ya acumulada (otraPercepcionFuente), por
+    // clave -- se debita contra la cuenta "Provision de X por Pagar"
+    // en vez de sumarse al gasto de nomina (ver provisionPayoutLines
+    // mas abajo). No se confunde con provisionByKey: ese es el
+    // DEVENGADO nuevo de esta corrida (gasto), este es la REVERSION de
+    // devengados de corridas anteriores (pago).
+    const provisionPayoutByKey: Record<string, number> = {};
+    // loanBalanceUpdates: cuanto se descuenta de CADA prestamo individual
+    // esta corrida -- se aplica a payroll_loans DESPUES de guardar la
+    // corrida exitosamente (ver mas abajo), nunca antes, para no dejar
+    // saldos descontados de una corrida que termino fallando.
+    const loanBalanceUpdates: Record<string, number> = {};
+
+    const details = employees.map((emp) => {
+      const fxRate = parseFloat(payrollExchangeRate) || 1;
+
+      // Ajustes opcionales de esta corrida para este empleado. Los
+      // multiplicadores de horas extra y feriado/descanso trabajado se
+      // leen de charges.overtime_rules (configurable por jurisdiccion
+      // en Admin -> Jurisdiction Modules) -- si la fila guardada es de
+      // antes de que este campo existiera, cada multiplicador cae de
+      // vuelta AL VALOR VE campo por campo (no el objeto completo), para
+      // no perder el comportamiento ya configurado. Los valores VE por
+      // defecto (LOTTT): hora extra diurna recargo 50% (Art. 118), hora
+      // extra nocturna 50%+30% (x1.95), feriado/descanso trabajado paga
+      // doble (Art. 119). ISLR: monto de retencion se ingresa
+      // manualmente (la tabla de ISLR por tramos/desgravamenes no se
+      // calcula automaticamente).
+      const overtimeRules = charges.overtime_rules ?? {};
+      const veOvertime = VE_DEFAULT_PAYROLL_CHARGES.overtime_rules!;
+      const extraDiurnaMultiplier = overtimeRules.extra_diurna_multiplier ?? veOvertime.extra_diurna_multiplier!;
+      const extraNocturnaMultiplier = overtimeRules.extra_nocturna_multiplier ?? veOvertime.extra_nocturna_multiplier!;
+      const feriadoDescansoMultiplier = overtimeRules.feriado_descanso_multiplier ?? veOvertime.feriado_descanso_multiplier!;
+
+      const a = getAdj(emp.id);
+      const horasExtraDiurnas = parseFloat(a.hed) || 0;
+      const horasExtraNocturnas = parseFloat(a.hen) || 0;
+      const diasFeriadosDescanso = parseFloat(a.fd) || 0;
+      const diasFalta = parseFloat(a.falta) || 0;
+      const islrAmount = parseFloat(a.islr) || 0;
+      const otraPercepcionMonto = parseFloat(a.otraPercepcionMonto) || 0;
+      const otraDeduccionMonto = parseFloat(a.otraDeduccionMonto) || 0;
+      // Si se eligio una fuente de provision valida (hay cuenta "por
+      // pagar" configurada para esa clave), este monto se acumula en
+      // provisionPayoutByKey (reduce el pasivo) en vez de sumarse al
+      // gasto de nomina via salaryExpenseAccount -- ver nota en la
+      // definicion de otraPercepcionFuente arriba.
+      const otraPercepcionEsPagoDeProvision = !!a.otraPercepcionFuente && !!provisionPayableAccounts[a.otraPercepcionFuente];
+      if (otraPercepcionEsPagoDeProvision && otraPercepcionMonto > 0) {
+        provisionPayoutByKey[a.otraPercepcionFuente] = (provisionPayoutByKey[a.otraPercepcionFuente] || 0) + otraPercepcionMonto;
+      }
+
+      const baseSalaryAmount = emp.daily_salary * daysInPeriod * fxRate;
+      const horaNormal = (emp.daily_salary * fxRate) / 8;
+      const extraDiurnaMonto = horasExtraDiurnas * horaNormal * extraDiurnaMultiplier;
+      const extraNocturnaMonto = horasExtraNocturnas * horaNormal * extraNocturnaMultiplier;
+      const feriadoDescansoMonto = diasFeriadosDescanso * emp.daily_salary * fxRate * feriadoDescansoMultiplier;
+      const faltasMonto = diasFalta * emp.daily_salary * fxRate;
+
+      const gross = baseSalaryAmount + extraDiurnaMonto + extraNocturnaMonto + feriadoDescansoMonto - faltasMonto;
+
+      // employeeCharges guarda el desglose por clave (ivss_empleado,
+      // lph_empleado, paro_forzoso_empleado...) tal como se calculo en
+      // este momento con las tasas vigentes de employee_pct -- se
+      // persiste en payroll_details para que el recibo de pago pueda
+      // mostrar cada retencion por separado (uso cotidiano en Venezuela)
+      // sin tener que recalcular despues con tasas que pudieron cambiar.
+      const { charges: employeeCharges, subTotalTerceros: socialSecurity } = applyThirdPartyCharges(gross, charges.employee_pct);
+
+      // Prestamos/anticipos activos de ESTE empleado: se descuenta el
+      // minimo entre la cuota configurada y el saldo restante (para no
+      // descontar de mas en la ultima cuota), sumando si tiene mas de
+      // uno. loanBalanceUpdates guarda cuanto bajarle a cada prestamo
+      // individual -- se aplica solo si la corrida completa se guarda
+      // bien (ver despues del insert de payroll_runs).
+      const employeeLoans = loans.filter((l) => l.employee_id === emp.id && l.balance_remaining > 0);
+      let loanDeductionTotal = 0;
+      const loanConceptsForEmployee: string[] = [];
+      for (const loan of employeeLoans) {
+        const thisDeduction = Math.min(loan.installment_amount, loan.balance_remaining);
+        if (thisDeduction <= 0) continue;
+        loanDeductionTotal += thisDeduction;
+        loanBalanceUpdates[loan.id] = thisDeduction;
+        if (loan.concept) loanConceptsForEmployee.push(loan.concept);
+      }
+
+      // otraPercepcionMonto (aguinaldo, prima vacacional, vales, bonos...)
+      // se suma al neto y al gasto de nomina, pero NUNCA a la base sobre
+      // la que se calculan IVSS/ISLR arriba (gross, sin modificar) --
+      // ese monto ya viene calculado por el contador con su propio
+      // criterio legal, este sistema no lo vuelve a gravar. La cuota de
+      // prestamo tampoco afecta esa base: solo resta del neto a pagar.
+      const net = gross - socialSecurity - islrAmount - otraDeduccionMonto + otraPercepcionMonto - loanDeductionTotal;
+      const { charges: patronalCharges, subTotalTerceros: patronal } = applyThirdPartyCharges(gross, employerPctApplicable);
+      // Provision de prestaciones futuras (vacaciones, aguinaldo, etc.):
+      // mismo calculo matematico que las cargas patronales (% sobre el
+      // bruto), pero NUNCA toca el neto del empleado ni employeeCharges --
+      // es un reconocimiento contable interno, el trabajador no recibe
+      // ni le descuentan nada por esto hoy.
+      const { charges: provisionCharges } = applyThirdPartyCharges(gross, charges.provision_pct || {});
+      for (const [key, amount] of Object.entries(provisionCharges)) {
+        provisionByKey[key] = (provisionByKey[key] || 0) + amount;
+      }
+      for (const [key, amount] of Object.entries(patronalCharges)) {
+        patronalByKey[key] = (patronalByKey[key] || 0) + amount;
+      }
+      return {
+        employee_id: emp.id,
+        apu_project_id: emp.apu_project_id ?? null,
+        days_worked: daysInPeriod,
+        // gross_amount (usado en el asiento y en totales) SI incluye
+        // otraPercepcionMonto -- es gasto real de nomina de este
+        // periodo -- pero el renglon "001 Salario Basico" del recibo
+        // sigue usando solo base_salary_amount (ver downloadPayslip),
+        // y otraPercepcionMonto aparece en su propio renglon separado.
+        gross_amount: gross + otraPercepcionMonto,
+        social_security: socialSecurity,
+        employee_deductions_breakdown: employeeCharges,
+        islr_amount: islrAmount,
+        extra_concepts: {
+          base_salary_amount: baseSalaryAmount,
+          horas_extra_diurnas_horas: horasExtraDiurnas,
+          horas_extra_diurnas_monto: extraDiurnaMonto,
+          horas_extra_nocturnas_horas: horasExtraNocturnas,
+          horas_extra_nocturnas_monto: extraNocturnaMonto,
+          feriados_descanso_dias: diasFeriadosDescanso,
+          feriados_descanso_monto: feriadoDescansoMonto,
+          faltas_dias: diasFalta,
+          faltas_monto: faltasMonto,
+          otras_percepciones_monto: otraPercepcionMonto,
+          otras_percepciones_concepto: a.otraPercepcionConcepto || undefined,
+          otras_percepciones_fuente: otraPercepcionEsPagoDeProvision ? a.otraPercepcionFuente : undefined,
+          otras_deducciones_concepto: a.otraDeduccionConcepto || undefined,
+          prestamos_monto: loanDeductionTotal,
+          prestamos_concepto: loanConceptsForEmployee.length > 0 ? loanConceptsForEmployee.join(", ") : undefined,
+        },
+        other_deductions: otraDeduccionMonto,
+        loan_deduction: loanDeductionTotal,
+        net_amount: net,
+        patronal_amount: patronal,
+      };
     });
-    const summaryMap: Record<string, { code?: string; name: string; folio: number | string; debit: number; credit: number }> = {};
-    entryBlocks.forEach((block) => {
-      block.lines.forEach((l: any) => {
-        const key = l.folio + "|" + (l.code || "") + "|" + l.name;
-        if (!summaryMap[key]) summaryMap[key] = { code: l.code, name: l.name, folio: l.folio, debit: 0, credit: 0 };
-        summaryMap[key].debit += l.debit;
-        summaryMap[key].credit += l.credit;
-      });
-    });
-    const accountSummary = Object.values(summaryMap).sort((a, b) => {
-      const fa = typeof a.folio === "number" ? a.folio : Infinity;
-      const fb = typeof b.folio === "number" ? b.folio : Infinity;
-      return fa - fb;
-    });
-    const doc = generateProfessionalDiarioPdf(companyName, selectedYear, "Bolivares (Bs)", entryBlocks, 1, accountSummary);
-    doc.save("libro-diario-" + selectedYear + ".pdf");
+
+    const totalGross = details.reduce((s, d) => s + d.gross_amount, 0);
+    const totalDeductions = details.reduce((s, d) => s + d.social_security + d.islr_amount + d.other_deductions, 0);
+    const totalNet = details.reduce((s, d) => s + d.net_amount, 0);
+    const totalPatronal = details.reduce((s, d) => s + d.patronal_amount, 0);
+    const totalLoanDeductions = details.reduce((s, d) => s + d.loan_deduction, 0);
+    const totalProvision = Object.values(provisionByKey).reduce((s, amount) => s + amount, 0);
+    // totalProvisionPayout: parte de totalGross que NO se debita a
+    // salaryExpenseAccount porque se marco como pago de una provision
+    // ya acumulada -- ver provisionPayoutLines mas abajo. gross_amount
+    // de cada detalle y totalGross NO cambian (siguen reflejando el
+    // total devengado real del periodo para el recibo); lo que cambia
+    // es solo contra que cuenta se debita esa porcion en el asiento.
+    const totalProvisionPayout = Object.values(provisionPayoutByKey).reduce((s, amount) => s + amount, 0);
+
+    const { data: lastEntry } = await supabase.from("journal_entries").select("entry_number").eq("company_id", companyId).order("entry_number", { ascending: false }).limit(1).single();
+    const nextEntryNumber = (lastEntry?.entry_number || 0) + 1;
+
+    const { data: entry, error: entryError } = await supabase.from("journal_entries").insert([{
+      company_id: companyId,
+      description: "Nomina " + periodStart + " a " + periodEnd,
+      entry_date: periodEnd,
+      entry_number: nextEntryNumber,
+    }]).select("id").single();
+    if (entryError || !entry) { setMessage("Error al crear asiento: " + entryError?.message); setProcessing(false); return; }
+
+    // Una linea de gasto y una de pasivo POR CADA carga patronal con
+    // monto > 0 (no se postea una clave si quedo en 0, ej. INCES con
+    // menos de 5 empleados), en vez de las 2 lineas unicas de antes.
+    const patronalLines = Object.entries(patronalByKey)
+      .filter(([, amount]) => amount > 0)
+      .flatMap(([key, amount]) => [
+        { journal_entry_id: entry.id, account_id: patronalExpenseAccounts[key], debit: amount, credit: 0 },
+        { journal_entry_id: entry.id, account_id: patronalPayableAccounts[key], debit: 0, credit: amount },
+      ]);
+
+    // Igual que patronalLines, pero para las provisiones de prestaciones
+    // futuras -- NO toca cashAccount ni totalNet (el empleado no recibe
+    // nada hoy), es puro reconocimiento de gasto devengado.
+    const provisionLines = Object.entries(provisionByKey)
+      .filter(([, amount]) => amount > 0)
+      .flatMap(([key, amount]) => [
+        { journal_entry_id: entry.id, account_id: provisionExpenseAccounts[key], debit: amount, credit: 0 },
+        { journal_entry_id: entry.id, account_id: provisionPayableAccounts[key], debit: 0, credit: amount },
+      ]);
+
+    // Linea adicional: recuperacion de Prestamos a Empleados. No va a
+    // employeeWithholdingAccount (esa es para retenciones de ley) ni a
+    // gasto -- es la contrapartida que balancea el gasto de nomina
+    // (salaryExpenseAccount, que no cambia por los prestamos) contra un
+    // neto ya reducido por esa cuota. Ver nota en el map de arriba.
+    const loanLines = totalLoanDeductions > 0
+      ? [{ journal_entry_id: entry.id, account_id: loanAssetAccount, debit: 0, credit: totalLoanDeductions }]
+      : [];
+
+    // provisionPayoutLines: la porcion de "Otra Percepcion" marcada como
+    // pago de una provision ya acumulada DEBITA la cuenta "Provision de
+    // X por Pagar" (reduce el pasivo) en vez de sumarse al gasto de
+    // nomina -- por eso la linea de salaryExpenseAccount de abajo resta
+    // totalProvisionPayout de totalGross, para que el asiento siga
+    // cuadrando (el debito total no cambia, solo se reparte entre dos
+    // cuentas distintas). No se postea nada si no se eligio ninguna
+    // fuente de provision esta corrida.
+    const provisionPayoutLines = Object.entries(provisionPayoutByKey)
+      .filter(([, amount]) => amount > 0)
+      .map(([key, amount]) => ({ journal_entry_id: entry.id, account_id: provisionPayableAccounts[key], debit: amount, credit: 0 }));
+
+    const { error: payrollLinesError } = await supabase.from("journal_lines").insert([
+      { journal_entry_id: entry.id, account_id: salaryExpenseAccount, debit: totalGross - totalProvisionPayout, credit: 0 },
+      { journal_entry_id: entry.id, account_id: cashAccount, debit: 0, credit: totalNet },
+      { journal_entry_id: entry.id, account_id: employeeWithholdingAccount, debit: 0, credit: totalDeductions },
+      ...patronalLines,
+      ...provisionLines,
+      ...provisionPayoutLines,
+      ...loanLines,
+    ]);
+    if (payrollLinesError) { setMessage("Error al guardar las lineas del asiento: " + payrollLinesError.message); setProcessing(false); return; }
+
+    const { data: run, error: runError } = await supabase.from("payroll_runs").insert([{
+      company_id: companyId,
+      period_start: periodStart,
+      period_end: periodEnd,
+      total_gross: totalGross,
+      total_deductions: totalDeductions,
+      total_net: totalNet,
+      journal_entry_id: entry.id,
+      status: "PAID",
+      // Antes no se guardaba -- el recibo de pago mostraba siempre "USD"
+      // sin importar en que moneda se proceso realmente la corrida
+      // (Javiel lo detecto: una corrida en VES con tasa BCV mostraba el
+      // sufijo "USD" en montos que en realidad eran Bolivares).
+      currency: payrollCurrency,
+      exchange_rate: parseFloat(payrollExchangeRate) || 1,
+    }]).select("id").single();
+    if (runError || !run) { setMessage("Error al guardar nomina: " + runError?.message); setProcessing(false); return; }
+
+    await supabase.from("payroll_details").insert(details.map((d) => ({
+      employee_id: d.employee_id,
+      apu_project_id: d.apu_project_id,
+      days_worked: d.days_worked,
+      gross_amount: d.gross_amount,
+      social_security: d.social_security,
+      employee_deductions_breakdown: d.employee_deductions_breakdown,
+      islr_amount: d.islr_amount,
+      extra_concepts: d.extra_concepts,
+      other_deductions: d.other_deductions,
+      net_amount: d.net_amount,
+      patronal_amount: d.patronal_amount,
+      payroll_run_id: run.id,
+    })));
+
+    // Aplicar el descuento a cada prestamo/anticipo SOLO ahora que la
+    // corrida completa (asiento + payroll_runs + payroll_details) se
+    // guardo bien -- si algo de lo anterior fallo, el saldo de los
+    // prestamos se queda intacto para la proxima corrida.
+    let loanBalanceWarning = "";
+    for (const [loanId, deducted] of Object.entries(loanBalanceUpdates)) {
+      const loan = loans.find((l) => l.id === loanId);
+      if (!loan) continue;
+      const newBalance = Math.max(0, loan.balance_remaining - deducted);
+      const { error: loanUpdateError } = await supabase.from("payroll_loans").update({
+        balance_remaining: newBalance,
+        status: newBalance <= 0 ? "PAID" : "ACTIVE",
+        paid_off_at: newBalance <= 0 ? new Date().toISOString() : null,
+      }).eq("id", loanId);
+      if (loanUpdateError) {
+        loanBalanceWarning += " ADVERTENCIA: la nomina se guardo, pero no se pudo actualizar el saldo del prestamo " + loanId + ": " + loanUpdateError.message;
+      }
+    }
+
+    setMessage(
+      "Nomina procesada (Nº" + nextEntryNumber + "). Total Neto: " + totalNet.toLocaleString(undefined, { maximumFractionDigits: 2 }) +
+      ". Obligaciones Patronales: " + totalPatronal.toLocaleString(undefined, { maximumFractionDigits: 2 }) +
+      (totalProvision > 0 ? ". Provisiones de Prestaciones: " + totalProvision.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "") +
+      (totalLoanDeductions > 0 ? ". Prestamos/Anticipos descontados: " + totalLoanDeductions.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "") +
+      ". Asiento balanceado generado correctamente." +
+      loanBalanceWarning
+    );
+    setProcessing(false);
+    setEmployeeAdjustments({});
+    await loadRuns(companyId);
+    await loadLoans(companyId);
   }
-  const inputStyle = theme.inputStyle;
+
+  const inputStyle = { ...theme.inputStyle, fontSize: 20 };
+
   return (
-    <VerticalPageLayout
-      vertical="accounting"
-      title="Libro Diario"
-      subtitle={lastEntryNumber > 0 ? "Ultimo asiento del ejercicio " + selectedYear + ": Nº " + lastEntryNumber : undefined}
-      fullWidth
-      actions={entries.length > 0 ? (
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "#8B93A7", cursor: "pointer" }}>
-            <input type="checkbox" checked={presentationMode} onChange={(e) => setPresentationMode(e.target.checked)} />
-            Modo Presentacion (sin codigos)
-          </label>
-          <button onClick={downloadPdf} style={{ ...theme.buttonStyle, fontSize: 13, padding: "10px 20px" }}>
-            Descargar PDF
-          </button>
+    <VerticalPageLayout vertical="accounting" title="Nomina" subtitle="Registro de empleados y procesamiento de pago con asiento balanceado (incluye retenciones y obligaciones patronales)" fullWidth>
+      <div style={{ ...theme.cardStyle, marginBottom: 20 }}>
+        <p style={{ fontSize: 15, color: theme.accent, fontWeight: 700, marginBottom: 10 }}>Cuentas Contables (requeridas)</p>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 6, flex: 1, minWidth: 220 }}>
+            <AccountSearchSelect accounts={salaryExpenseOptions} value={salaryExpenseAccount} onChange={setSalaryExpenseAccount} placeholder="Gasto de Sueldos..." />
+            <button onClick={() => createNewAccount("EXPENSE", "salary")} style={{ padding: "0 12px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap" }}>+ Nueva</button>
+          </div>
+          <div style={{ display: "flex", gap: 6, flex: 1, minWidth: 220 }}>
+            <AccountSearchSelect accounts={cashOptions} value={cashAccount} onChange={setCashAccount} placeholder="Banco/Caja..." />
+            <button onClick={() => createNewAccount("ASSET", "cash")} style={{ padding: "0 12px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap" }}>+ Nueva</button>
+          </div>
+          <div style={{ display: "flex", gap: 6, flex: 1, minWidth: 220 }}>
+            <AccountSearchSelect accounts={employeeWithholdingOptions} value={employeeWithholdingAccount} onChange={setEmployeeWithholdingAccount} placeholder="Retenciones al Empleado por Pagar (consolidada)..." />
+            <button onClick={() => createNewAccount("LIABILITY", "empwith")} style={{ padding: "0 12px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap" }}>+ Nueva</button>
+          </div>
+          <div style={{ display: "flex", gap: 6, flex: 1, minWidth: 220 }}>
+            <AccountSearchSelect accounts={loanAssetOptions} value={loanAssetAccount} onChange={setLoanAssetAccount} placeholder="Prestamos a Empleados (activo)..." />
+            <button onClick={() => createNewAccount("ASSET", "loanasset")} style={{ padding: "0 12px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap" }}>+ Nueva</button>
+          </div>
         </div>
-      ) : undefined}
-    >
-      {accounts.length > 0 && (
-        <div style={theme.cardStyle}>
-          <div style={{ marginBottom: 16, padding: 14, background: theme.accent + "15", border: "1px solid " + theme.accent, borderRadius: 10 }}>
-            <label style={{ fontSize: 13, color: theme.accent, fontWeight: 700 }}>PERIODO DE TRABAJO (aplica a los nuevos asientos que crees)</label>
-            <input type="date" value={workPeriod} onChange={(e) => { setWorkPeriod(e.target.value); setEntryDateInput(e.target.value); }} style={{ ...inputStyle, marginTop: 6, maxWidth: 200 }} />
-          </div>
-          {editingEntryId && (
-            <div style={{ marginBottom: 12, padding: 10, background: "#FB923C20", border: "1px solid #FB923C", borderRadius: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: 16, color: "#FB923C", fontWeight: 700 }}>Editando asiento existente</span>
-              <button onClick={cancelEdit} style={{ background: "none", border: "1px solid #FB923C", color: "#FB923C", padding: "4px 12px", borderRadius: 8, fontSize: 13, cursor: "pointer" }}>Cancelar Edicion</button>
-            </div>
-          )}
-          <div style={{ display: "flex", gap: 8 }}>
-            <select value={currency} onChange={(e) => setCurrency(e.target.value)} style={inputStyle}>
-              <option value="USD">USD</option>
-              <option value="EUR">EUR</option>
-              <option value="VES">VES (Bolivares)</option>
-              <option value="COP">COP</option>
-              <option value="MXN">MXN</option>
-            </select>
-            <input type="number" step="0.0001" value={exchangeRate} onChange={(e) => setExchangeRate(e.target.value)} style={inputStyle} placeholder="Tasa de cambio" />
-          </div>
-          <input value={description} onChange={(e) => setDescription(e.target.value)} style={{ ...inputStyle, marginTop: 8 }} placeholder="Descripcion" />
-          <div style={{ marginTop: 8 }}>
-            <label style={{ fontSize: 13, color: theme.accent }}>Fecha del Asiento</label>
-            <input type="date" value={entryDateInput} onChange={(e) => setEntryDateInput(e.target.value)} style={{ ...inputStyle, marginTop: 4 }} />
-          </div>
-          {lines.map((line, idx) => (
-            <div key={idx} style={{ display: "flex", gap: 8, marginTop: 8 }}>
-              <AccountSearchSelect accounts={accounts} value={line.account_id} onChange={(id) => updateLine(idx, "account_id", id)} placeholder="Buscar cuenta..." style={{ flex: 2, minWidth: 320 }} />
-              <input type="number" value={line.debit} onChange={(e) => updateLine(idx, "debit", e.target.value)} style={inputStyle} placeholder="Debe" />
-              <input type="number" value={line.credit} onChange={(e) => updateLine(idx, "credit", e.target.value)} style={inputStyle} placeholder="Haber" />
+
+        <p style={{ fontSize: 15, color: theme.accent, fontWeight: 700, marginTop: 20, marginBottom: 6 }}>Obligaciones Patronales (una cuenta de gasto y una por pagar para cada carga)</p>
+        <p style={{ fontSize: 12, color: "#8B93A7", marginBottom: 10 }}>{activeCharges.name}</p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {employerChargeKeys.map((key) => (
+            <div key={key} style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", padding: "8px 10px", background: "#0B0E14", borderRadius: 8 }}>
+              <span style={{ fontSize: 13, color: theme.accent, fontWeight: 700, minWidth: 140 }}>{chargeLabel(key)}</span>
+              <div style={{ display: "flex", gap: 6, flex: 1, minWidth: 220 }}>
+                <AccountSearchSelect
+                  accounts={patronalOptions(expenseAccounts, key)}
+                  value={patronalExpenseAccounts[key] || ""}
+                  onChange={(v) => setPatronalExpenseAccounts((prev) => ({ ...prev, [key]: v }))}
+                  placeholder={"Gasto " + chargeLabel(key) + "..."}
+                />
+                <button onClick={() => createNewAccount("EXPENSE", "patronalexp:" + key)} style={{ padding: "0 12px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap" }}>+ Nueva</button>
+              </div>
+              <div style={{ display: "flex", gap: 6, flex: 1, minWidth: 220 }}>
+                <AccountSearchSelect
+                  accounts={patronalOptions(liabilityAccounts, key)}
+                  value={patronalPayableAccounts[key] || ""}
+                  onChange={(v) => setPatronalPayableAccounts((prev) => ({ ...prev, [key]: v }))}
+                  placeholder={chargeLabel(key) + " por Pagar..."}
+                />
+                <button onClick={() => createNewAccount("LIABILITY", "patronalpay:" + key)} style={{ padding: "0 12px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap" }}>+ Nueva</button>
+              </div>
             </div>
           ))}
-          <button onClick={addLine} style={{ marginTop: 12, color: theme.accent, background: "none", border: "none", cursor: "pointer" }}>+ Linea</button>
-          <p style={{ ...theme.numberStyle, marginTop: 12, fontWeight: 700, color: Math.abs(totalDebit() - totalCredit()) < 0.01 ? theme.subtleAccent : "#F87171" }}>Debe: {totalDebit().toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} | Haber: {totalCredit().toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-          <button onClick={saveEntry} style={{ ...theme.buttonStyle, marginTop: 12 }}>{editingEntryId ? "GUARDAR EDICION" : "GUARDAR"}</button>
-          {message && <p style={{ marginTop: 8, color: message.includes("Error") ? "#F87171" : theme.accent }}>{message}</p>}
         </div>
-      )}
-      <div style={{ marginTop: 24, display: "flex", gap: 8, flexWrap: "wrap" }}>
-        {availableYears.map((y) => (
-          <div key={y} onClick={() => changeYear(y)} style={{
-            padding: "8px 20px", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 15,
-            background: selectedYear === y ? theme.accent : "transparent",
-            color: selectedYear === y ? "#0B0E14" : "#8B93A7",
-            border: selectedYear === y ? "none" : "1px solid #1F2937",
-          }}>
-            Ejercicio {y}
-          </div>
-        ))}
-        <div onClick={() => changeYear("TODOS")} style={{
-          padding: "8px 20px", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 15,
-          background: selectedYear === "TODOS" ? theme.accent : "transparent",
-          color: selectedYear === "TODOS" ? "#0B0E14" : "#8B93A7",
-          border: selectedYear === "TODOS" ? "none" : "1px solid #1F2937",
-        }}>
-          Todos los Ejercicios
-        </div>
-      </div>
+        <p style={{ fontSize: 11, color: "#8B93A7", marginTop: 10 }}>
+          Cada selector solo muestra cuentas cuyo nombre coincide con el rubro. Si no ves la cuenta que buscas, puede que este nombrada distinto en tu plan de cuentas -- en ese caso se muestran todas las cuentas de ese tipo para que la encuentres igual.
+        </p>
 
-      <div style={{ marginTop: 16, ...theme.cardStyle, maxWidth: 500, margin: "16px auto 0" }}>
-        <p style={{ fontSize: 14, color: theme.accent, fontWeight: 700, marginBottom: 8 }}>Convencion Contable del Diario</p>
-        <div style={{ display: "flex", gap: 8 }}>
-          <div onClick={() => changeConvention("REGIONAL_VE")} style={{ padding: "8px 16px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 700, background: accountingConvention === "REGIONAL_VE" ? theme.accent : "transparent", color: accountingConvention === "REGIONAL_VE" ? "#0B0E14" : "#8B93A7", border: accountingConvention === "REGIONAL_VE" ? "none" : "1px solid #1F2937" }}>
-            Regional (Venezuela)
-          </div>
-          <div onClick={() => changeConvention("INTERNATIONAL")} style={{ padding: "8px 16px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 700, background: accountingConvention === "INTERNATIONAL" ? theme.accent : "transparent", color: accountingConvention === "INTERNATIONAL" ? "#0B0E14" : "#8B93A7", border: accountingConvention === "INTERNATIONAL" ? "none" : "1px solid #1F2937" }}>
-            Internacional (IFRS)
-          </div>
-        </div>
-        <p style={{ fontSize: 12, color: "#8B93A7", marginTop: 8 }}>{accountingConvention === "REGIONAL_VE" ? "Permite asientos resumen mensuales (Art. 34 C.Com), libro legal en Bolivares." : "Registro transaccion por transaccion con fecha exacta, formato tabular estandar."}</p>
-      </div>
-
-      {entries.length > 0 && (
-        <div style={{ marginTop: 20 }}>
-          <h2 style={{ fontSize: 26, color: theme.accent, fontFamily: theme.titleStyle.fontFamily, fontWeight: 700 }}>
-            {selectedYear === "TODOS" ? "Todos los Ejercicios" : "Ejercicio Fiscal " + selectedYear}
-          </h2>
-
-          {groupEntriesByDay(entries.slice(0, displayLimit)).map((day) => (
-            <div key={day.date} style={{ marginTop: 22 }}>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 10 }}>
-                <div style={{ width: 6, height: 20, background: theme.accent, borderRadius: 3 }} />
-                <h3 style={{ margin: 0, fontFamily: theme.titleStyle.fontFamily, fontSize: 19, fontWeight: 600, color: theme.textPrimary, textTransform: "capitalize" }}>
-                  {formatDiarioDate(day.date)}
-                </h3>
-              </div>
-              {day.items.map((e) => (
-                <div key={e.id} style={{ ...theme.cardStyle, marginTop: 12, marginLeft: 18 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
-                    <span style={{ fontWeight: 700, fontSize: 18, color: theme.textPrimary }}>
-                      Asiento Nº{e.entry_number ?? "S/N"}
-                      {e.status !== "ACTIVE" && <span style={{ color: "#F87171", fontWeight: 600, fontSize: 13 }}> · ANULADO</span>}
-                      {e.reversed_by_entry_id && <span style={{ color: "#FB923C", fontWeight: 600, fontSize: 13 }}> · REVERSADO</span>}
-                    </span>
-                    <span style={{ fontSize: 14, color: theme.textSecondary, fontStyle: "italic" }}>{e.description}</span>
-                    {e.status === "ACTIVE" && (
-                      <div style={{ display: "flex", gap: 8 }}>
-                        {!e.reversed_by_entry_id && (
-                          <button onClick={() => startEdit(e)} style={{ background: "none", border: "1px solid " + theme.accent, color: theme.accent, padding: "4px 12px", borderRadius: 8, fontSize: 13, cursor: "pointer" }}>
-                            Editar
-                          </button>
-                        )}
-                        {!e.reversed_by_entry_id && (
-                          <button onClick={() => reverseEntry(e)} style={{ background: "none", border: "1px solid #FB923C", color: "#FB923C", padding: "4px 12px", borderRadius: 8, fontSize: 13, cursor: "pointer" }}>
-                            Reversar
-                          </button>
-                        )}
-                      </div>
-                    )}
+        {provisionKeys.length > 0 && (
+          <>
+            <p style={{ fontSize: 15, color: theme.accent, fontWeight: 700, marginTop: 20, marginBottom: 6 }}>Provisiones de Prestaciones Futuras (vacaciones, aguinaldo, etc.)</p>
+            <p style={{ fontSize: 12, color: "#8B93A7", marginBottom: 10 }}>
+              Se reconoce el gasto HOY por un beneficio que se pagara despues al mismo trabajador -- no afecta el neto de esta corrida, ni la cuenta de Banco/Caja. Configura el % a provisionar en Admin -&gt; Modulos de Jurisdiccion (PAYROLL_CHARGES).
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {provisionKeys.map((key) => (
+                <div key={key} style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", padding: "8px 10px", background: "#0B0E14", borderRadius: 8 }}>
+                  <span style={{ fontSize: 13, color: theme.accent, fontWeight: 700, minWidth: 140 }}>{chargeLabel(key)}</span>
+                  <div style={{ display: "flex", gap: 6, flex: 1, minWidth: 220 }}>
+                    <AccountSearchSelect
+                      accounts={provisionOptions(expenseAccounts, key)}
+                      value={provisionExpenseAccounts[key] || ""}
+                      onChange={(v) => setProvisionExpenseAccounts((prev) => ({ ...prev, [key]: v }))}
+                      placeholder={"Gasto Provision de " + chargeLabel(key) + "..."}
+                    />
+                    <button onClick={() => createNewAccount("EXPENSE", "provisionexp:" + key)} style={{ padding: "0 12px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap" }}>+ Nueva</button>
                   </div>
-                  <div style={{ marginTop: 10 }}>
-                    {(e.journal_lines ?? []).map((l: any, idx: number) => (
-                      <div key={idx} style={{ display: "flex", justifyContent: "space-between", fontSize: 15, color: theme.textSecondary, padding: "6px 0", borderBottom: "1px solid " + theme.border + "55" }}>
-                        <span style={{ paddingLeft: l.debit > 0 ? 0 : 18 }}>{presentationMode ? l.chart_of_accounts?.account_name : "Fol. " + (l.chart_of_accounts?.mayor_folio ?? "-") + " · " + l.chart_of_accounts?.account_code + " — " + l.chart_of_accounts?.account_name}</span>
-                        <span style={{ ...theme.numberStyle, whiteSpace: "nowrap" }}>{l.debit > 0 ? "Debe: " + l.debit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "Haber: " + l.credit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid " + theme.border, display: "flex", justifyContent: "flex-end", gap: 24 }}>
-                    <span style={{ fontSize: 13, color: theme.textSecondary }}>Debe: <span style={{ ...theme.numberStyle, color: theme.textPrimary, fontWeight: 600 }}>{(e.journal_lines ?? []).reduce((s: number, l: any) => s + (l.debit || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></span>
-                    <span style={{ fontSize: 13, color: theme.textSecondary }}>Haber: <span style={{ ...theme.numberStyle, color: theme.textPrimary, fontWeight: 600 }}>{(e.journal_lines ?? []).reduce((s: number, l: any) => s + (l.credit || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></span>
+                  <div style={{ display: "flex", gap: 6, flex: 1, minWidth: 220 }}>
+                    <AccountSearchSelect
+                      accounts={provisionOptions(liabilityAccounts, key)}
+                      value={provisionPayableAccounts[key] || ""}
+                      onChange={(v) => setProvisionPayableAccounts((prev) => ({ ...prev, [key]: v }))}
+                      placeholder={"Provision de " + chargeLabel(key) + " por Pagar..."}
+                    />
+                    <button onClick={() => createNewAccount("LIABILITY", "provisionpay:" + key)} style={{ padding: "0 12px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap" }}>+ Nueva</button>
                   </div>
                 </div>
               ))}
             </div>
-          ))}
+          </>
+        )}
+      </div>
 
-          {entries.length > displayLimit && (
-            <div style={{ textAlign: "center", marginTop: 20 }}>
-              <button onClick={() => setDisplayLimit(displayLimit + 50)} style={{ background: "none", border: "1px solid " + theme.accent, color: theme.accent, padding: "10px 24px", borderRadius: 10, fontSize: 15, cursor: "pointer" }}>
-                Cargar 50 mas (mostrando {displayLimit} de {entries.length})
-              </button>
+      {employees.length > 0 && (
+        <div style={{ ...theme.cardStyle, marginBottom: 20 }}>
+          <h3 style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginBottom: 6 }}>Prestamos y Anticipos a Empleados</h3>
+          <p style={{ fontSize: 12, color: "#8B93A7", marginBottom: 10 }}>
+            Registra un prestamo o anticipo con saldo: la cuota se descuenta sola en cada corrida (minimo entre la cuota y el saldo restante) hasta llegar a 0 -- ya no hace falta escribir el monto a mano cada vez en "Otra Deduccion".
+          </p>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-end" }}>
+            <select value={loanEmployeeId} onChange={(e) => setLoanEmployeeId(e.target.value)} style={{ ...inputStyle, flex: 1, minWidth: 180 }}>
+              <option value="">Empleado...</option>
+              {employees.map((e) => <option key={e.id} value={e.id}>{e.full_name}</option>)}
+            </select>
+            <input value={loanConcept} onChange={(e) => setLoanConcept(e.target.value)} style={{ ...inputStyle, flex: 1, minWidth: 180 }} placeholder="Concepto (ej. Prestamo Personal, Anticipo de Sueldo)" />
+            <input type="number" min="0" step="0.01" value={loanPrincipal} onChange={(e) => setLoanPrincipal(e.target.value)} style={{ ...inputStyle, width: 160 }} placeholder="Monto Total" />
+            <input type="number" min="0" step="0.01" value={loanInstallment} onChange={(e) => setLoanInstallment(e.target.value)} style={{ ...inputStyle, width: 160 }} placeholder="Cuota por Nomina" />
+            <button onClick={createLoan} disabled={creatingLoan} style={{ ...theme.buttonStyle, fontSize: 14, whiteSpace: "nowrap" }}>
+              {creatingLoan ? "Registrando..." : "Otorgar"}
+            </button>
+          </div>
+          {loans.length > 0 && (
+            <div style={{ marginTop: 14 }}>
+              {loans.map((l) => (
+                <div key={l.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, padding: "8px 0", borderBottom: "1px solid #1F2937" }}>
+                  <span style={{ fontSize: 13 }}>
+                    {l.employees?.full_name ?? "Empleado"} <span style={{ color: "#8B93A7" }}>- {l.concept}</span>
+                    {" · Saldo: "}
+                    <span style={theme.numberStyle}>{l.balance_remaining.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    {" de "}{l.principal_amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    {" · Cuota: "}{l.installment_amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                  <button onClick={() => markLoanPaid(l.id)} style={{ background: "none", border: "1px solid #8B93A7", color: "#8B93A7", padding: "4px 10px", borderRadius: 6, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap" }}>
+                    Cerrar Manualmente
+                  </button>
+                </div>
+              ))}
             </div>
           )}
-
-          {(() => {
-            const summary = summarizeByAccount(entries);
-            if (summary.length === 0) return null;
-            const totalDebit = summary.reduce((s, r) => s + r.debit, 0);
-            const totalCredit = summary.reduce((s, r) => s + r.credit, 0);
-            return (
-              <div style={{ marginTop: 36, background: "linear-gradient(180deg, " + theme.surface + " 0%, " + theme.background + " 100%)", border: "1px solid " + theme.accent + "55", borderRadius: 16, padding: "26px 28px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 10, marginBottom: 16 }}>
-                  <h2 style={{ margin: 0, fontFamily: theme.titleStyle.fontFamily, fontSize: 22, fontWeight: 700, color: theme.accent }}>Resumen por Cuenta</h2>
-                  <span style={{ fontSize: 13, color: theme.textSecondary }}>
-                    {selectedYear === "TODOS" ? "Todos los ejercicios" : "Ejercicio " + selectedYear} · Excepción del Art. 34, Código de Comercio
-                  </span>
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "70px minmax(0,1fr) 130px 130px 140px", gap: 16, padding: "0 4px 10px", borderBottom: "1px solid " + theme.border, fontSize: 12, letterSpacing: "0.04em", textTransform: "uppercase", color: theme.textSecondary, fontWeight: 600 }}>
-                  <span>Folio</span><span>Cuenta</span><span style={{ textAlign: "right" }}>Debe</span><span style={{ textAlign: "right" }}>Haber</span><span style={{ textAlign: "right" }}>Saldo</span>
-                </div>
-                {summary.map((row) => {
-                  const balance = row.debit - row.credit;
-                  return (
-                    <div key={row.code} style={{ display: "grid", gridTemplateColumns: "70px minmax(0,1fr) 130px 130px 140px", gap: 16, padding: "10px 4px", borderBottom: "1px solid " + theme.border + "33", alignItems: "center" }}>
-                      <span style={{ ...theme.numberStyle, fontSize: 13, color: theme.textSecondary }}>{row.folio}</span>
-                      <span style={{ fontSize: 14, color: theme.textPrimary }}>
-                        {!presentationMode && <span style={{ color: theme.textSecondary, fontSize: 12, fontFamily: theme.numberStyle.fontFamily }}>{row.code} </span>}
-                        {row.name}
-                      </span>
-                      <span style={{ ...theme.numberStyle, textAlign: "right", fontSize: 14 }}>{row.debit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                      <span style={{ ...theme.numberStyle, textAlign: "right", fontSize: 14 }}>{row.credit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                      <span style={{ ...theme.numberStyle, textAlign: "right", fontSize: 14, fontWeight: 600, color: theme.textPrimary }}>
-                        {(balance >= 0 ? "Deudor " : "Acreedor ") + Math.abs(balance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </span>
-                    </div>
-                  );
-                })}
-                <div style={{ display: "grid", gridTemplateColumns: "70px minmax(0,1fr) 130px 130px 140px", gap: 16, padding: "14px 4px 0", marginTop: 4, borderTop: "2px solid " + theme.accent }}>
-                  <span /><span style={{ fontSize: 14, fontWeight: 700, color: theme.textPrimary }}>Totales</span>
-                  <span style={{ ...theme.numberStyle, textAlign: "right", fontSize: 15, fontWeight: 700, color: theme.accent }}>{totalDebit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                  <span style={{ ...theme.numberStyle, textAlign: "right", fontSize: 15, fontWeight: 700, color: theme.accent }}>{totalCredit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                  <span />
-                </div>
-                <p style={{ marginTop: 18, fontSize: 12, color: theme.textSecondary, fontStyle: "italic" }}>
-                  El folio del Mayor se asigna por orden cronológico de primera aparición de cada cuenta. Este resumen cubre {entries.length > displayLimit ? "los asientos cargados de " : "todo "}{selectedYear === "TODOS" ? "el histórico mostrado." : "el ejercicio " + selectedYear + "."}
-                </p>
-              </div>
-            );
-          })()}
+          {loans.length === 0 && <p style={{ fontSize: 13, color: "#8B93A7", marginTop: 10 }}>Sin prestamos/anticipos activos.</p>}
         </div>
       )}
+
+      {employees.length > 0 && (
+        <div style={{ ...theme.cardStyle, marginBottom: 20 }}>
+          <h3 style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginBottom: 6 }}>Ajustes por Empleado (opcional, para esta corrida)</h3>
+          <p style={{ fontSize: 12, color: "#8B93A7", marginBottom: 10 }}>
+            Deja en blanco lo que no aplique. Horas extra y feriados/descanso trabajados se SUMAN al sueldo basico; faltas e ISLR se RESTAN del neto. Formulas segun LOTTT Venezuela (recargo 50% hora extra diurna, 50%+30% nocturna, dia feriado/descanso trabajado paga doble) -- revisalas con tu criterio profesional si tu convencion colectiva usa otro recargo. "Otra Percepcion" y "Otra Deduccion" son de MONTO LIBRE -- calcula tu el monto (aguinaldo, prima vacacional, vales, bonos, pension alimenticia, anticipos, etc. no se calculan automaticamente aqui) y escribelo junto con el nombre del concepto; asi aparecera en el recibo. Si configuraste Provisiones de Prestaciones (vacaciones, aguinaldo), "Otra Percepcion" tiene un tercer selector: elige "Gasto Directo" para montos que nunca se provisionaron (bonos, vales), o "Pago de Provision: X" cuando este monto es el PAGO de un beneficio ya provisionado en corridas anteriores -- en ese caso se carga contra el pasivo de esa provision en vez de duplicar el gasto. El sistema no verifica si hay provision acumulada suficiente para ese empleado; esa validacion queda en tu criterio.
+          </p>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1040 }}>
+              <thead>
+                <tr style={{ textAlign: "left", color: theme.accent, fontSize: 12, fontWeight: 700 }}>
+                  <th style={{ padding: "4px 6px" }}>Empleado</th>
+                  <th style={{ padding: "4px 6px", width: 100 }}>Horas Extra Diurnas</th>
+                  <th style={{ padding: "4px 6px", width: 100 }}>Horas Extra Nocturnas</th>
+                  <th style={{ padding: "4px 6px", width: 110 }}>Dias Feriados/Descanso Trabajados</th>
+                  <th style={{ padding: "4px 6px", width: 90 }}>Dias de Falta</th>
+                  <th style={{ padding: "4px 6px", width: 100 }}>ISLR (monto)</th>
+                  <th style={{ padding: "4px 6px", width: 160 }}>Otra Percepcion (concepto / monto)</th>
+                  <th style={{ padding: "4px 6px", width: 160 }}>Otra Deduccion (concepto / monto)</th>
+                  <th style={{ padding: "4px 6px", width: 100 }}>Cuota Prestamo (automatica)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {employees.map((emp) => {
+                  const a = getAdj(emp.id);
+                  const smallNumInput = { ...theme.inputStyle, fontSize: 13, padding: "4px 8px", width: "100%" };
+                  const smallTextInput = { ...smallNumInput, marginBottom: 4 };
+                  return (
+                    <tr key={emp.id} style={{ borderBottom: "1px solid #1F2937" }}>
+                      <td style={{ padding: "4px 6px", fontSize: 13 }}>{emp.full_name}</td>
+                      <td style={{ padding: "4px 6px" }}><input type="number" min="0" step="0.5" value={a.hed} onChange={(e) => setAdjField(emp.id, "hed", e.target.value)} style={smallNumInput} placeholder="0" /></td>
+                      <td style={{ padding: "4px 6px" }}><input type="number" min="0" step="0.5" value={a.hen} onChange={(e) => setAdjField(emp.id, "hen", e.target.value)} style={smallNumInput} placeholder="0" /></td>
+                      <td style={{ padding: "4px 6px" }}><input type="number" min="0" step="1" value={a.fd} onChange={(e) => setAdjField(emp.id, "fd", e.target.value)} style={smallNumInput} placeholder="0" /></td>
+                      <td style={{ padding: "4px 6px" }}><input type="number" min="0" step="1" value={a.falta} onChange={(e) => setAdjField(emp.id, "falta", e.target.value)} style={smallNumInput} placeholder="0" /></td>
+                      <td style={{ padding: "4px 6px" }}><input type="number" min="0" step="0.01" value={a.islr} onChange={(e) => setAdjField(emp.id, "islr", e.target.value)} style={smallNumInput} placeholder="0" /></td>
+                      <td style={{ padding: "4px 6px" }}>
+                        <input value={a.otraPercepcionConcepto} onChange={(e) => setAdjField(emp.id, "otraPercepcionConcepto", e.target.value)} style={smallTextInput} placeholder="Ej. Aguinaldo" />
+                        <input type="number" min="0" step="0.01" value={a.otraPercepcionMonto} onChange={(e) => setAdjField(emp.id, "otraPercepcionMonto", e.target.value)} style={smallNumInput} placeholder="0.00" />
+                        {provisionKeys.length > 0 && (
+                          <select
+                            value={a.otraPercepcionFuente}
+                            onChange={(e) => setAdjField(emp.id, "otraPercepcionFuente", e.target.value)}
+                            style={{ ...smallNumInput, marginTop: 4 }}
+                            title="Si este monto es el PAGO de una provision ya acumulada (vacaciones, aguinaldo), elige aqui su clave para que se cargue contra el pasivo en vez de duplicar el gasto. Deja 'Gasto Directo' para bonos, vales u otros montos que nunca se provisionaron."
+                          >
+                            <option value="">Gasto Directo</option>
+                            {provisionKeys.map((key) => (
+                              <option key={key} value={key}>Pago de Provision: {chargeLabel(key)}</option>
+                            ))}
+                          </select>
+                        )}
+                      </td>
+                      <td style={{ padding: "4px 6px" }}>
+                        <input value={a.otraDeduccionConcepto} onChange={(e) => setAdjField(emp.id, "otraDeduccionConcepto", e.target.value)} style={smallTextInput} placeholder="Ej. Pension Alimenticia" />
+                        <input type="number" min="0" step="0.01" value={a.otraDeduccionMonto} onChange={(e) => setAdjField(emp.id, "otraDeduccionMonto", e.target.value)} style={smallNumInput} placeholder="0.00" />
+                      </td>
+                      <td style={{ padding: "4px 6px", fontSize: 13, color: "#8B93A7" }}>
+                        {employeeLoanDeductionThisRun(emp.id) > 0 ? employeeLoanDeductionThisRun(emp.id).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "-"}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+        <div style={theme.cardStyle}>
+          <h3 style={{ fontSize: 20, color: theme.accent, fontWeight: 700, marginBottom: 12 }}>Registrar Empleado</h3>
+          <input value={empName} onChange={(e) => setEmpName(e.target.value)} style={inputStyle} placeholder="Nombre completo" />
+          <input value={empCedula} onChange={(e) => setEmpCedula(e.target.value)} style={{ ...inputStyle, marginTop: 8 }} placeholder="Cedula (ej. V-12.345.678)" />
+          {(activeCharges.labels?.extra_employee_ids ?? []).map((idDef) => (
+            <input
+              key={idDef.code}
+              value={empExtraIds[idDef.code] ?? ""}
+              onChange={(e) => setEmpExtraIds((prev) => ({ ...prev, [idDef.code]: e.target.value }))}
+              style={{ ...inputStyle, marginTop: 8 }}
+              placeholder={idDef.label}
+            />
+          ))}
+          <input value={empPosition} onChange={(e) => setEmpPosition(e.target.value)} style={{ ...inputStyle, marginTop: 8 }} placeholder="Cargo" />
+          <input type="number" value={empSalary} onChange={(e) => setEmpSalary(e.target.value)} style={{ ...inputStyle, marginTop: 8 }} placeholder="Salario Diario" />
+          <select value={empApuProjectId} onChange={(e) => setEmpApuProjectId(e.target.value)} style={{ ...inputStyle, marginTop: 8 }}>
+            <option value="">Sin asignar a proyecto APU (administrativo)</option>
+            {apuProjects.map((p) => (
+              <option key={p.id} value={p.id}>{p.project_description}</option>
+            ))}
+          </select>
+          <button onClick={createEmployee} style={{ ...theme.buttonStyle, marginTop: 12, fontSize: 16, width: "100%" }}>
+            REGISTRAR EMPLEADO
+          </button>
+          {message && <p style={{ marginTop: 8, fontSize: 16, color: message.includes("Error") || message.includes("No hay") || message.includes("Completa") ? "#f87171" : theme.accent }}>{message}</p>}
+          <h3 style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginTop: 20, marginBottom: 8 }}>Empleados Activos ({employees.length})</h3>
+          {employees.map((e) => {
+            const proj = apuProjects.find((p) => p.id === e.apu_project_id);
+            return (
+              <div key={e.id} style={{ padding: 10, borderBottom: "1px solid #1F2937", fontSize: 16 }}>
+                {e.full_name} - {e.position} - {e.daily_salary.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/dia
+                {proj && <span style={{ color: theme.accent, fontSize: 13 }}> · {proj.project_description}</span>}
+              </div>
+            );
+          })}
+        </div>
+        <div style={theme.cardStyle}>
+          <h3 style={{ fontSize: 20, color: theme.accent, fontWeight: 700, marginBottom: 12 }}>Procesar Nomina</h3>
+          <p style={{ fontSize: 13, color: "#8B93A7", marginBottom: 10 }}>
+            {(payrollChargesConfig ?? VE_DEFAULT_PAYROLL_CHARGES).name}
+            {employees.length > 0 && employees.length < 5 && (payrollChargesConfig ?? VE_DEFAULT_PAYROLL_CHARGES).employer_pct_min_employees && (
+              <span style={{ color: "#facc15" }}> · con {employees.length} empleado(s) activo(s), algunos cargos patronales con minimo de trabajadores (ej. INCES) no se aplican esta corrida.</span>
+            )}
+          </p>
+          <div style={{ display: "flex", gap: 10 }}>
+            <input type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} style={inputStyle} />
+            <input type="date" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} style={inputStyle} />
+          </div>
+          <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
+            <select value={payrollCurrency} onChange={(e) => { setPayrollCurrency(e.target.value); if (e.target.value === "USD") setPayrollExchangeRate("1"); }} style={inputStyle}>
+              <option value="USD">USD</option>
+              <option value="VES">VES (Bolivares)</option>
+            </select>
+            <input type="number" step="0.0001" value={payrollExchangeRate} onChange={(e) => setPayrollExchangeRate(e.target.value)} style={inputStyle} placeholder="Tasa de Cambio" />
+              <button onClick={fetchBcvRate} type="button" style={{ padding: "0 14px", background: "none", border: "1px solid " + theme.accent, color: theme.accent, borderRadius: 8, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap" }}>Tasa BCV Hoy</button>
+          </div>
+          <button onClick={processPayroll} disabled={processing} style={{ ...theme.buttonStyle, marginTop: 12, fontSize: 16, width: "100%", background: "#f87171" }}>
+            {processing ? "PROCESANDO..." : "PROCESAR NOMINA"}
+          </button>
+          <h3 style={{ fontSize: 18, color: theme.accent, fontWeight: 700, marginTop: 24, marginBottom: 8 }}>Nominas Procesadas</h3>
+          {runs.map((r) => (
+            <div key={r.id} style={{ padding: 10, borderBottom: "1px solid #1F2937", fontSize: 16 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+                <span>
+                  {r.period_start} a {r.period_end} - Neto: <span style={theme.numberStyle}>{r.total_net?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </span>
+                <button onClick={() => toggleRunDetails(r.id)} style={{ background: "none", border: "1px solid " + theme.accent, color: theme.accent, padding: "4px 12px", borderRadius: 8, fontSize: 13, cursor: "pointer" }}>
+                  {expandedRunId === r.id ? "Ocultar Recibos" : "Ver Recibos"}
+                </button>
+              </div>
+              {expandedRunId === r.id && (
+                <div style={{ marginTop: 8, paddingLeft: 8 }}>
+                  {loadingDetailsFor === r.id && <p style={{ fontSize: 13, color: "#8B93A7" }}>Cargando...</p>}
+                  {runDetails[r.id]?.map((d) => (
+                    <div key={d.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderBottom: "1px solid #1F2937" }}>
+                      <span style={{ fontSize: 14 }}>
+                        {d.employees?.full_name ?? "Empleado"} <span style={{ color: "#8B93A7" }}>- Neto {d.net_amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      </span>
+                      <button onClick={() => downloadPayslip(r, d)} style={{ background: "none", border: "1px solid #FACC15", color: "#FACC15", padding: "4px 10px", borderRadius: 6, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap" }}>
+                        Recibo PDF
+                      </button>
+                    </div>
+                  ))}
+                  {runDetails[r.id]?.length === 0 && <p style={{ fontSize: 13, color: "#8B93A7" }}>Sin detalle por empleado para esta corrida.</p>}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
     </VerticalPageLayout>
   );
 }

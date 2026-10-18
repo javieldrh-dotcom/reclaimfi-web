@@ -45,7 +45,7 @@ export default function InventoryPage() {
       if (cid) {
         const { data: companyData } = await supabase.from("companies").select("name").eq("id", cid).single();
         setCompanyName(companyData?.name ?? "");
-        const { data: acc } = await supabase.from("chart_of_accounts").select("id, account_code, account_name, account_type").eq("company_id", cid).in("account_type", ["ASSET", "LIABILITY", "EXPENSE"]);
+        const { data: acc } = await supabase.from("chart_of_accounts").select("id, account_code, account_name, account_type").eq("company_id", cid).eq("is_active", true).in("account_type", ["ASSET", "LIABILITY", "EXPENSE"]);
         setAccounts(acc ?? []);
         const invAcc = (acc ?? []).find((a: any) => a.account_name.toLowerCase().includes("inventario de mercancia"));
         if (invAcc) setInventoryAccountId(invAcc.id);
