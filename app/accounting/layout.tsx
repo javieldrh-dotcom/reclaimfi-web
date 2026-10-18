@@ -29,6 +29,7 @@ const navItems = [
     groupLabel: "CUENTAS Y OPERACIONES",
     items: [
       { href: "/accounting/ar-invoices", label: "Cuentas por Cobrar" },
+      { href: "/accounting/ar-collections", label: "Cobranza (Aging)" },
       { href: "/accounting/ap-bills", label: "Cuentas por Pagar" },
       { href: "/accounting/fixed-assets", label: "Activos Fijos" },
       { href: "/accounting/payroll", label: "Nomina" },
