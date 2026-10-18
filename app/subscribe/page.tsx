@@ -25,6 +25,7 @@ function SubscribePageContent() {
 
   const [authChecked, setAuthChecked] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(true);
+  const [binancePolling, setBinancePolling] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -53,13 +54,60 @@ function SubscribePageContent() {
     load();
   }, []);
 
+  // Al volver del checkout alojado por Binance Pay (returnUrl =
+  // /subscribe?binance_return=1), la activacion real NO ocurre en esta
+  // pagina -- ocurre del lado del servidor cuando llega el webhook de
+  // Binance (puede tardar algunos segundos). En vez de dejar al usuario
+  // viendo una pagina que no dice nada, se consulta periodicamente su
+  // propia suscripcion mas reciente hasta verla en ACTIVE.
+  useEffect(() => {
+    if (searchParams.get("binance_cancel") === "1") {
+      setMessage("Pago con Binance Pay cancelado. Puedes intentarlo de nuevo cuando quieras.");
+      return;
+    }
+    if (searchParams.get("binance_return") !== "1" || !companyId) return;
+
+    setBinancePolling(true);
+    setMessage("Verificando tu pago con Binance Pay... esto puede tardar unos segundos.");
+    let attempts = 0;
+    const interval = setInterval(async () => {
+      attempts++;
+      const { data: latestSub } = await supabase
+        .from("subscriptions")
+        .select("status, plan_id")
+        .eq("company_id", companyId)
+        .order("requested_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (latestSub?.status === "ACTIVE") {
+        clearInterval(interval);
+        setBinancePolling(false);
+        setMessage("Pago con Binance Pay confirmado. Suscripcion activada. Redirigiendo...");
+        const plan = plans.find((p) => p.id === latestSub.plan_id);
+        const redirectMap: Record<string, string> = { RECLAIMFI: "/dashboard", CONTABILIDAD: "/accounting", APU: "/apu/projects", COMPLETO: "/select-module" };
+        const redirectTo = plan ? (redirectMap[plan.plan_code] ?? "/select-module") : "/select-module";
+        setTimeout(() => { router.push(redirectTo); }, 1500);
+      } else if (attempts >= 20) {
+        // ~80 segundos de espera (20 x 4s). Si Binance todavia no confirmo
+        // el pago para entonces, puede ser que el usuario cancelo el pago
+        // en Binance sin volver por cancelUrl, o que el webhook este
+        // tardando mas de lo normal -- no es un error nuestro per se.
+        clearInterval(interval);
+        setBinancePolling(false);
+        setMessage("Binance Pay todavia no confirma tu pago. Si ya pagaste, espera un momento y recarga esta pagina; la activacion es automatica en cuanto Binance nos notifique.");
+      }
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [companyId, searchParams, plans]);
+
   useEffect(() => {
     if (selectedMethod?.method_code !== "PAYPAL" || !selectedPlan?.paypal_plan_id) return;
     const existingScript = document.getElementById("paypal-sdk-script");
     if (existingScript) existingScript.remove();
     const script = document.createElement("script");
     script.id = "paypal-sdk-script";
-    script.src = "https://www.paypal.com/sdk/js?client-id=BAArju91dqDZ3Vza2oWaiZYT0mCwgTB6n-TFh1jXTNh3mN66SvE_K8zi27NoLbIAUVye2cadyPFYpql_GE&vault=true&intent=subscription";
+    script.src = "https://www.paypal.com/sdk/js?client-id=BAA14BzB_9VhviO_C0gWpUwrrpSkF4AMRkzz-wI1E0_VGAEawrXQ-09k-jOguRdCZZzifZFfD41n2B97V4&vault=true&intent=subscription";
     script.onload = () => {
       const container = document.getElementById("paypal-button-container");
       if (container) container.innerHTML = "";
@@ -100,6 +148,40 @@ function SubscribePageContent() {
     };
     document.body.appendChild(script);
   }, [selectedMethod, selectedPlan]);
+
+  // Crea la orden de cobro en Binance Pay y redirige al checkout alojado
+  // por Binance. La activacion de la suscripcion no ocurre aqui -- ocurre
+  // via webhook server-to-server (ver /api/subscriptions/binance-webhook);
+  // esta pagina solo vuelve a consultar el estado cuando el usuario regresa
+  // (ver el useEffect de "binance_return" arriba).
+  async function payWithBinance() {
+    setMessage("");
+    if (authChecked && !isLoggedIn) {
+      setMessage("Debes iniciar sesion antes de pagar con Binance Pay.");
+      return;
+    }
+    if (!selectedPlan) {
+      setMessage("Selecciona un plan.");
+      return;
+    }
+    setMessage("Creando tu orden de pago en Binance Pay...");
+    try {
+      const res = await fetch("/api/subscriptions/binance-create-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ planId: selectedPlan.id, industrySector }),
+      });
+      const result = await res.json();
+      if (!result.success) {
+        setMessage("Error: " + result.error);
+        return;
+      }
+      if (result.companyId) setCompanyId(result.companyId);
+      window.location.href = result.checkoutUrl;
+    } catch (err: any) {
+      setMessage("Error al crear la orden de Binance Pay: " + err.message);
+    }
+  }
   async function importWithholdingTxt(file: File) {
     setMessage("Procesando archivo...");
     const text = await file.text();
@@ -141,6 +223,10 @@ function SubscribePageContent() {
     }
     if (selectedMethod.method_code === "PAYPAL") {
       setMessage("Usa el boton de PayPal para confirmar tu suscripcion.");
+      return;
+    }
+    if (selectedMethod.method_code === "BINANCE_PAY") {
+      setMessage("Usa el boton de Binance Pay para confirmar tu suscripcion.");
       return;
     }
 
@@ -202,6 +288,18 @@ function SubscribePageContent() {
   // PayPal -- y los demas metodos quedan claramente rotulados como opciones
   // adicionales, sin eliminar ninguno (son necesarios para clientes que no
   // tienen tarjeta internacional).
+  //
+  // NOTA (2026-10-17): ya existe la integracion automatica completa para
+  // Binance Pay (app/lib/binancePay.ts + /api/subscriptions/binance-create-order
+  // + /api/subscriptions/binance-webhook), pero Binance exige pasar KYB
+  // (verificacion de negocio: Certificado de Constitucion / Registro
+  // Mercantil) para obtener las credenciales de la cuenta merchant, y
+  // Javiel todavia no tiene ese registro formal. Hasta que lo consiga,
+  // BINANCE_PAY se queda aqui, fuera de AUTOMATIC_METHOD_CODES, mostrandose
+  // como metodo manual igual que antes. El dia que tenga las credenciales,
+  // basta con agregar "BINANCE_PAY" de vuelta a este Set y restaurar el
+  // boton "Pagar con Binance Pay" (ver el commit de esa fecha) en vez del
+  // enlace "Abrir Binance Pay" de abajo.
   const AUTOMATIC_METHOD_CODES = new Set(["PAYPAL"]);
   const automaticMethods = paymentMethods.filter((m) => AUTOMATIC_METHOD_CODES.has(m.method_code));
   const manualMethods = paymentMethods.filter((m) => !AUTOMATIC_METHOD_CODES.has(m.method_code));
