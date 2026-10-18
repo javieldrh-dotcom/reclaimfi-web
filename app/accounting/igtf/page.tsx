@@ -32,7 +32,7 @@ export default function IgtfPage() {
       const cid = uc?.company_id ?? null;
       setCompanyId(cid);
       if (cid) {
-        const { data: acc } = await supabase.from("chart_of_accounts").select("id, account_code, account_name, account_type").eq("company_id", cid).in("account_type", ["ASSET", "EXPENSE"]);
+        const { data: acc } = await supabase.from("chart_of_accounts").select("id, account_code, account_name, account_type").eq("company_id", cid).eq("is_active", true).in("account_type", ["ASSET", "EXPENSE"]);
         setAccounts(acc ?? []);
         const expAcc = (acc ?? []).find((a: any) => a.account_name.toLowerCase().includes("igtf"));
         if (expAcc) setExpenseAccountId(expAcc.id);
