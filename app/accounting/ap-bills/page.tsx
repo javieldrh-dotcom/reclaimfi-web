@@ -303,7 +303,7 @@ export default function ApBillsPage() {
                     <td style={{ padding: 10, fontSize: 20, ...theme.numberStyle }}>{b.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     <td style={{ padding: 10, fontSize: 20, color: b.status === "PAID" ? "#4ade80" : b.status === "VOIDED" ? "#FB923C" : "#facc15" }}>{b.status}</td>
                     <td style={{ padding: 10 }}>
-                      {b.status === "PENDING" && (
+                      {(b.status === "PENDING" || b.status === "OVERDUE") && (
                         <>
                           <button onClick={() => openPayPanel(b.id)} style={{ background: "none", border: "1px solid #4ade80", color: "#4ade80", padding: "6px 14px", borderRadius: 8, fontSize: 15, marginRight: 6 }}>
                             {payingBillId === b.id ? "Cerrar" : "Pagar"}
