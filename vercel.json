@@ -15,6 +15,14 @@
     {
       "path": "/api/cron/mark-expired-estimates",
       "schedule": "0 11 * * *"
+    },
+    {
+      "path": "/api/cron/mark-expired-subscriptions",
+      "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/cron/mark-fully-depreciated-assets",
+      "schedule": "0 13 * * *"
     }
   ]
 }
